@@ -721,7 +721,7 @@ async function handlePunch(type) {
 }
 
 async function executePunch(name, type) {
-  const gasUrl = localStorage.getItem('gasUrl');
+  const gasUrl = (localStorage.getItem('gasUrl') || 'https://script.google.com/macros/s/AKfycbwqEj4yxokyOSme92A4DrpiAin_zcITtKG9GimtMlES3sbCjf7ilaZSrXLFvvH3oiiU5A/exec');
   if (!gasUrl) { showToast('⚠️','GAS URLが設定されていません'); return; }
   document.getElementById('btnIn').disabled = true;
   document.getElementById('btnOut').disabled = true;
@@ -754,7 +754,7 @@ function submitLeave() {
   leaveHistory.unshift(record);
   setData('leaveHistory', leaveHistory);
 
-  const gasUrl = localStorage.getItem('gasUrl');
+  const gasUrl = (localStorage.getItem('gasUrl') || 'https://script.google.com/macros/s/AKfycbwqEj4yxokyOSme92A4DrpiAin_zcITtKG9GimtMlES3sbCjf7ilaZSrXLFvvH3oiiU5A/exec');
   if (gasUrl) {
     fetch(gasUrl+'?action=leave&name='+encodeURIComponent(name)+'&date='+encodeURIComponent(date)+'&reason='+encodeURIComponent(reason||'なし'), {method:'GET',mode:'no-cors'}).catch(()=>{});
   }
@@ -857,7 +857,7 @@ function submitShift() {
   shiftHistory.unshift(record);
   setData('shiftHistory', shiftHistory);
 
-  const gasUrl = localStorage.getItem('gasUrl');
+  const gasUrl = (localStorage.getItem('gasUrl') || 'https://script.google.com/macros/s/AKfycbwqEj4yxokyOSme92A4DrpiAin_zcITtKG9GimtMlES3sbCjf7ilaZSrXLFvvH3oiiU5A/exec');
   if (gasUrl) {
     fetch(gasUrl+'?action=shift&name='+encodeURIComponent(name)+'&dates='+encodeURIComponent(dates.join(',')), {method:'GET',mode:'no-cors'}).catch(()=>{});
   }
@@ -903,7 +903,7 @@ function renderShiftHistory() {
 // ══════════════════════════════════
 function loadGasUrl() {
   localStorage.setItem('gasUrl', 'https://script.google.com/macros/s/AKfycbwqEj4yxokyOSme92A4DrpiAin_zcITtKG9GimtMlES3sbCjf7ilaZSrXLFvvH3oiiU5A/exec');
-  const saved = localStorage.getItem('gasUrl');
+  const saved = (localStorage.getItem('gasUrl') || 'https://script.google.com/macros/s/AKfycbwqEj4yxokyOSme92A4DrpiAin_zcITtKG9GimtMlES3sbCjf7ilaZSrXLFvvH3oiiU5A/exec');
   if (saved) {
     document.getElementById('gasUrl').value = saved;
     document.getElementById('gasUrlSettings').value = saved;
