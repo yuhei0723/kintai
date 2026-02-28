@@ -1,0 +1,1309 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>勤怠管理</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+:root {
+  --bg:#0f0f0f; --surface:#1a1a1a; --surface2:#222; --surface3:#2a2a2a;
+  --border:#2e2e2e; --border2:#3a3a3a;
+  --text:#f0f0f0; --text-sub:#888; --text-dim:#555;
+  --green:#22c55e; --green-bg:#0d2818;
+  --red:#ef4444; --red-bg:#2a0d0d;
+  --amber:#f59e0b; --amber-bg:#2a1f00;
+  --blue:#3b82f6; --blue-bg:#0d1a2e;
+  --radius:16px;
+}
+body {
+  font-family:'Noto Sans JP',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  padding-bottom:40px;
+}
+
+/* ── NAV ── */
+.nav {
+  position:sticky; top:0; z-index:50;
+  background:rgba(15,15,15,0.9);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  padding:0 16px;
+  display:flex; gap:4px;
+  overflow-x:auto;
+}
+.nav::-webkit-scrollbar { display:none; }
+.nav-btn {
+  padding:14px 16px;
+  background:none; border:none;
+  color:var(--text-sub);
+  font-family:'Noto Sans JP',sans-serif;
+  font-size:13px; font-weight:500;
+  cursor:pointer; white-space:nowrap;
+  border-bottom:2px solid transparent;
+  transition:all 0.2s;
+}
+.nav-btn.active { color:var(--text); border-bottom-color:var(--amber); }
+
+/* ── PAGES ── */
+.page { display:none; padding:20px 16px; max-width:480px; margin:0 auto; }
+.page.active { display:block; }
+
+/* ── CARD ── */
+.card {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:24px 20px;
+  margin-bottom:16px;
+}
+
+/* ── CLOCK ── */
+.clock-wrap { text-align:center; margin-bottom:24px; }
+.clock {
+  font-family:'DM Mono',monospace;
+  font-size:48px; font-weight:500;
+  letter-spacing:-0.02em; line-height:1;
+  margin-bottom:6px;
+}
+.clock-date { font-size:13px; color:var(--text-sub); }
+
+/* ── LABEL ── */
+.label {
+  font-size:11px; letter-spacing:0.15em;
+  text-transform:uppercase; color:var(--text-sub);
+  font-family:'DM Mono',monospace;
+  margin-bottom:8px;
+}
+
+/* ── SELECT ── */
+.sel-wrap { position:relative; margin-bottom:20px; }
+select {
+  width:100%; padding:14px 40px 14px 14px;
+  background:var(--surface2); border:1px solid var(--border);
+  border-radius:12px; color:var(--text);
+  font-family:'Noto Sans JP',sans-serif; font-size:15px;
+  appearance:none; cursor:pointer; outline:none;
+  transition:border-color 0.2s;
+}
+select:focus { border-color:var(--amber); }
+.sel-arrow { position:absolute; right:14px; top:50%; transform:translateY(-50%); color:var(--text-sub); pointer-events:none; }
+
+/* ── BUTTONS ── */
+.btn-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px; }
+.btn {
+  padding:20px 12px; border:none; border-radius:14px;
+  font-family:'Noto Sans JP',sans-serif;
+  font-size:16px; font-weight:700;
+  cursor:pointer; transition:all 0.15s;
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+}
+.btn:active { transform:scale(0.96); }
+.btn:disabled { opacity:0.35; cursor:not-allowed; transform:none; }
+.btn-icon { font-size:24px; }
+.btn-green { background:var(--green-bg); color:var(--green); border:1px solid var(--green); }
+.btn-green:hover:not(:disabled) { box-shadow:0 0 20px rgba(34,197,94,0.2); }
+.btn-red { background:var(--red-bg); color:var(--red); border:1px solid var(--red); }
+.btn-red:hover:not(:disabled) { box-shadow:0 0 20px rgba(239,68,68,0.2); }
+.btn-amber { background:var(--amber-bg); color:var(--amber); border:1px solid var(--amber); }
+.btn-blue { background:var(--blue-bg); color:var(--blue); border:1px solid var(--blue); }
+.btn-full {
+  width:100%; padding:14px; border:none; border-radius:12px;
+  font-family:'Noto Sans JP',sans-serif; font-size:15px; font-weight:700;
+  cursor:pointer; transition:all 0.15s; margin-top:8px;
+}
+.btn-full:active { transform:scale(0.98); }
+.btn-full-amber { background:var(--amber); color:#000; }
+.btn-full-amber:hover { opacity:0.9; }
+.btn-full-blue { background:var(--blue); color:#fff; }
+.btn-full-blue:hover { opacity:0.9; }
+.btn-full-red { background:var(--red-bg); color:var(--red); border:1px solid var(--red); }
+
+/* ── INPUT ── */
+input[type=text], input[type=date], textarea {
+  width:100%; padding:12px 14px;
+  background:var(--surface2); border:1px solid var(--border);
+  border-radius:10px; color:var(--text);
+  font-family:'Noto Sans JP',sans-serif; font-size:14px;
+  outline:none; transition:border-color 0.2s;
+  margin-bottom:12px;
+}
+input[type=text]:focus, input[type=date]:focus, textarea:focus { border-color:var(--amber); }
+input[type=date]::-webkit-calendar-picker-indicator { filter:invert(0.5); }
+textarea { resize:vertical; min-height:80px; }
+
+/* ── TAG ── */
+.tag {
+  display:inline-block; padding:3px 10px;
+  border-radius:20px; font-size:11px; font-weight:700;
+}
+.tag-pending { background:var(--amber-bg); color:var(--amber); border:1px solid var(--amber); }
+.tag-approved { background:var(--green-bg); color:var(--green); border:1px solid var(--green); }
+.tag-rejected { background:var(--red-bg); color:var(--red); border:1px solid var(--red); }
+
+/* ── LIST ITEMS ── */
+.list-item {
+  background:var(--surface2); border:1px solid var(--border);
+  border-radius:12px; padding:14px 16px;
+  margin-bottom:10px; display:flex; align-items:center; justify-content:space-between;
+}
+.list-item-left { display:flex; align-items:center; gap:12px; }
+.list-item-name { font-size:14px; font-weight:500; }
+.list-item-sub { font-size:12px; color:var(--text-sub); margin-top:2px; }
+
+/* ── EMPLOYEE ITEM ── */
+.emp-item {
+  background:var(--surface2); border:1px solid var(--border);
+  border-radius:12px; padding:12px 16px;
+  margin-bottom:8px; display:flex; align-items:center; justify-content:space-between;
+}
+.emp-name { font-size:14px; font-weight:500; }
+.emp-type { font-size:11px; color:var(--text-sub); margin-top:2px; }
+.emp-actions { display:flex; gap:8px; }
+.icon-btn {
+  width:32px; height:32px; border:none; border-radius:8px;
+  background:var(--surface3); color:var(--text-sub);
+  cursor:pointer; font-size:14px; display:flex; align-items:center; justify-content:center;
+  transition:all 0.15s;
+}
+.icon-btn:hover { background:var(--border2); color:var(--text); }
+.icon-btn.danger:hover { background:var(--red-bg); color:var(--red); }
+
+/* ── CALENDAR ── */
+.cal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+.cal-title { font-size:16px; font-weight:700; }
+.cal-nav { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:6px 12px; color:var(--text); cursor:pointer; font-size:14px; }
+.cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+.cal-day-label { text-align:center; font-size:11px; color:var(--text-sub); padding:6px 0; font-family:'DM Mono',monospace; }
+.cal-day {
+  aspect-ratio:1; border-radius:8px; border:1px solid transparent;
+  display:flex; align-items:center; justify-content:center;
+  font-size:13px; cursor:pointer; transition:all 0.15s;
+  background:var(--surface2);
+}
+.cal-day:hover:not(.cal-day-empty):not(.cal-day-past) { border-color:var(--amber); color:var(--amber); }
+.cal-day.selected { background:var(--amber); color:#000; font-weight:700; border-color:var(--amber); }
+.cal-day.today { border-color:var(--blue); color:var(--blue); }
+.cal-day.cal-day-empty { background:transparent; border-color:transparent; cursor:default; }
+.cal-day.cal-day-past { opacity:0.3; cursor:not-allowed; }
+.cal-day.approved { background:var(--green-bg); color:var(--green); border-color:var(--green); cursor:default; }
+
+/* ── SECTION TITLE ── */
+.section-title { font-size:14px; font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+
+/* ── SETUP ── */
+.setup-box {
+  background:var(--surface2); border:1px dashed var(--border2);
+  border-radius:12px; padding:16px; margin-top:16px;
+}
+.setup-title-row { font-size:11px; letter-spacing:0.15em; text-transform:uppercase; color:var(--amber); font-family:'DM Mono',monospace; margin-bottom:10px; }
+.setup-note { font-size:11px; color:var(--text-sub); line-height:1.7; margin-top:8px; }
+.status-dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--red); margin-right:5px; vertical-align:middle; }
+.status-dot.on { background:var(--green); }
+
+
+
+/* ── SELFIE ── */
+@keyframes pulse-border {
+  0%,100% { opacity:0.6; }
+  50% { opacity:1; }
+}
+#selfieGuide div { animation: pulse-border 2s infinite; }
+
+/* ── PIN ── */
+.pin-dot {
+  width:14px; height:14px; border-radius:50%;
+  border:2px solid var(--border2); background:transparent;
+  transition:all 0.15s;
+}
+.pin-dot.filled { background:var(--amber); border-color:var(--amber); }
+.pin-dot.error { background:var(--red); border-color:var(--red); }
+.pin-key {
+  padding:16px; border:1px solid var(--border2);
+  border-radius:12px; background:var(--surface2); color:var(--text);
+  font-family:'DM Mono',monospace; font-size:20px; font-weight:500;
+  cursor:pointer; transition:all 0.1s;
+}
+.pin-key:active { background:var(--surface3); transform:scale(0.95); }
+.pin-key-clear { color:var(--red); border-color:var(--red-bg); }
+.pin-key-del { color:var(--text-sub); }
+
+/* ── QR ── */
+.qr-item {
+  background:var(--surface2); border:1px solid var(--border);
+  border-radius:12px; padding:16px; margin-bottom:12px;
+}
+.qr-item-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+.qr-item-name { font-size:15px; font-weight:700; }
+.qr-item-type { font-size:11px; color:var(--text-sub); margin-top:2px; }
+.qr-canvas-wrap { display:flex; justify-content:center; margin-bottom:12px; }
+.qr-canvas-wrap canvas { border-radius:8px; }
+.qr-url { font-size:10px; color:var(--text-dim); word-break:break-all; margin-bottom:10px; font-family:'DM Mono',monospace; }
+.qr-btns { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.qr-btn {
+  padding:10px; border:none; border-radius:8px;
+  font-family:'Noto Sans JP',sans-serif; font-size:12px; font-weight:700;
+  cursor:pointer; transition:all 0.15s;
+}
+.qr-btn-print { background:var(--surface3); color:var(--text); border:1px solid var(--border2); }
+.qr-btn-copy { background:var(--amber-bg); color:var(--amber); border:1px solid var(--amber); }
+.qr-btn:hover { opacity:0.85; }
+.divider { height:1px; background:var(--border); margin:20px 0; }
+
+/* ── TOAST ── */
+.toast {
+  position:fixed; bottom:28px; left:50%;
+  transform:translateX(-50%) translateY(80px);
+  background:var(--surface2); border:1px solid var(--border2);
+  border-radius:12px; padding:13px 18px;
+  display:flex; align-items:center; gap:10px;
+  min-width:260px; max-width:340px;
+  box-shadow:0 8px 32px rgba(0,0,0,0.6);
+  transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  z-index:200; white-space:nowrap;
+}
+.toast.show { transform:translateX(-50%) translateY(0); }
+
+/* ── MODAL ── */
+.overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,0.7);
+  z-index:100; display:none; align-items:center; justify-content:center; padding:20px;
+}
+.overlay.open { display:flex; }
+.modal {
+  background:var(--surface); border:1px solid var(--border2);
+  border-radius:20px; padding:24px 20px; width:100%; max-width:360px;
+}
+.modal-title { font-size:16px; font-weight:700; margin-bottom:16px; }
+.modal-actions { display:flex; gap:10px; margin-top:16px; }
+.modal-actions .btn-full { margin-top:0; flex:1; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav" id="mainNav">
+  <button class="nav-btn active" onclick="showPage('punch')">⏱ 打刻</button>
+  <button class="nav-btn" onclick="showPage('leave')">📝 有給申請</button>
+  <button class="nav-btn" id="navShift" onclick="showPage('shift')">📆 シフト申請</button>
+  <button class="nav-btn" id="navEmployees" onclick="showPage('employees')">👥 社員管理</button>
+  <button class="nav-btn" id="navQr" onclick="showPage('qr')">🔗 QRコード</button>
+  <button class="nav-btn" onclick="showPage('settings')">⚙️ 設定</button>
+</nav>
+
+<!-- 個人ページ用バナー -->
+<div id="personalBanner" style="display:none;background:linear-gradient(90deg,#2a1f00,#1a1a1a);border-bottom:1px solid var(--amber);padding:10px 20px;text-align:center;font-size:13px;color:var(--amber);">
+  👤 <span id="bannerName"></span>さんの専用ページ
+</div>
+
+<!-- ══════════════════════════════════════
+     PAGE: 打刻
+══════════════════════════════════════ -->
+<div class="page active" id="page-punch">
+  <div class="card">
+    <div class="clock-wrap">
+      <div class="clock" id="clock">--:--</div>
+      <div class="clock-date" id="date">読み込み中...</div>
+    </div>
+    <div class="label">氏名を選択</div>
+    <div class="sel-wrap">
+      <select id="punchName"><option value="">-- 選択してください --</option></select>
+      <span class="sel-arrow">▼</span>
+    </div>
+    <div class="label">打刻</div>
+    <div class="btn-grid">
+      <button class="btn btn-green" id="btnIn" onclick="handlePunch('出勤')">
+        <span class="btn-icon">🟢</span>出勤
+      </button>
+      <button class="btn btn-red" id="btnOut" onclick="handlePunch('退勤')">
+        <span class="btn-icon">🔴</span>退勤
+      </button>
+    </div>
+  </div>
+
+  <div class="setup-box">
+    <div class="setup-title-row">⚙️ GAS連携設定　<span id="statusDot" class="status-dot"></span><span id="statusText">未設定</span></div>
+    <input type="text" id="gasUrl" placeholder="Google Apps Script の WebアプリURL" style="margin-bottom:8px;">
+    <button class="btn-full btn-full-amber" onclick="saveGasUrl()">URLを保存する</button>
+    <div class="setup-note">※ GASをデプロイして発行されたURLを貼り付けてください。</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PAGE: 有給申請
+══════════════════════════════════════ -->
+<div class="page" id="page-leave">
+  <div class="card">
+    <div class="section-title">📝 有給申請</div>
+    <div class="label">申請者</div>
+    <div class="sel-wrap" style="margin-bottom:16px;">
+      <select id="leaveName"><option value="">-- 選択してください --</option></select>
+      <span class="sel-arrow">▼</span>
+    </div>
+    <div class="label">取得日</div>
+    <input type="date" id="leaveDate">
+    <div class="label">理由（任意）</div>
+    <textarea id="leaveReason" placeholder="私用のため　など"></textarea>
+    <button class="btn-full btn-full-amber" onclick="submitLeave()">申請する</button>
+  </div>
+
+  <div class="card">
+    <div class="section-title">📋 申請履歴</div>
+    <div id="leaveHistory"><div style="color:var(--text-sub);font-size:13px;">申請はまだありません</div></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PAGE: シフト申請
+══════════════════════════════════════ -->
+<div class="page" id="page-shift">
+  <div class="card">
+    <div class="section-title">📆 シフト希望申請</div>
+    <div class="label">申請者</div>
+    <div class="sel-wrap" style="margin-bottom:16px;">
+      <select id="shiftName"><option value="">-- 選択してください --</option></select>
+      <span class="sel-arrow">▼</span>
+    </div>
+
+    <div class="cal-header">
+      <button class="cal-nav" onclick="changeMonth(-1)">◀</button>
+      <div class="cal-title" id="calTitle"></div>
+      <button class="cal-nav" onclick="changeMonth(1)">▶</button>
+    </div>
+
+    <div class="cal-grid" id="calDayLabels"></div>
+    <div class="cal-grid" id="calGrid" style="margin-top:4px;"></div>
+
+    <div style="margin-top:14px;font-size:12px;color:var(--text-sub);">
+      🟡 選択中　🟢 申請済み
+    </div>
+    <button class="btn-full btn-full-blue" style="margin-top:16px;" onclick="submitShift()">希望を送信する</button>
+  </div>
+
+  <div class="card">
+    <div class="section-title">📋 申請履歴</div>
+    <div id="shiftHistory"><div style="color:var(--text-sub);font-size:13px;">申請はまだありません</div></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PAGE: 社員管理
+══════════════════════════════════════ -->
+<div class="page" id="page-employees">
+  <div class="card">
+    <div class="section-title">➕ 社員を追加</div>
+    <div class="label">氏名</div>
+    <input type="text" id="newEmpName" placeholder="例：田中 太郎">
+    <div class="label">雇用区分</div>
+    <div class="sel-wrap" style="margin-bottom:12px;">
+      <select id="newEmpType">
+        <option value="正社員">正社員</option>
+        <option value="パート">パート</option>
+      </select>
+      <span class="sel-arrow">▼</span>
+    </div>
+    <div class="label">チーム</div>
+    <div class="sel-wrap" style="margin-bottom:12px;">
+      <select id="newEmpTeam">
+        <option value="営業">営業（スマホ）</option>
+        <option value="オフィス">オフィス（iPad）</option>
+      </select>
+      <span class="sel-arrow">▼</span>
+    </div>
+    <button class="btn-full btn-full-amber" onclick="addEmployee()">追加する</button>
+  </div>
+
+  <div class="card">
+    <div class="section-title">👥 社員一覧</div>
+    <div id="employeeList"></div>
+  </div>
+
+  <div class="card" id="pinSettingsCard">
+    <div class="section-title">🔐 PINコード管理（iPadチーム用）</div>
+    <div style="font-size:13px;color:var(--text-sub);margin-bottom:14px;line-height:1.7;">
+      iPadチームの社員にPINコードを設定します。打刻時にPINの入力が必要になります。
+    </div>
+    <div id="pinSettingsList"></div>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════
+     PAGE: QRコード
+══════════════════════════════════════ -->
+<div class="page" id="page-qr">
+  <div class="card">
+    <div class="section-title">🔗 個人専用URLとQRコード</div>
+    <div style="font-size:13px;color:var(--text-sub);margin-bottom:16px;line-height:1.7;">
+      各社員の専用URLを発行します。このURLを開くと自動的に本人の名前が設定され、他の人を選択できなくなります。
+    </div>
+    <div id="qrList"></div>
+  </div>
+  <div class="card">
+    <div class="section-title">📋 配布方法</div>
+    <div style="font-size:13px;color:var(--text-sub);line-height:1.8;">
+      <b style="color:var(--text);">① QRコードを印刷</b><br>
+      各社員のQRコードを印刷して渡すか、デスクに貼る。<br><br>
+      <b style="color:var(--text);">② SlackでURLを送る</b><br>
+      「URLをコピー」してSlackのDMで送り、スマホのホーム画面に追加してもらう。<br><br>
+      <b style="color:var(--text);">③ ホーム画面への追加方法（社員に案内）</b><br>
+      iPhoneの場合：Safariで開く→共有ボタン→「ホーム画面に追加」<br>
+      Androidの場合：Chromeで開く→メニュー→「ホーム画面に追加」
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PAGE: 設定
+══════════════════════════════════════ -->
+<div class="page" id="page-settings">
+  <div class="card">
+    <div class="section-title">⚙️ GAS URL設定</div>
+    <div class="label">WebアプリURL</div>
+    <input type="text" id="gasUrlSettings" placeholder="https://script.google.com/macros/s/...">
+    <button class="btn-full btn-full-amber" onclick="saveGasUrlSettings()">保存する</button>
+  </div>
+
+  <div class="card">
+    <div class="section-title" style="color:var(--red);">🗑 データ管理</div>
+    <div style="font-size:13px;color:var(--text-sub);margin-bottom:12px;">申請履歴・社員データをリセットします。打刻ログはスプレッドシートに残ります。</div>
+    <button class="btn-full btn-full-red" onclick="confirmReset()">データをリセット</button>
+  </div>
+</div>
+
+<!-- ── MODAL: 社員編集 ── -->
+<div class="overlay" id="editOverlay">
+  <div class="modal">
+    <div class="modal-title">社員情報を編集</div>
+    <div class="label">氏名</div>
+    <input type="text" id="editEmpName">
+    <div class="label">雇用区分</div>
+    <div class="sel-wrap">
+      <select id="editEmpType">
+        <option value="正社員">正社員</option>
+        <option value="パート">パート</option>
+      </select>
+      <span class="sel-arrow">▼</span>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-full" style="background:var(--surface3);color:var(--text);border:1px solid var(--border);" onclick="closeModal()">キャンセル</button>
+      <button class="btn-full btn-full-amber" onclick="saveEdit()">保存</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ── MODAL: PIN認証 ── -->
+<div class="overlay" id="pinOverlay">
+  <div class="modal" style="max-width:300px;text-align:center;">
+    <div style="font-size:32px;margin-bottom:8px;">🔐</div>
+    <div class="modal-title" style="text-align:center;" id="pinModalName">PINを入力</div>
+    <div style="font-size:13px;color:var(--text-sub);margin-bottom:20px;">4桁のPINコードを入力してください</div>
+    <div id="pinDots" style="display:flex;justify-content:center;gap:12px;margin-bottom:20px;">
+      <div class="pin-dot"></div><div class="pin-dot"></div>
+      <div class="pin-dot"></div><div class="pin-dot"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;">
+      <button class="pin-key" onclick="pinInput('1')">1</button>
+      <button class="pin-key" onclick="pinInput('2')">2</button>
+      <button class="pin-key" onclick="pinInput('3')">3</button>
+      <button class="pin-key" onclick="pinInput('4')">4</button>
+      <button class="pin-key" onclick="pinInput('5')">5</button>
+      <button class="pin-key" onclick="pinInput('6')">6</button>
+      <button class="pin-key" onclick="pinInput('7')">7</button>
+      <button class="pin-key" onclick="pinInput('8')">8</button>
+      <button class="pin-key" onclick="pinInput('9')">9</button>
+      <button class="pin-key pin-key-clear" onclick="pinClear()">✕</button>
+      <button class="pin-key" onclick="pinInput('0')">0</button>
+      <button class="pin-key pin-key-del" onclick="pinDelete()">⌫</button>
+    </div>
+    <button class="btn-full" style="background:var(--surface3);color:var(--text);border:1px solid var(--border);margin-top:4px;" onclick="closePinModal()">キャンセル</button>
+  </div>
+</div>
+
+
+<!-- ── MODAL: セルフィー撮影 ── -->
+<div class="overlay" id="selfieOverlay">
+  <div class="modal" style="max-width:340px;">
+    <div class="modal-title" style="text-align:center;" id="selfieModalTitle">📸 セルフィー撮影</div>
+    <div style="font-size:13px;color:var(--text-sub);text-align:center;margin-bottom:14px;" id="selfieModalSub">カメラに顔を向けて撮影してください</div>
+
+    <!-- カメラプレビュー -->
+    <div style="position:relative;border-radius:12px;overflow:hidden;background:#000;margin-bottom:12px;aspect-ratio:4/3;">
+      <video id="selfieVideo" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1);"></video>
+      <canvas id="selfieCanvas" style="display:none;"></canvas>
+      <img id="selfiePreview" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:12px;" />
+      <!-- ガイド枠 -->
+      <div id="selfieGuide" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;">
+        <div style="width:120px;height:150px;border:2px dashed rgba(245,158,11,0.6);border-radius:60px;"></div>
+      </div>
+    </div>
+
+    <div id="selfieBtns">
+      <button class="btn-full btn-full-amber" onclick="takeSelfie()" id="btnShoot">📸 撮影する</button>
+      <button class="btn-full" style="background:var(--surface3);color:var(--text);border:1px solid var(--border);margin-top:8px;" onclick="closeSelfieModal()">キャンセル</button>
+    </div>
+    <div id="selfieConfirmBtns" style="display:none;">
+      <button class="btn-full btn-full-blue" onclick="confirmSelfie()">✅ この写真で打刻する</button>
+      <button class="btn-full" style="background:var(--surface3);color:var(--text);border:1px solid var(--border);margin-top:8px;" onclick="retakeSelfie()">🔄 撮り直す</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <span id="toastIcon">✅</span>
+  <span id="toastText" style="font-size:13px;"></span>
+</div>
+
+<script>
+// ══════════════════════════════════
+// DATA
+// ══════════════════════════════════
+function getData(key, def) {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : def; } catch(e) { return def; }
+}
+function setData(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+
+let employees = getData('employees', [
+  {id:1,  name:'牛膓',      type:'正社員', team:'営業',    device:'smartphone'},
+  {id:2,  name:'齋藤',      type:'正社員', team:'営業',    device:'smartphone'},
+  {id:3,  name:'南岡',      type:'正社員', team:'営業',    device:'smartphone'},
+  {id:4,  name:'鈴木由加',  type:'パート', team:'営業',    device:'smartphone'},
+  {id:5,  name:'伊藤',      type:'正社員', team:'オフィス', device:'tablet'},
+  {id:6,  name:'生天目',    type:'正社員', team:'オフィス', device:'tablet'},
+  {id:7,  name:'金森',      type:'正社員', team:'オフィス', device:'tablet'},
+  {id:8,  name:'西岡',      type:'正社員', team:'オフィス', device:'tablet'},
+  {id:9,  name:'鈴木あかね',type:'パート', team:'オフィス', device:'tablet'},
+  {id:10, name:'鈴木美咲',  type:'パート', team:'オフィス', device:'tablet'},
+]);
+let leaveHistory = getData('leaveHistory', []);
+let shiftHistory = getData('shiftHistory', []);
+let editingId = null;
+
+// ══════════════════════════════════
+// CLOCK
+// ══════════════════════════════════
+function updateClock() {
+  const now = new Date();
+  const days = ['日','月','火','水','木','金','土'];
+  document.getElementById('clock').textContent =
+    now.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  document.getElementById('date').textContent =
+    now.getFullYear()+'年'+(now.getMonth()+1)+'月'+now.getDate()+'日（'+days[now.getDay()]+'）';
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ══════════════════════════════════
+// PAGE NAV
+// ══════════════════════════════════
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  event.target.classList.add('active');
+  if (id === 'employees') { renderEmployees(); renderPinSettingsList(); }
+  if (id === 'leave') renderLeaveHistory();
+  if (id === 'shift') {
+    renderShiftHistory();
+    checkShiftAccess();
+  }
+  if (id === 'qr') renderQrList();
+}
+
+// ══════════════════════════════════
+// EMPLOYEE
+// ══════════════════════════════════
+function refreshSelects() {
+  ['punchName','leaveName','shiftName'].forEach(id => {
+    const sel = document.getElementById(id);
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">-- 選択してください --</option>';
+    employees.forEach(e => {
+      const o = document.createElement('option');
+      o.value = e.name; o.textContent = e.name + '（'+e.type+'）';
+      sel.appendChild(o);
+    });
+    sel.value = cur;
+  });
+}
+
+function renderEmployees() {
+  const el = document.getElementById('employeeList');
+  if (!employees.length) { el.innerHTML = '<div style="color:var(--text-sub);font-size:13px;">社員が登録されていません</div>'; return; }
+  el.innerHTML = employees.map(e => {
+    const teamBadge = e.device === 'smartphone'
+      ? '<span style="font-size:10px;background:#0d2818;color:#22c55e;border:1px solid #22c55e;border-radius:4px;padding:2px 6px;margin-left:6px;">📱営業</span>'
+      : '<span style="font-size:10px;background:#0d1a2e;color:#3b82f6;border:1px solid #3b82f6;border-radius:4px;padding:2px 6px;margin-left:6px;">📲iPad</span>';
+    return `
+    <div class="emp-item">
+      <div>
+        <div class="emp-name">${e.name} ${teamBadge}</div>
+        <div class="emp-type">${e.type}</div>
+      </div>
+      <div class="emp-actions">
+        <button class="icon-btn" onclick="openEdit(${e.id})">✏️</button>
+        <button class="icon-btn danger" onclick="deleteEmployee(${e.id})">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function addEmployee() {
+  const name = document.getElementById('newEmpName').value.trim();
+  const type = document.getElementById('newEmpType').value;
+  const team = document.getElementById('newEmpTeam').value;
+  const device = team === '営業' ? 'smartphone' : 'tablet';
+  if (!name) { showToast('⚠️','氏名を入力してください'); return; }
+  if (employees.find(e => e.name === name)) { showToast('⚠️','同じ名前の社員が既に存在します'); return; }
+  const id = Date.now();
+  employees.push({id, name, type, team, device});
+  setData('employees', employees);
+  document.getElementById('newEmpName').value = '';
+  renderEmployees();
+  refreshSelects();
+  showToast('✅', name+'さんを追加しました');
+}
+
+function deleteEmployee(id) {
+  const emp = employees.find(e => e.id === id);
+  if (!confirm(emp.name+'さんを削除しますか？')) return;
+  employees = employees.filter(e => e.id !== id);
+  setData('employees', employees);
+  renderEmployees();
+  refreshSelects();
+  showToast('🗑', '削除しました');
+}
+
+function openEdit(id) {
+  editingId = id;
+  const emp = employees.find(e => e.id === id);
+  document.getElementById('editEmpName').value = emp.name;
+  document.getElementById('editEmpType').value = emp.type;
+  document.getElementById('editOverlay').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('editOverlay').classList.remove('open');
+  editingId = null;
+}
+
+function saveEdit() {
+  const name = document.getElementById('editEmpName').value.trim();
+  const type = document.getElementById('editEmpType').value;
+  if (!name) { showToast('⚠️','氏名を入力してください'); return; }
+  const emp = employees.find(e => e.id === editingId);
+  emp.name = name; emp.type = type;
+  setData('employees', employees);
+  closeModal();
+  renderEmployees();
+  refreshSelects();
+  showToast('✅','更新しました');
+}
+
+// ══════════════════════════════════
+// PUNCH
+// ══════════════════════════════════
+async function handlePunch(type) {
+  const name = document.getElementById('punchName').value;
+  if (!name) { showToast('⚠️','氏名を選択してください'); return; }
+  const emp = employees.find(e => e.name === name);
+  // iPadチームはセルフィー撮影
+  if (emp && emp.device === 'tablet' && !personalUser) {
+    openSelfieModal(name, type);
+    return;
+  }
+  executePunch(name, type);
+}
+
+async function executePunch(name, type) {
+  const gasUrl = localStorage.getItem('gasUrl');
+  if (!gasUrl) { showToast('⚠️','GAS URLが設定されていません'); return; }
+  document.getElementById('btnIn').disabled = true;
+  document.getElementById('btnOut').disabled = true;
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
+  try {
+    await fetch(gasUrl+'?action=punch&name='+encodeURIComponent(name)+'&type='+encodeURIComponent(type)+'&timestamp='+now.toISOString(), {method:'GET',mode:'no-cors'});
+    showToast('✅', name+'さんの'+type+'を記録しました（'+timeStr+'）');
+  } catch(e) {
+    showToast('❌','送信に失敗しました');
+  } finally {
+    setTimeout(() => {
+      document.getElementById('btnIn').disabled = false;
+      document.getElementById('btnOut').disabled = false;
+    }, 2000);
+  }
+}
+
+// ══════════════════════════════════
+// LEAVE
+// ══════════════════════════════════
+function submitLeave() {
+  const name = document.getElementById('leaveName').value;
+  const date = document.getElementById('leaveDate').value;
+  const reason = document.getElementById('leaveReason').value.trim();
+  if (!name) { showToast('⚠️','申請者を選択してください'); return; }
+  if (!date) { showToast('⚠️','取得日を選択してください'); return; }
+
+  const record = { id:Date.now(), name, date, reason, status:'pending', createdAt: new Date().toISOString() };
+  leaveHistory.unshift(record);
+  setData('leaveHistory', leaveHistory);
+
+  const gasUrl = localStorage.getItem('gasUrl');
+  if (gasUrl) {
+    fetch(gasUrl+'?action=leave&name='+encodeURIComponent(name)+'&date='+encodeURIComponent(date)+'&reason='+encodeURIComponent(reason||'なし'), {method:'GET',mode:'no-cors'}).catch(()=>{});
+  }
+
+  document.getElementById('leaveName').value = '';
+  document.getElementById('leaveDate').value = '';
+  document.getElementById('leaveReason').value = '';
+  renderLeaveHistory();
+  showToast('📝', '有給申請を送信しました');
+}
+
+function renderLeaveHistory() {
+  const el = document.getElementById('leaveHistory');
+  if (!leaveHistory.length) { el.innerHTML = '<div style="color:var(--text-sub);font-size:13px;">申請はまだありません</div>'; return; }
+  el.innerHTML = leaveHistory.map(r => `
+    <div class="list-item">
+      <div class="list-item-left">
+        <div>
+          <div class="list-item-name">${r.name}</div>
+          <div class="list-item-sub">${r.date}　${r.reason || ''}</div>
+        </div>
+      </div>
+      <span class="tag tag-${r.status}">${r.status==='pending'?'審査中':r.status==='approved'?'承認':'却下'}</span>
+    </div>
+  `).join('');
+}
+
+// ══════════════════════════════════
+// SHIFT CALENDAR
+// ══════════════════════════════════
+let calYear, calMonth, selectedDates = new Set();
+
+function initCalendar() {
+  const now = new Date();
+  calYear = now.getFullYear();
+  calMonth = now.getMonth();
+  renderCalendar();
+}
+
+function changeMonth(dir) {
+  calMonth += dir;
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  renderCalendar();
+}
+
+function renderCalendar() {
+  const months = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+  document.getElementById('calTitle').textContent = calYear+'年 '+months[calMonth];
+
+  const labelsEl = document.getElementById('calDayLabels');
+  const days = ['日','月','火','水','木','金','土'];
+  labelsEl.innerHTML = days.map(d => `<div class="cal-day-label">${d}</div>`).join('');
+
+  const grid = document.getElementById('calGrid');
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const lastDate = new Date(calYear, calMonth+1, 0).getDate();
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  let html = '';
+  for (let i=0; i<firstDay; i++) html += '<div class="cal-day cal-day-empty"></div>';
+
+  // 承認済みシフトを取得
+  const approvedDates = new Set();
+  shiftHistory.filter(s=>s.status==='approved').forEach(s => s.dates.forEach(d=>approvedDates.add(d)));
+
+  for (let d=1; d<=lastDate; d++) {
+    const dateStr = calYear+'-'+String(calMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const thisDate = new Date(calYear, calMonth, d);
+    const isPast = thisDate < today;
+    const isToday = thisDate.getTime() === today.getTime();
+    const isSelected = selectedDates.has(dateStr);
+    const isApproved = approvedDates.has(dateStr);
+
+    let cls = 'cal-day';
+    if (isPast) cls += ' cal-day-past';
+    else if (isApproved) cls += ' approved';
+    else if (isSelected) cls += ' selected';
+    else if (isToday) cls += ' today';
+
+    const clickable = !isPast && !isApproved ? `onclick="toggleDate('${dateStr}')"` : '';
+    html += `<div class="${cls}" ${clickable}>${d}</div>`;
+  }
+  grid.innerHTML = html;
+}
+
+function toggleDate(dateStr) {
+  if (selectedDates.has(dateStr)) selectedDates.delete(dateStr);
+  else selectedDates.add(dateStr);
+  renderCalendar();
+}
+
+function submitShift() {
+  const name = document.getElementById('shiftName').value;
+  if (!name) { showToast('⚠️','申請者を選択してください'); return; }
+  if (selectedDates.size === 0) { showToast('⚠️','希望日を選択してください'); return; }
+
+  const dates = Array.from(selectedDates).sort();
+  const record = { id:Date.now(), name, dates, status:'pending', createdAt: new Date().toISOString() };
+  shiftHistory.unshift(record);
+  setData('shiftHistory', shiftHistory);
+
+  const gasUrl = localStorage.getItem('gasUrl');
+  if (gasUrl) {
+    fetch(gasUrl+'?action=shift&name='+encodeURIComponent(name)+'&dates='+encodeURIComponent(dates.join(',')), {method:'GET',mode:'no-cors'}).catch(()=>{});
+  }
+
+  selectedDates.clear();
+  renderCalendar();
+  renderShiftHistory();
+  showToast('📆', dates.length+'日分のシフト希望を送信しました');
+}
+
+function checkShiftAccess() {
+  // 個人ページの場合、パート以外はブロック
+  if (!personalUser) return; // 管理者画面では全員表示
+  const emp = employees.find(e => e.name === personalUser);
+  if (emp && emp.type !== 'パート') {
+    document.getElementById('page-shift').innerHTML =
+      '<div style="padding:40px 20px;text-align:center;color:var(--text-sub);">' +
+      '<div style="font-size:40px;margin-bottom:16px;">🚫</div>' +
+      '<div style="font-size:15px;font-weight:700;color:var(--text);">シフト申請は対象外です</div>' +
+      '<div style="font-size:13px;margin-top:8px;">パート社員のみ利用できます</div>' +
+      '</div>';
+  }
+}
+
+function renderShiftHistory() {
+  const el = document.getElementById('shiftHistory');
+  if (!shiftHistory.length) { el.innerHTML = '<div style="color:var(--text-sub);font-size:13px;">申請はまだありません</div>'; return; }
+  el.innerHTML = shiftHistory.map(r => `
+    <div class="list-item">
+      <div class="list-item-left">
+        <div>
+          <div class="list-item-name">${r.name}</div>
+          <div class="list-item-sub">${r.dates.length}日選択　${r.dates[0]}〜</div>
+        </div>
+      </div>
+      <span class="tag tag-${r.status}">${r.status==='pending'?'審査中':r.status==='approved'?'承認':'却下'}</span>
+    </div>
+  `).join('');
+}
+
+// ══════════════════════════════════
+// GAS URL
+// ══════════════════════════════════
+function loadGasUrl() {
+  const saved = localStorage.getItem('gasUrl');
+  if (saved) {
+    document.getElementById('gasUrl').value = saved;
+    document.getElementById('gasUrlSettings').value = saved;
+    document.getElementById('statusDot').classList.add('on');
+    document.getElementById('statusText').textContent = '設定済み';
+  }
+}
+
+function saveGasUrl() {
+  const url = document.getElementById('gasUrl').value.trim();
+  if (!url || !url.startsWith('https://')) { showToast('⚠️','正しいURLを入力してください'); return; }
+  localStorage.setItem('gasUrl', url);
+  document.getElementById('gasUrlSettings').value = url;
+  document.getElementById('statusDot').classList.add('on');
+  document.getElementById('statusText').textContent = '設定済み';
+  showToast('✅','GAS URLを保存しました');
+}
+
+function saveGasUrlSettings() {
+  const url = document.getElementById('gasUrlSettings').value.trim();
+  if (!url || !url.startsWith('https://')) { showToast('⚠️','正しいURLを入力してください'); return; }
+  localStorage.setItem('gasUrl', url);
+  document.getElementById('gasUrl').value = url;
+  document.getElementById('statusDot').classList.add('on');
+  document.getElementById('statusText').textContent = '設定済み';
+  showToast('✅','GAS URLを保存しました');
+}
+
+function confirmReset() {
+  if (!confirm('申請履歴・社員データをリセットしますか？\nこの操作は取り消せません。')) return;
+  localStorage.removeItem('leaveHistory');
+  localStorage.removeItem('shiftHistory');
+  leaveHistory = [];
+  shiftHistory = [];
+  setData('employees', employees);
+  showToast('🗑','データをリセットしました');
+}
+
+// ══════════════════════════════════
+// SELFIE AUTHENTICATION (iPadチーム)
+// ══════════════════════════════════
+let selfieStream = null;
+let selfieCapture = null;
+let selfiePendingAction = null;
+
+async function openSelfieModal(name, punchType) {
+  selfiePendingAction = { name, punchType };
+  document.getElementById('selfieModalTitle').textContent = name + 'さん　' + (punchType === '出勤' ? '🟢 出勤' : '🔴 退勤');
+  document.getElementById('selfiePreview').style.display = 'none';
+  document.getElementById('selfieVideo').style.display = 'block';
+  document.getElementById('selfieGuide').style.display = 'flex';
+  document.getElementById('selfieBtns').style.display = 'block';
+  document.getElementById('selfieConfirmBtns').style.display = 'none';
+  selfieCapture = null;
+
+  document.getElementById('selfieOverlay').classList.add('open');
+
+  try {
+    selfieStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+      audio: false
+    });
+    document.getElementById('selfieVideo').srcObject = selfieStream;
+  } catch(e) {
+    showToast('⚠️', 'カメラにアクセスできません');
+    closeSelfieModal();
+  }
+}
+
+function takeSelfie() {
+  const video = document.getElementById('selfieVideo');
+  const canvas = document.getElementById('selfieCanvas');
+  canvas.width = video.videoWidth || 640;
+  canvas.height = video.videoHeight || 480;
+  const ctx = canvas.getContext('2d');
+  // ミラー反転して自然な見た目に
+  ctx.translate(canvas.width, 0);
+  ctx.scale(-1, 1);
+  ctx.drawImage(video, 0, 0);
+
+  selfieCapture = canvas.toDataURL('image/jpeg', 0.7);
+
+  // プレビュー表示
+  const preview = document.getElementById('selfiePreview');
+  preview.src = selfieCapture;
+  preview.style.display = 'block';
+  document.getElementById('selfieVideo').style.display = 'none';
+  document.getElementById('selfieGuide').style.display = 'none';
+  document.getElementById('selfieBtns').style.display = 'none';
+  document.getElementById('selfieConfirmBtns').style.display = 'block';
+}
+
+function retakeSelfie() {
+  selfieCapture = null;
+  document.getElementById('selfiePreview').style.display = 'none';
+  document.getElementById('selfieVideo').style.display = 'block';
+  document.getElementById('selfieGuide').style.display = 'flex';
+  document.getElementById('selfieBtns').style.display = 'block';
+  document.getElementById('selfieConfirmBtns').style.display = 'none';
+}
+
+async function confirmSelfie() {
+  if (!selfieCapture || !selfiePendingAction) return;
+  const { name, punchType } = selfiePendingAction;
+
+  // 写真をGASに送信して打刻
+  closeSelfieModal();
+  await executePunchWithPhoto(name, punchType, selfieCapture);
+}
+
+function closeSelfieModal() {
+  if (selfieStream) {
+    selfieStream.getTracks().forEach(t => t.stop());
+    selfieStream = null;
+  }
+  document.getElementById('selfieOverlay').classList.remove('open');
+  selfiePendingAction = null;
+  selfieCapture = null;
+}
+
+async function executePunchWithPhoto(name, type, photoData) {
+  // 写真はアプリ内確認のみ（送信しない）
+  // 通常の打刻としてGASに記録
+  await executePunch(name, type);
+}
+
+// ══════════════════════════════════
+// PIN AUTHENTICATION
+// ══════════════════════════════════
+let pins = getData('pins', {});
+let pinBuffer = '';
+let pinPendingAction = null; // {type, name}
+
+function savePins() { localStorage.setItem('pins', JSON.stringify(pins)); }
+
+function renderPinSettingsList() {
+  const el = document.getElementById('pinSettingsList');
+  const tabletEmps = employees.filter(e => e.device === 'tablet');
+  if (!tabletEmps.length) { el.innerHTML = '<div style="color:var(--text-sub);font-size:13px;">iPadチームの社員がいません</div>'; return; }
+  el.innerHTML = tabletEmps.map(e => {
+    const hasPin = !!pins[e.name];
+    return `
+    <div class="list-item">
+      <div>
+        <div class="list-item-name">${e.name}</div>
+        <div class="list-item-sub">${hasPin ? 'PIN設定済み' : '未設定'}</div>
+      </div>
+      <button class="qr-btn ${hasPin ? 'qr-btn-print' : 'qr-btn-copy'}" style="padding:8px 14px;font-size:12px;" onclick="promptSetPin('${e.name}')">
+        ${hasPin ? '変更' : 'PINを設定'}
+      </button>
+    </div>`;
+  }).join('');
+}
+
+function promptSetPin(name) {
+  const pin = prompt(name + 'さんの新しいPIN（4桁の数字）を入力してください:');
+  if (!pin) return;
+  if (!/^[0-9]{4}$/.test(pin)) { showToast('⚠️', '4桁の数字で入力してください'); return; }
+  pins[name] = pin;
+  savePins();
+  renderPinSettingsList();
+  showToast('🔐', name + 'さんのPINを設定しました');
+}
+
+// PIN入力モーダル
+function openPinModal(name, punchType) {
+  pinBuffer = '';
+  pinPendingAction = { name, punchType };
+  document.getElementById('pinModalName').textContent = name + 'さんのPIN';
+  updatePinDots();
+  document.getElementById('pinOverlay').classList.add('open');
+}
+
+function closePinModal() {
+  document.getElementById('pinOverlay').classList.remove('open');
+  pinBuffer = '';
+  pinPendingAction = null;
+}
+
+function pinInput(digit) {
+  if (pinBuffer.length >= 4) return;
+  pinBuffer += digit;
+  updatePinDots();
+  if (pinBuffer.length === 4) {
+    setTimeout(checkPin, 150);
+  }
+}
+
+function pinDelete() {
+  pinBuffer = pinBuffer.slice(0, -1);
+  updatePinDots();
+}
+
+function pinClear() {
+  pinBuffer = '';
+  updatePinDots();
+}
+
+function updatePinDots(error = false) {
+  const dots = document.querySelectorAll('.pin-dot');
+  dots.forEach((d, i) => {
+    d.classList.remove('filled', 'error');
+    if (error) d.classList.add('error');
+    else if (i < pinBuffer.length) d.classList.add('filled');
+  });
+}
+
+function checkPin() {
+  const { name, punchType } = pinPendingAction;
+  const correct = pins[name];
+  if (!correct) {
+    // PINが未設定の場合はそのまま通す
+    closePinModal();
+    executePunch(name, punchType);
+    return;
+  }
+  if (pinBuffer === correct) {
+    closePinModal();
+    executePunch(name, punchType);
+  } else {
+    updatePinDots(true);
+    showToast('❌', 'PINが違います');
+    setTimeout(() => {
+      pinBuffer = '';
+      updatePinDots();
+    }, 800);
+  }
+}
+
+// ══════════════════════════════════
+// PERSONAL PAGE (URL param)
+// ══════════════════════════════════
+let personalUser = null;
+
+function initPersonalPage() {
+  const params = new URLSearchParams(window.location.search);
+  const user = params.get('user');
+  if (!user) return;
+
+  personalUser = decodeURIComponent(user);
+
+  // バナー表示
+  document.getElementById('personalBanner').style.display = 'block';
+  document.getElementById('bannerName').textContent = personalUser;
+
+  // 管理系タブを非表示
+  document.getElementById('navEmployees').style.display = 'none';
+  document.getElementById('navQr').style.display = 'none';
+
+  // パート以外はシフト申請タブを非表示
+  const emp = employees.find(e => e.name === personalUser);
+  if (emp && emp.type !== 'パート') {
+    const shiftNav = document.getElementById('navShift');
+    if (shiftNav) shiftNav.style.display = 'none';
+  }
+
+  // 全セレクトに名前を固定
+  setTimeout(() => {
+    ['punchName','leaveName','shiftName'].forEach(id => {
+      const sel = document.getElementById(id);
+      // 選択肢を本人のみに
+      sel.innerHTML = '<option value="'+personalUser+'">'+personalUser+'</option>';
+      sel.value = personalUser;
+      sel.disabled = true;
+      sel.style.opacity = '0.7';
+    });
+  }, 100);
+}
+
+// ══════════════════════════════════
+// QR CODE
+// ══════════════════════════════════
+function renderQrList() {
+  const el = document.getElementById('qrList');
+  if (!employees.length) {
+    el.innerHTML = '<div style="color:var(--text-sub);font-size:13px;">社員が登録されていません。先に社員管理タブで追加してください。</div>';
+    return;
+  }
+  el.innerHTML = employees.map(e => `
+    <div class="qr-item" id="qr-item-${e.id}">
+      <div class="qr-item-header">
+        <div>
+          <div class="qr-item-name">${e.name}</div>
+          <div class="qr-item-type">${e.type}</div>
+        </div>
+      </div>
+      <div class="qr-canvas-wrap">
+        <canvas id="qr-canvas-${e.id}" width="160" height="160"></canvas>
+      </div>
+      <div class="qr-url" id="qr-url-${e.id}"></div>
+      <div class="qr-btns">
+        <button class="qr-btn qr-btn-print" onclick="printQr(${e.id},'${e.name}')">🖨 印刷</button>
+        <button class="qr-btn qr-btn-copy" onclick="copyUrl(${e.id})">📋 URLコピー</button>
+      </div>
+    </div>
+  `).join('');
+
+  // QR生成
+  employees.forEach(e => generateQr(e));
+}
+
+function getPersonalUrl(name) {
+  const base = window.location.href.split('?')[0];
+  return base + '?user=' + encodeURIComponent(name);
+}
+
+function generateQr(emp) {
+  const url = getPersonalUrl(emp.name);
+  document.getElementById('qr-url-'+emp.id).textContent = url;
+  const canvas = document.getElementById('qr-canvas-'+emp.id);
+  drawQr(canvas, url);
+}
+
+// シンプルなQRコード描画（qrcode.js使用）
+function drawQr(canvas, text) {
+  // QRコードライブラリをCDNから読み込み
+  if (window.QRCode) {
+    renderQrCanvas(canvas, text);
+  } else {
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+    script.onload = () => renderQrCanvas(canvas, text);
+    document.head.appendChild(script);
+  }
+}
+
+function renderQrCanvas(canvas, text) {
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0,0,160,160);
+  try {
+    const qr = new QRCode(document.createElement('div'), {
+      text, width:160, height:160,
+      colorDark:'#000000', colorLight:'#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+    setTimeout(() => {
+      const img = qr._el.querySelector('img') || qr._el.querySelector('canvas');
+      if (img) {
+        ctx.drawImage(img, 0, 0, 160, 160);
+      }
+    }, 100);
+  } catch(e) {
+    ctx.fillStyle = '#333';
+    ctx.font = '12px sans-serif';
+    ctx.fillText('QR生成中...', 40, 80);
+  }
+}
+
+function printQr(id, name) {
+  const url = getPersonalUrl(name);
+  const canvas = document.getElementById('qr-canvas-'+id);
+  const dataUrl = canvas.toDataURL();
+  const win = window.open('','_blank');
+  win.document.write(`
+    <html><head><title>${name} 勤怠打刻QR</title>
+    <style>
+      body{font-family:sans-serif;text-align:center;padding:40px;}
+      img{width:200px;height:200px;}
+      h2{font-size:20px;margin-bottom:8px;}
+      p{font-size:11px;color:#666;word-break:break-all;max-width:280px;margin:8px auto 0;}
+    </style></head>
+    <body>
+      <h2>${name}</h2>
+      <img src="${dataUrl}">
+      <p>${url}</p>
+      <script>window.onload=()=>window.print()<\/script>
+    </body></html>
+  `);
+  win.document.close();
+}
+
+function copyUrl(id) {
+  const url = document.getElementById('qr-url-'+id).textContent;
+  navigator.clipboard.writeText(url).then(() => {
+    showToast('📋','URLをコピーしました');
+  }).catch(() => {
+    showToast('⚠️','コピーに失敗しました');
+  });
+}
+let toastTimer;
+function showToast(icon, text) {
+  const t = document.getElementById('toast');
+  document.getElementById('toastIcon').textContent = icon;
+  document.getElementById('toastText').textContent = text;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// ══════════════════════════════════
+// INIT
+// ══════════════════════════════════
+loadGasUrl();
+refreshSelects();
+initCalendar();
+initPersonalPage();
+// iPadチームのQRタブを非表示（初期）
+if (!personalUser) {
+  // QRは営業チームのみ対象なのでそのまま表示
+}
+</script>
+</body>
+</html>
