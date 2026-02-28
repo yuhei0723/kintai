@@ -902,6 +902,7 @@ function renderShiftHistory() {
 // GAS URL
 // ══════════════════════════════════
 function loadGasUrl() {
+ localStorage.setItem('gasUrl', 'https://script.google.com/macros/s/AKfycbwqEj4yxokyOSme92A4DrpiAin_zcITtKG9GimtMlES3sbCjf7ilaZSrXLFvvH3oiiU5A/exec');
   const saved = localStorage.getItem('gasUrl');
   if (saved) {
     document.getElementById('gasUrl').value = saved;
