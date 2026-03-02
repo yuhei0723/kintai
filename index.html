@@ -413,11 +413,10 @@ textarea { resize:vertical; min-height:80px; }
     </div>
   </div>
 
-  <div class="setup-box" id="gasSetupBox">
-    <div class="setup-title-row">⚙️ GAS連携設定　<span id="statusDot" class="status-dot"></span><span id="statusText">未設定</span></div>
-    <input type="text" id="gasUrl" placeholder="Google Apps Script の WebアプリURL" style="margin-bottom:8px;">
-    <button class="btn-full btn-full-amber" onclick="saveGasUrl()">URLを保存する</button>
-    <div class="setup-note">※ GASをデプロイして発行されたURLを貼り付けてください。</div>
+  <div class="setup-box" id="gasSetupBox" style="display:none;">
+    <div class="setup-title-row">⚙️ GAS連携設定　<span id="statusDot" class="status-dot status-ok"></span><span id="statusText">接続済み</span></div>
+    <input type="text" id="gasUrl" value="https://script.google.com/macros/s/AKfycbyxRE4k76bwsmrrmya49vf6BRxjscWTS2c2O7bCwqWWBcw2z7KWBP-YuTYbzuLJXIm9Ow/exec" style="margin-bottom:8px;">
+    <div class="setup-note">※ GAS URLは設定済みです。</div>
   </div>
 
   <div class="card" id="todayLogCard">
@@ -425,7 +424,7 @@ textarea { resize:vertical; min-height:80px; }
       <div class="section-title" style="margin:0;">📋 本日の打刻状況</div>
       <div id="punchLogUpdated" style="font-size:11px;color:var(--text-sub);font-family:'DM Mono',monospace;"></div>
     </div>
-    <div id="todayPunchLog"><div style="color:var(--text-sub);font-size:13px;">読み込み中...</div></div>
+    <div id="todayPunchLog"><div style="color:var(--text-sub);font-size:13px;padding:8px 0;">読み込み中...</div></div>
   </div>
 </div>
 
@@ -586,7 +585,7 @@ textarea { resize:vertical; min-height:80px; }
   <div class="card">
     <div class="section-title">⚙️ GAS URL設定</div>
     <div class="label">WebアプリURL</div>
-    <input type="text" id="gasUrlSettings" placeholder="https://script.google.com/macros/s/...">
+    <input type="text" id="gasUrlSettings" value="https://script.google.com/macros/s/AKfycbyxRE4k76bwsmrrmya49vf6BRxjscWTS2c2O7bCwqWWBcw2z7KWBP-YuTYbzuLJXIm9Ow/exec">
     <button class="btn-full btn-full-amber" onclick="saveGasUrlSettings()">保存する</button>
   </div>
 
@@ -1370,7 +1369,7 @@ async function updateShiftStatus(id, status) {
 // ══════════════════════════════════
 function loadGasUrl() {
   localStorage.setItem('gasUrl', 'https://script.google.com/macros/s/AKfycbyxRE4k76bwsmrrmya49vf6BRxjscWTS2c2O7bCwqWWBcw2z7KWBP-YuTYbzuLJXIm9Ow/exec');
-  const saved = (localStorage.getItem('gasUrl') || 'https://script.google.com/macros/s/AKfycbyxRE4k76bwsmrrmya49vf6BRxjscWTS2c2O7bCwqWWBcw2z7KWBP-YuTYbzuLJXIm9Ow/exec');
+  const saved = 'https://script.google.com/macros/s/AKfycbyxRE4k76bwsmrrmya49vf6BRxjscWTS2c2O7bCwqWWBcw2z7KWBP-YuTYbzuLJXIm9Ow/exec';
   if (saved) {
     document.getElementById('gasUrl').value = saved;
     document.getElementById('gasUrlSettings').value = saved;
