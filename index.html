@@ -911,26 +911,35 @@ async function gasCall(params) {
   } catch(e) { return false; }
 }
 
-async function gasGet(params) {
-  const qs = Object.entries(params).map(([k,v]) => encodeURIComponent(k)+'='+encodeURIComponent(v)).join('&');
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 8000);
-  try {
-    const res = await fetch(GAS_URL + '?' + qs, {
-      method: 'GET',
-      signal: controller.signal,
-      redirect: 'follow'
-    });
-    clearTimeout(timer);
-    const text = await res.text();
-    // GASのリダイレクト後レスポンスはJSONのはず
-    const clean = text.replace(/^[^\[\{]*/, '').replace(/[^\]\}]*$/, '');
-    return JSON.parse(clean);
-  } catch(e) {
-    clearTimeout(timer);
-    console.warn('gasGet error:', e);
-    return null;
-  }
+function gasGet(params) {
+  return new Promise((resolve) => {
+    const cbName = 'gasCallback_' + Date.now();
+    params.callback = cbName;
+    const qs = Object.entries(params).map(([k,v]) => encodeURIComponent(k)+'='+encodeURIComponent(v)).join('&');
+
+    const timer = setTimeout(() => {
+      delete window[cbName];
+      if (script.parentNode) script.parentNode.removeChild(script);
+      console.warn('gasGet timeout');
+      resolve(null);
+    }, 10000);
+
+    window[cbName] = (data) => {
+      clearTimeout(timer);
+      delete window[cbName];
+      if (script.parentNode) script.parentNode.removeChild(script);
+      resolve(data);
+    };
+
+    const script = document.createElement('script');
+    script.src = GAS_URL + '?' + qs;
+    script.onerror = () => {
+      clearTimeout(timer);
+      delete window[cbName];
+      resolve(null);
+    };
+    document.head.appendChild(script);
+  });
 }
 
 async function submitLeave() {
