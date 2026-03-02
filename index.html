@@ -358,7 +358,7 @@ textarea { resize:vertical; min-height:80px; }
     </div>
     <div class="label">氏名を選択</div>
     <div class="sel-wrap">
-      <select id="punchName"><option value="">-- 選択してください --</option></select>
+      <select id="punchName" onchange="loadTodayPunchLog()"><option value="">-- 選択してください --</option></select>
       <span class="sel-arrow">▼</span>
     </div>
     <div class="label">打刻</div>
@@ -922,20 +922,25 @@ async function loadTodayPunchLog() {
 function renderTodayPunchLog(logs) {
   const el = document.getElementById('todayPunchLog');
   if (!el) return;
-  if (!logs.length) {
-    el.innerHTML = '<div style="color:var(--text-sub);font-size:13px;">本日の打刻はまだありません</div>';
-    return;
-  }
-  // 社員ごとに最新の出勤・退勤をまとめる
+
+  // 社員ごとにまとめる
   const map = {};
   logs.forEach(r => {
     if (!map[r.name]) map[r.name] = {name:r.name, in:'', out:''};
     if (r.type === '出勤') map[r.name].in = r.time;
     if (r.type === '退勤') map[r.name].out = r.time;
   });
+
+  // 現在選択中のユーザーのボタン状態を制御
+  updatePunchButtons(map);
+
+  if (!logs.length) {
+    el.innerHTML = '<div style="color:var(--text-sub);font-size:13px;">本日の打刻はまだありません</div>';
+    return;
+  }
+
   const rows = Object.values(map).sort((a,b) => a.in.localeCompare(b.in));
   el.innerHTML = rows.map(r => {
-    const status = r.out ? 'out' : r.in ? 'in' : '';
     const statusLabel = r.out ? '退勤済' : r.in ? '出勤中' : '';
     const statusColor = r.out ? 'var(--text-sub)' : 'var(--green)';
     const statusBg = r.out ? 'var(--surface2)' : 'var(--green-bg)';
@@ -947,6 +952,40 @@ function renderTodayPunchLog(logs) {
       <span style="font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;background:${statusBg};color:${statusColor};">${statusLabel}</span>
     </div>`;
   }).join('');
+}
+
+function updatePunchButtons(map) {
+  const btnIn  = document.getElementById('btnIn');
+  const btnOut = document.getElementById('btnOut');
+  if (!btnIn || !btnOut) return;
+
+  // 選択中の名前（個人ページは personalUser、通常は選択値）
+  const name = personalUser || document.getElementById('punchName').value;
+  if (!name) {
+    // 名前未選択時は両方有効
+    btnIn.disabled  = false;
+    btnOut.disabled = false;
+    btnIn.style.opacity  = '1';
+    btnOut.style.opacity = '1';
+    btnIn.title  = '';
+    btnOut.title = '';
+    return;
+  }
+
+  const status = map[name] || {in:'', out:''};
+  const hasIn  = !!status.in;
+  const hasOut = !!status.out;
+
+  // 出勤済み → 出勤ボタンを無効
+  btnIn.disabled       = hasIn;
+  btnIn.style.opacity  = hasIn  ? '0.4' : '1';
+  btnIn.title          = hasIn  ? '本日はすでに出勤済みです' : '';
+
+  // 退勤済み or 未出勤 → 退勤ボタンを無効
+  btnOut.disabled      = hasOut || !hasIn;
+  btnOut.style.opacity = (hasOut || !hasIn) ? '0.4' : '1';
+  btnOut.title         = hasOut  ? '本日はすでに退勤済みです'
+                       : !hasIn  ? 'まず出勤を打刻してください' : '';
 }
 
 async function loadLeaveHistory() {
