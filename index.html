@@ -682,6 +682,18 @@ function updateClock() {
 setInterval(updateClock, 1000);
 updateClock();
 
+// 30秒ごとに現在開いているタブのデータを自動更新
+setInterval(async () => {
+  const activePage = document.querySelector('.page.active');
+  if (!activePage) return;
+  const id = activePage.id;
+  if (id === 'page-leave') await loadLeaveHistory();
+  if (id === 'page-shift') {
+    await loadShiftHistory();
+    renderCalendar();
+  }
+}, 30000);
+
 // ══════════════════════════════════
 // PAGE NAV
 // ══════════════════════════════════
