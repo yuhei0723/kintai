@@ -691,11 +691,10 @@ function showPage(id) {
   document.getElementById('page-'+id).classList.add('active');
   event.target.classList.add('active');
   if (id === 'employees') { renderEmployees(); renderPinSettingsList(); }
-  if (id === 'leave') renderLeaveHistory();
+  if (id === 'leave') loadLeaveHistory();
   if (id === 'shift') {
     checkShiftAccess();
-    renderShiftHistory();
-    renderCalendar();
+    loadShiftHistory().then(() => renderCalendar());
   }
   if (id === 'qr') renderQrList();
 }
@@ -828,68 +827,78 @@ async function executePunch(name, type) {
 // ══════════════════════════════════
 // LEAVE
 // ══════════════════════════════════
-function submitLeave() {
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbwqEj4yxokyOSme92A4DrpiAin_zcITtKG9GimtMlES3sbCjf7ilaZSrXLFvvH3oiiU5A/exec';
+
+async function gasCall(params) {
+  const qs = Object.entries(params).map(([k,v]) => encodeURIComponent(k)+'='+encodeURIComponent(v)).join('&');
+  try {
+    const res = await fetch(GAS_URL + '?' + qs, {method:'GET', mode:'no-cors'});
+    return true;
+  } catch(e) { return false; }
+}
+
+async function gasGet(params) {
+  const qs = Object.entries(params).map(([k,v]) => encodeURIComponent(k)+'='+encodeURIComponent(v)).join('&');
+  try {
+    const res = await fetch(GAS_URL + '?' + qs);
+    const text = await res.text();
+    return JSON.parse(text);
+  } catch(e) { return null; }
+}
+
+async function submitLeave() {
   const name = document.getElementById('leaveName').value;
   const date = document.getElementById('leaveDate').value;
   const reason = document.getElementById('leaveReason').value.trim();
   if (!name) { showToast('⚠️','申請者を選択してください'); return; }
   if (!date) { showToast('⚠️','取得日を選択してください'); return; }
 
-  const record = { id:Date.now(), name, date, reason, status:'pending', createdAt: new Date().toISOString() };
-  leaveHistory.unshift(record);
-  setData('leaveHistory', leaveHistory);
-
-  const gasUrl = (localStorage.getItem('gasUrl') || 'https://script.google.com/macros/s/AKfycbwqEj4yxokyOSme92A4DrpiAin_zcITtKG9GimtMlES3sbCjf7ilaZSrXLFvvH3oiiU5A/exec');
-  if (gasUrl) {
-    fetch(gasUrl+'?action=leave&name='+encodeURIComponent(name)+'&date='+encodeURIComponent(date)+'&reason='+encodeURIComponent(reason||'なし'), {method:'GET',mode:'no-cors'}).catch(()=>{});
-  }
-
-  // 申請者は維持・日付と理由のみリセット
+  showToast('⏳','送信中...');
+  await gasCall({action:'leave_submit', name, date, reason: reason||''});
   document.getElementById('leaveDate').value = '';
   document.getElementById('leaveReason').value = '';
+  showToast('📝','有給申請を送信しました');
+  await loadLeaveHistory();
+}
+
+async function loadLeaveHistory() {
+  const el = document.getElementById('leaveHistory');
+  el.innerHTML = '<div style="color:var(--text-sub);font-size:13px;padding:12px 0;">読み込み中...</div>';
+  const params = personalUser
+    ? {action:'leave_get', name: personalUser}
+    : {action:'leave_get'};
+  const data = await gasGet(params);
+  leaveHistory = data || [];
   renderLeaveHistory();
-  showToast('📝', '有給申請を送信しました');
 }
 
 function renderLeaveHistory() {
   const el = document.getElementById('leaveHistory');
   if (!leaveHistory.length) { el.innerHTML = '<div style="color:var(--text-sub);font-size:13px;">申請はまだありません</div>'; return; }
-  const list = personalUser ? leaveHistory.filter(r => r.name === personalUser) : leaveHistory;
-  if (!list.length) { el.innerHTML = '<div style="color:var(--text-sub);font-size:13px;">申請はまだありません</div>'; return; }
-  el.innerHTML = list.map(r => `
+  el.innerHTML = leaveHistory.map(r => `
     <div class="list-item" style="flex-direction:column;align-items:stretch;gap:10px;">
       <div style="display:flex;align-items:center;justify-content:space-between;">
         <div>
           <div class="list-item-name">${r.name}</div>
-          <div class="list-item-sub">${r.date}　${r.reason || ''}</div>
+          <div class="list-item-sub">${r.date}${r.reason ? '　' + r.reason : ''}</div>
         </div>
-        <span class="tag tag-${r.status}">${r.status==='pending'?'審査中':r.status==='approved'?'✅ 承認':'❌ 却下'}</span>
+        <span class="tag tag-${r.status}">${r.status==='pending'?'🔵 審査中':r.status==='approved'?'✅ 承認済み':'❌ 却下'}</span>
       </div>
       ${r.status === 'pending' && !personalUser ? `
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <button onclick="updateLeaveStatus(${r.id},'approved')" style="padding:8px;border:none;border-radius:8px;background:var(--green-bg);color:var(--green);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--green);">✅ 承認する</button>
-        <button onclick="updateLeaveStatus(${r.id},'rejected')" style="padding:8px;border:none;border-radius:8px;background:var(--red-bg);color:var(--red);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--red);">❌ 却下する</button>
+        <button onclick="updateLeaveStatus('${r.id}','approved')" style="padding:8px;border-radius:8px;background:var(--green-bg);color:var(--green);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--green);">✅ 承認する</button>
+        <button onclick="updateLeaveStatus('${r.id}','rejected')" style="padding:8px;border-radius:8px;background:var(--red-bg);color:var(--red);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--red);">❌ 却下する</button>
       </div>` : ''}
     </div>
   `).join('');
 }
 
-function updateLeaveStatus(id, status) {
-  const record = leaveHistory.find(r => r.id === id);
-  if (!record) return;
-  record.status = status;
-  setData('leaveHistory', leaveHistory);
-  renderLeaveHistory();
+async function updateLeaveStatus(id, status) {
   const label = status === 'approved' ? '承認' : '却下';
-  showToast(status === 'approved' ? '✅' : '❌', record.name + 'さんの有給申請を' + label + 'しました');
-
-  // GASにステータス変更を通知
-  const gasUrl = localStorage.getItem('gasUrl') || 'https://script.google.com/macros/s/AKfycbwqEj4yxokyOSme92A4DrpiAin_zcITtKG9GimtMlES3sbCjf7ilaZSrXLFvvH3oiiU5A/exec';
-  if (gasUrl) {
-    fetch(gasUrl + '?action=leave_status&name=' + encodeURIComponent(record.name)
-      + '&date=' + encodeURIComponent(record.date)
-      + '&status=' + encodeURIComponent(status), {method:'GET', mode:'no-cors'}).catch(()=>{});
-  }
+  showToast('⏳', '処理中...');
+  await gasCall({action:'leave_update', id, status});
+  showToast(status==='approved'?'✅':'❌', '有給申請を' + label + 'しました');
+  await loadLeaveHistory();
 }
 
 // ══════════════════════════════════
@@ -978,25 +987,18 @@ function toggleDate(dateStr) {
   renderCalendar();
 }
 
-function submitShift() {
+async function submitShift() {
   const name = document.getElementById('shiftName').value;
   if (!name) { showToast('⚠️','申請者を選択してください'); return; }
   if (selectedDates.size === 0) { showToast('⚠️','希望日を選択してください'); return; }
 
   const dates = Array.from(selectedDates).sort();
-  const record = { id:Date.now(), name, dates, status:'pending', createdAt: new Date().toISOString() };
-  shiftHistory.unshift(record);
-  setData('shiftHistory', shiftHistory);
-
-  const gasUrl = (localStorage.getItem('gasUrl') || 'https://script.google.com/macros/s/AKfycbwqEj4yxokyOSme92A4DrpiAin_zcITtKG9GimtMlES3sbCjf7ilaZSrXLFvvH3oiiU5A/exec');
-  if (gasUrl) {
-    fetch(gasUrl+'?action=shift&name='+encodeURIComponent(name)+'&dates='+encodeURIComponent(dates.join(',')), {method:'GET',mode:'no-cors'}).catch(()=>{});
-  }
-
+  showToast('⏳','送信中...');
+  await gasCall({action:'shift_submit', name, dates: dates.join(',')});
   selectedDates.clear();
-  renderCalendar();
-  renderShiftHistory();
   showToast('📆', dates.length+'日分のシフト希望を送信しました');
+  await loadShiftHistory();
+  renderCalendar();
 }
 
 function checkShiftAccess() {
@@ -1013,43 +1015,48 @@ function checkShiftAccess() {
   }
 }
 
+async function loadShiftHistory() {
+  const params = personalUser
+    ? {action:'shift_get', name: personalUser}
+    : {action:'shift_get'};
+  const data = await gasGet(params);
+  shiftHistory = data || [];
+  renderShiftHistory();
+}
+
 function renderShiftHistory() {
   const el = document.getElementById('shiftHistory');
   if (!shiftHistory.length) { el.innerHTML = '<div style="color:var(--text-sub);font-size:13px;">申請はまだありません</div>'; return; }
-  // 個人ページでは自分の申請のみ表示
-  const list = personalUser ? shiftHistory.filter(r => r.name === personalUser) : shiftHistory;
-  if (!list.length) { el.innerHTML = '<div style="color:var(--text-sub);font-size:13px;">申請はまだありません</div>'; return; }
-  el.innerHTML = list.map(r => {
+  el.innerHTML = shiftHistory.map(r => {
     const statusLabel = r.status==='pending' ? '🔵 審査中' : r.status==='approved' ? '✅ 承認済み' : '❌ 却下';
     const statusClass = r.status==='pending' ? 'tag-pending' : r.status==='approved' ? 'tag-approved' : 'tag-rejected';
-    const datesPreview = r.dates.slice(0,3).join('、') + (r.dates.length > 3 ? '　他' + (r.dates.length-3) + '日' : '');
+    const datesArr = Array.isArray(r.dates) ? r.dates : r.dates.split(',');
+    const datesPreview = datesArr.slice(0,3).join('、') + (datesArr.length > 3 ? '　他' + (datesArr.length-3) + '日' : '');
     return `
     <div class="list-item" style="flex-direction:column;align-items:stretch;gap:10px;">
       <div style="display:flex;align-items:center;justify-content:space-between;">
         <div>
           <div class="list-item-name">${r.name}</div>
-          <div class="list-item-sub">${r.dates.length}日　${datesPreview}</div>
+          <div class="list-item-sub">${datesArr.length}日　${datesPreview}</div>
         </div>
         <span class="tag ${statusClass}">${statusLabel}</span>
       </div>
       ${r.status === 'pending' && !personalUser ? `
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <button onclick="updateShiftStatus(${r.id},'approved')" style="padding:8px;border-radius:8px;background:var(--green-bg);color:var(--green);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--green);">✅ 承認する</button>
-        <button onclick="updateShiftStatus(${r.id},'rejected')" style="padding:8px;border-radius:8px;background:var(--red-bg);color:var(--red);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--red);">❌ 却下する</button>
+        <button onclick="updateShiftStatus('${r.id}','approved')" style="padding:8px;border-radius:8px;background:var(--green-bg);color:var(--green);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--green);">✅ 承認する</button>
+        <button onclick="updateShiftStatus('${r.id}','rejected')" style="padding:8px;border-radius:8px;background:var(--red-bg);color:var(--red);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--red);">❌ 却下する</button>
       </div>` : ''}
     </div>`;
   }).join('');
 }
 
-function updateShiftStatus(id, status) {
-  const record = shiftHistory.find(r => r.id === id);
-  if (!record) return;
-  record.status = status;
-  setData('shiftHistory', shiftHistory);
-  renderShiftHistory();
-  renderCalendar();
+async function updateShiftStatus(id, status) {
   const label = status === 'approved' ? '承認' : '却下';
-  showToast(status === 'approved' ? '✅' : '❌', record.name + 'さんのシフト申請を' + label + 'しました');
+  showToast('⏳', '処理中...');
+  await gasCall({action:'shift_update', id, status});
+  showToast(status==='approved'?'✅':'❌', 'シフト申請を' + label + 'しました');
+  await loadShiftHistory();
+  renderCalendar();
 }
 
 // ══════════════════════════════════
