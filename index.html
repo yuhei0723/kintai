@@ -227,8 +227,13 @@ textarea { resize:vertical; min-height:80px; }
 .cal-day.selected { background:var(--amber); color:#000; font-weight:700; border-color:var(--amber); }
 .cal-day.today { border-color:var(--blue); color:var(--blue); }
 .cal-day.cal-day-empty { background:transparent; border-color:transparent; cursor:default; }
-.cal-day.cal-day-past { opacity:0.3; cursor:not-allowed; }
-.cal-day.approved { background:var(--green-bg); color:var(--green); border-color:var(--green); cursor:default; }
+.cal-day.cal-day-past { opacity:0.35; cursor:not-allowed; }
+.cal-day.cal-approved { background:var(--green-bg); color:var(--green); border-color:var(--green); cursor:default; font-weight:700; }
+.cal-day.cal-approved::after { content:'✓'; position:absolute; top:2px; right:3px; font-size:8px; }
+.cal-day.cal-approved { position:relative; }
+.cal-day.cal-pending { background:var(--blue-bg); color:var(--blue); border-color:var(--blue); cursor:default; }
+.cal-day.cal-rejected { background:var(--red-bg); color:var(--red); border-color:var(--red); opacity:0.6; cursor:default; text-decoration:line-through; }
+.cal-day.cal-approved-past { opacity:0.6; background:var(--green-bg); color:var(--green); }
 
 /* ── SECTION TITLE ── */
 .section-title { font-size:14px; font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
@@ -437,8 +442,11 @@ textarea { resize:vertical; min-height:80px; }
     <div class="cal-grid" id="calDayLabels"></div>
     <div class="cal-grid" id="calGrid" style="margin-top:4px;"></div>
 
-    <div style="margin-top:14px;font-size:12px;color:var(--text-sub);">
-      🟡 選択中　🟢 申請済み
+    <div style="margin-top:14px;font-size:12px;color:var(--text-sub);display:flex;gap:12px;flex-wrap:wrap;">
+      <span>🟡 選択中</span>
+      <span>🔵 申請中（審査待ち）</span>
+      <span>🟢 承認済み</span>
+      <span>❌ 却下</span>
     </div>
     <button class="btn-full btn-full-blue" style="margin-top:16px;" onclick="submitShift()">希望を送信する</button>
   </div>
@@ -685,8 +693,9 @@ function showPage(id) {
   if (id === 'employees') { renderEmployees(); renderPinSettingsList(); }
   if (id === 'leave') renderLeaveHistory();
   if (id === 'shift') {
-    renderShiftHistory();
     checkShiftAccess();
+    renderShiftHistory();
+    renderCalendar();
   }
   if (id === 'qr') renderQrList();
 }
@@ -835,7 +844,7 @@ function submitLeave() {
     fetch(gasUrl+'?action=leave&name='+encodeURIComponent(name)+'&date='+encodeURIComponent(date)+'&reason='+encodeURIComponent(reason||'なし'), {method:'GET',mode:'no-cors'}).catch(()=>{});
   }
 
-  document.getElementById('leaveName').value = '';
+  // 申請者は維持・日付と理由のみリセット
   document.getElementById('leaveDate').value = '';
   document.getElementById('leaveReason').value = '';
   renderLeaveHistory();
@@ -845,17 +854,42 @@ function submitLeave() {
 function renderLeaveHistory() {
   const el = document.getElementById('leaveHistory');
   if (!leaveHistory.length) { el.innerHTML = '<div style="color:var(--text-sub);font-size:13px;">申請はまだありません</div>'; return; }
-  el.innerHTML = leaveHistory.map(r => `
-    <div class="list-item">
-      <div class="list-item-left">
+  const list = personalUser ? leaveHistory.filter(r => r.name === personalUser) : leaveHistory;
+  if (!list.length) { el.innerHTML = '<div style="color:var(--text-sub);font-size:13px;">申請はまだありません</div>'; return; }
+  el.innerHTML = list.map(r => `
+    <div class="list-item" style="flex-direction:column;align-items:stretch;gap:10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
         <div>
           <div class="list-item-name">${r.name}</div>
           <div class="list-item-sub">${r.date}　${r.reason || ''}</div>
         </div>
+        <span class="tag tag-${r.status}">${r.status==='pending'?'審査中':r.status==='approved'?'✅ 承認':'❌ 却下'}</span>
       </div>
-      <span class="tag tag-${r.status}">${r.status==='pending'?'審査中':r.status==='approved'?'承認':'却下'}</span>
+      ${r.status === 'pending' && !personalUser ? `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <button onclick="updateLeaveStatus(${r.id},'approved')" style="padding:8px;border:none;border-radius:8px;background:var(--green-bg);color:var(--green);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--green);">✅ 承認する</button>
+        <button onclick="updateLeaveStatus(${r.id},'rejected')" style="padding:8px;border:none;border-radius:8px;background:var(--red-bg);color:var(--red);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--red);">❌ 却下する</button>
+      </div>` : ''}
     </div>
   `).join('');
+}
+
+function updateLeaveStatus(id, status) {
+  const record = leaveHistory.find(r => r.id === id);
+  if (!record) return;
+  record.status = status;
+  setData('leaveHistory', leaveHistory);
+  renderLeaveHistory();
+  const label = status === 'approved' ? '承認' : '却下';
+  showToast(status === 'approved' ? '✅' : '❌', record.name + 'さんの有給申請を' + label + 'しました');
+
+  // GASにステータス変更を通知
+  const gasUrl = localStorage.getItem('gasUrl') || 'https://script.google.com/macros/s/AKfycbwqEj4yxokyOSme92A4DrpiAin_zcITtKG9GimtMlES3sbCjf7ilaZSrXLFvvH3oiiU5A/exec';
+  if (gasUrl) {
+    fetch(gasUrl + '?action=leave_status&name=' + encodeURIComponent(record.name)
+      + '&date=' + encodeURIComponent(record.date)
+      + '&status=' + encodeURIComponent(status), {method:'GET', mode:'no-cors'}).catch(()=>{});
+  }
 }
 
 // ══════════════════════════════════
@@ -890,12 +924,21 @@ function renderCalendar() {
   const lastDate = new Date(calYear, calMonth+1, 0).getDate();
   const today = new Date(); today.setHours(0,0,0,0);
 
+  // 現在表示中のユーザーのシフト状況をdate→statusでマップ化
+  const currentName = personalUser || document.getElementById('shiftName').value;
+  const dateStatusMap = {};
+  shiftHistory.filter(s => !currentName || s.name === currentName).forEach(s => {
+    s.dates.forEach(d => {
+      // 同じ日に複数申請がある場合、approved > pending > rejected の優先度
+      const prev = dateStatusMap[d];
+      if (!prev || s.status === 'approved' || (s.status === 'pending' && prev === 'rejected')) {
+        dateStatusMap[d] = s.status;
+      }
+    });
+  });
+
   let html = '';
   for (let i=0; i<firstDay; i++) html += '<div class="cal-day cal-day-empty"></div>';
-
-  // 承認済みシフトを取得
-  const approvedDates = new Set();
-  shiftHistory.filter(s=>s.status==='approved').forEach(s => s.dates.forEach(d=>approvedDates.add(d)));
 
   for (let d=1; d<=lastDate; d++) {
     const dateStr = calYear+'-'+String(calMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
@@ -903,16 +946,28 @@ function renderCalendar() {
     const isPast = thisDate < today;
     const isToday = thisDate.getTime() === today.getTime();
     const isSelected = selectedDates.has(dateStr);
-    const isApproved = approvedDates.has(dateStr);
+    const dateStatus = dateStatusMap[dateStr]; // 'approved' | 'pending' | 'rejected' | undefined
 
     let cls = 'cal-day';
-    if (isPast) cls += ' cal-day-past';
-    else if (isApproved) cls += ' approved';
-    else if (isSelected) cls += ' selected';
-    else if (isToday) cls += ' today';
+    let label = String(d);
+    if (isPast) {
+      cls += ' cal-day-past';
+      if (dateStatus === 'approved') cls += ' cal-approved-past';
+    } else if (dateStatus === 'approved') {
+      cls += ' cal-approved';
+    } else if (dateStatus === 'pending') {
+      cls += ' cal-pending';
+    } else if (dateStatus === 'rejected') {
+      cls += ' cal-rejected';
+    } else if (isSelected) {
+      cls += ' selected';
+    } else if (isToday) {
+      cls += ' today';
+    }
 
-    const clickable = !isPast && !isApproved ? `onclick="toggleDate('${dateStr}')"` : '';
-    html += `<div class="${cls}" ${clickable}>${d}</div>`;
+    const isLocked = dateStatus === 'approved' || dateStatus === 'pending';
+    const clickable = !isPast && !isLocked ? `onclick="toggleDate('${dateStr}')"` : '';
+    html += `<div class="${cls}" ${clickable}>${label}</div>`;
   }
   grid.innerHTML = html;
 }
@@ -961,24 +1016,47 @@ function checkShiftAccess() {
 function renderShiftHistory() {
   const el = document.getElementById('shiftHistory');
   if (!shiftHistory.length) { el.innerHTML = '<div style="color:var(--text-sub);font-size:13px;">申請はまだありません</div>'; return; }
-  el.innerHTML = shiftHistory.map(r => `
-    <div class="list-item">
-      <div class="list-item-left">
+  // 個人ページでは自分の申請のみ表示
+  const list = personalUser ? shiftHistory.filter(r => r.name === personalUser) : shiftHistory;
+  if (!list.length) { el.innerHTML = '<div style="color:var(--text-sub);font-size:13px;">申請はまだありません</div>'; return; }
+  el.innerHTML = list.map(r => {
+    const statusLabel = r.status==='pending' ? '🔵 審査中' : r.status==='approved' ? '✅ 承認済み' : '❌ 却下';
+    const statusClass = r.status==='pending' ? 'tag-pending' : r.status==='approved' ? 'tag-approved' : 'tag-rejected';
+    const datesPreview = r.dates.slice(0,3).join('、') + (r.dates.length > 3 ? '　他' + (r.dates.length-3) + '日' : '');
+    return `
+    <div class="list-item" style="flex-direction:column;align-items:stretch;gap:10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
         <div>
           <div class="list-item-name">${r.name}</div>
-          <div class="list-item-sub">${r.dates.length}日選択　${r.dates[0]}〜</div>
+          <div class="list-item-sub">${r.dates.length}日　${datesPreview}</div>
         </div>
+        <span class="tag ${statusClass}">${statusLabel}</span>
       </div>
-      <span class="tag tag-${r.status}">${r.status==='pending'?'審査中':r.status==='approved'?'承認':'却下'}</span>
-    </div>
-  `).join('');
+      ${r.status === 'pending' && !personalUser ? `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <button onclick="updateShiftStatus(${r.id},'approved')" style="padding:8px;border-radius:8px;background:var(--green-bg);color:var(--green);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--green);">✅ 承認する</button>
+        <button onclick="updateShiftStatus(${r.id},'rejected')" style="padding:8px;border-radius:8px;background:var(--red-bg);color:var(--red);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--red);">❌ 却下する</button>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function updateShiftStatus(id, status) {
+  const record = shiftHistory.find(r => r.id === id);
+  if (!record) return;
+  record.status = status;
+  setData('shiftHistory', shiftHistory);
+  renderShiftHistory();
+  renderCalendar();
+  const label = status === 'approved' ? '承認' : '却下';
+  showToast(status === 'approved' ? '✅' : '❌', record.name + 'さんのシフト申請を' + label + 'しました');
 }
 
 // ══════════════════════════════════
 // GAS URL
 // ══════════════════════════════════
 function loadGasUrl() {
-  localStorage.setItem('gasUrl', 'https://script.google.com/macros/s/AKfycbxmukcO3PUqEmJdi_t2zgyvEkuGUSF3s_8AR937BeP2yH91AdsAF2LV0Yw_AenQKz7Zbw/exec');
+  localStorage.setItem('gasUrl', 'https://script.google.com/macros/s/AKfycbwqEj4yxokyOSme92A4DrpiAin_zcITtKG9GimtMlES3sbCjf7ilaZSrXLFvvH3oiiU5A/exec');
   const saved = (localStorage.getItem('gasUrl') || 'https://script.google.com/macros/s/AKfycbwqEj4yxokyOSme92A4DrpiAin_zcITtKG9GimtMlES3sbCjf7ilaZSrXLFvvH3oiiU5A/exec');
   if (saved) {
     document.getElementById('gasUrl').value = saved;
