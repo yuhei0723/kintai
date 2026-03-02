@@ -913,11 +913,24 @@ async function gasCall(params) {
 
 async function gasGet(params) {
   const qs = Object.entries(params).map(([k,v]) => encodeURIComponent(k)+'='+encodeURIComponent(v)).join('&');
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
   try {
-    const res = await fetch(GAS_URL + '?' + qs);
+    const res = await fetch(GAS_URL + '?' + qs, {
+      method: 'GET',
+      signal: controller.signal,
+      redirect: 'follow'
+    });
+    clearTimeout(timer);
     const text = await res.text();
-    return JSON.parse(text);
-  } catch(e) { return null; }
+    // GASのリダイレクト後レスポンスはJSONのはず
+    const clean = text.replace(/^[^\[\{]*/, '').replace(/[^\]\}]*$/, '');
+    return JSON.parse(clean);
+  } catch(e) {
+    clearTimeout(timer);
+    console.warn('gasGet error:', e);
+    return null;
+  }
 }
 
 async function submitLeave() {
