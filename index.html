@@ -736,8 +736,10 @@ function updateClock() {
     else greetEl.textContent = 'お疲れ様でした 🌙';
   }
 }
-setInterval(updateClock, 1000);
-updateClock();
+try {
+  setInterval(updateClock, 1000);
+  updateClock();
+} catch(e) { console.error('clock error:', e); }
 
 // 30秒ごとに現在開いているタブのデータを自動更新
 setInterval(async () => {
@@ -958,17 +960,22 @@ async function submitLeave() {
 }
 
 async function loadTodayPunchLog() {
-  const data = await gasGet({action:'punch_today'});
   const el = document.getElementById('todayPunchLog');
-  if (!data) {
-    if (el) el.innerHTML = '<div style="color:var(--text-sub);font-size:13px;">データを取得できませんでした</div>';
-    return;
+  try {
+    const data = await gasGet({action:'punch_today'});
+    if (!data) {
+      if (el) el.innerHTML = '<div style="color:var(--text-sub);font-size:13px;">接続中...</div>';
+      return;
+    }
+    renderTodayPunchLog(data);
+    const now = new Date();
+    const t = now.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    const updEl = document.getElementById('punchLogUpdated');
+    if (updEl) updEl.textContent = t + ' 更新';
+  } catch(e) {
+    console.error('loadTodayPunchLog error:', e);
+    if (el) el.innerHTML = '<div style="color:var(--text-sub);font-size:13px;">読み込みエラー</div>';
   }
-  renderTodayPunchLog(data);
-  const now = new Date();
-  const t = now.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  const updEl = document.getElementById('punchLogUpdated');
-  if (updEl) updEl.textContent = t + ' 更新';
 }
 
 function renderTodayPunchLog(logs) {
@@ -1879,12 +1886,25 @@ function showToast(icon, text) {
 // ══════════════════════════════════
 // INIT
 // ══════════════════════════════════
-loadGasUrl();
-refreshSelects();
-initCalendar();
-initPersonalPage();
-// DOMが完全に描画されてからデータ取得
-setTimeout(() => { loadTodayPunchLog(); }, 300);
+// 全初期化をDOMContentLoaded後に確実に実行
+function initApp() {
+  try {
+    loadGasUrl();
+    refreshSelects();
+    initCalendar();
+    initPersonalPage();
+    updateClock(); // 時計を即座に更新
+    setTimeout(() => { loadTodayPunchLog(); }, 500);
+  } catch(e) {
+    console.error('initApp error:', e);
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initApp);
+} else {
+  initApp();
+}
 // iPadチームのQRタブを非表示（初期）
 if (!personalUser) {
   // QRは営業チームのみ対象なのでそのまま表示
