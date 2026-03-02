@@ -334,7 +334,7 @@ textarea { resize:vertical; min-height:80px; }
 <!-- NAV -->
 <nav class="nav" id="mainNav">
   <button class="nav-btn active" onclick="showPage('punch')">⏱ 打刻</button>
-  <button class="nav-btn" onclick="showPage('leave')">📝 有給申請</button>
+  <button class="nav-btn" id="navLeave" onclick="showPage('leave')">📝 有給申請</button>
   <button class="nav-btn" id="navShift" onclick="showPage('shift')">📆 シフト申請</button>
   <button class="nav-btn" id="navEmployees" onclick="showPage('employees')">👥 社員管理</button>
   <button class="nav-btn" id="navQr" onclick="showPage('qr')">🔗 QRコード</button>
@@ -1157,8 +1157,8 @@ function renderShiftHistory() {
   const el = document.getElementById('shiftHistory');
   if (!shiftHistory.length) { el.innerHTML = '<div style="color:var(--text-sub);font-size:13px;">申請はまだありません</div>'; return; }
   el.innerHTML = shiftHistory.map(r => {
-    const statusLabel = r.status==='pending' ? '🔵 審査中' : r.status==='approved' ? '✅ 承認済み' : '❌ 却下';
-    const statusClass = r.status==='pending' ? 'tag-pending' : r.status==='approved' ? 'tag-approved' : 'tag-rejected';
+    const statusLabel = r.status==='pending' ? '🔵 審査中' : r.status==='approved' ? '✅ 承認済み' : r.status==='cancel_requested' ? '🔄 変更・取消申請中' : '❌ 却下';
+    const statusClass = r.status==='pending' ? 'tag-pending' : r.status==='approved' ? 'tag-approved' : r.status==='cancel_requested' ? 'tag-pending' : 'tag-rejected';
     const datesArr = Array.isArray(r.dates) ? r.dates : r.dates.split(',');
     const datesPreview = datesArr.slice(0,3).join('、') + (datesArr.length > 3 ? '　他' + (datesArr.length-3) + '日' : '');
     const timeInfo = (r.timeStart && r.timeEnd) ? r.timeStart + '〜' + r.timeEnd : '';
@@ -1176,8 +1176,27 @@ function renderShiftHistory() {
         <button onclick="updateShiftStatus('${r.id}','approved')" style="padding:8px;border-radius:8px;background:var(--green-bg);color:var(--green);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--green);">✅ 承認する</button>
         <button onclick="updateShiftStatus('${r.id}','rejected')" style="padding:8px;border-radius:8px;background:var(--red-bg);color:var(--red);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--red);">❌ 却下する</button>
       </div>` : ''}
+      ${r.status === 'cancel_requested' && !personalUser ? `
+      <div style="font-size:12px;color:var(--amber);font-weight:700;margin-bottom:6px;">🔄 従業員から変更・取消の申請があります</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <button onclick="updateShiftStatus('${r.id}','rejected')" style="padding:8px;border-radius:8px;background:var(--red-bg);color:var(--red);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--red);">🗑️ 取消を承認</button>
+        <button onclick="updateShiftStatus('${r.id}','approved')" style="padding:8px;border-radius:8px;background:var(--surface2);color:var(--text-sub);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--border);">↩️ 申請を維持</button>
+      </div>` : ''}
+      ${personalUser && (r.status === 'approved' || r.status === 'pending') ? `
+      <button onclick="requestShiftCancel('${r.id}','${r.status}')" style="width:100%;padding:8px;border-radius:8px;background:#fff8f8;color:#dc2626;font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid rgba(220,38,38,0.3);">🔄 変更・取消を申請する</button>` : r.status === 'cancel_requested' && personalUser ? `
+      <div style="text-align:center;font-size:12px;color:var(--amber);padding:6px;">管理者の確認をお待ちください</div>` : ''}
     </div>`;
   }).join('');
+}
+
+async function requestShiftCancel(id, currentStatus) {
+  const label = currentStatus === 'approved' ? '承認済みのシフト' : '申請中のシフト';
+  if (!confirm(label + 'の変更・取消を申請しますか？\n\n管理者が確認後に対応します。')) return;
+  showToast('⏳', '申請中...');
+  await gasCall({action:'shift_cancel_request', id, name: personalUser});
+  showToast('🔄', '変更・取消を申請しました');
+  await loadShiftHistory();
+  renderCalendar();
 }
 
 async function updateShiftStatus(id, status) {
@@ -1448,17 +1467,22 @@ function initPersonalPage() {
   if (gasBox) gasBox.style.display = 'none';
 
   // パート以外はシフト申請タブを非表示
+  // パートは有給申請タブを非表示
   const emp = employees.find(e => e.name === personalUser);
   if (emp && emp.type !== 'パート') {
     const shiftNav = document.getElementById('navShift');
     if (shiftNav) shiftNav.style.display = 'none';
+  }
+  if (emp && emp.type === 'パート') {
+    const leaveNav = document.getElementById('navLeave');
+    if (leaveNav) leaveNav.style.display = 'none';
   }
 
   // 全セレクトに名前を固定
   setTimeout(() => {
     ['punchName','leaveName','shiftName'].forEach(id => {
       const sel = document.getElementById(id);
-      // 選択肢を本人のみに
+      if (!sel) return;
       sel.innerHTML = '<option value="'+personalUser+'">'+personalUser+'</option>';
       sel.value = personalUser;
       sel.disabled = true;
