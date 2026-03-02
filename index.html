@@ -1251,6 +1251,28 @@ async function loadShiftHistory() {
   renderShiftHistory();
 }
 
+function buildCancelAdminUI(r) {
+  var days = ['日','月','火','水','木','金','土'];
+  var typeLabel = r.cancelType === 'change' ? '時間変更' : '取消';
+  var html = '<div style="font-size:12px;color:var(--amber);font-weight:700;margin-bottom:4px;">🔄 ' + typeLabel + 'の申請があります</div>';
+  if (r.cancelDates) {
+    var dateStr = r.cancelDates.split(',').map(function(d) {
+      var dt = new Date(d);
+      return (dt.getMonth()+1) + '/' + dt.getDate() + '(' + days[dt.getDay()] + ')';
+    }).join('、');
+    html += '<div style="font-size:12px;color:var(--text-sub);margin-bottom:4px;">対象日：' + dateStr + '</div>';
+  }
+  if (r.newTime) {
+    html += '<div style="font-size:12px;color:var(--blue);margin-bottom:8px;">新時間：' + r.newTime + '</div>';
+  }
+  var btnStyle = 'padding:8px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;';
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
+  html += '<button data-shift-id="' + r.id + '" data-action="reject-cancel" style="' + btnStyle + 'background:var(--red-bg);color:var(--red);border:1px solid var(--red);">✅ 申請を承認</button>';
+  html += '<button data-shift-id="' + r.id + '" data-action="keep-shift" style="' + btnStyle + 'background:var(--surface2);color:var(--text-sub);border:1px solid var(--border);">↩️ 却下（維持）</button>';
+  html += '</div>';
+  return html;
+}
+
 function renderShiftHistory() {
   const el = document.getElementById('shiftHistory');
   if (!shiftHistory.length) { el.innerHTML = '<div style="color:var(--text-sub);font-size:13px;">申請はまだありません</div>'; return; }
@@ -1274,16 +1296,7 @@ function renderShiftHistory() {
         <button onclick="updateShiftStatus('${r.id}','approved')" style="padding:8px;border-radius:8px;background:var(--green-bg);color:var(--green);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--green);">✅ 承認する</button>
         <button onclick="updateShiftStatus('${r.id}','rejected')" style="padding:8px;border-radius:8px;background:var(--red-bg);color:var(--red);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--red);">❌ 却下する</button>
       </div>` : ''}
-      ${r.status === 'cancel_requested' && !personalUser ? (() => {
-        const cancelDatesStr = r.cancelDates ? r.cancelDates.split(',').map(d=>{const dt=new Date(d);const days=['日','月','火','水','木','金','土'];return (dt.getMonth()+1)+'/'+(dt.getDate())+'('+days[dt.getDay()]+')';}).join('、') : '';
-        return \`<div style="font-size:12px;color:var(--amber);font-weight:700;margin-bottom:4px;">🔄 \${r.cancelType==='change'?'時間変更':'取消'}の申請があります</div>
-        \${cancelDatesStr ? \`<div style="font-size:12px;color:var(--text-sub);margin-bottom:4px;">対象日：\${cancelDatesStr}</div>\` : ''}
-        \${r.newTime ? \`<div style="font-size:12px;color:var(--blue);margin-bottom:8px;">新時間：\${r.newTime}</div>\` : ''}
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-          <button onclick="updateShiftStatus('\${r.id}','rejected')" style="padding:8px;border-radius:8px;background:var(--red-bg);color:var(--red);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--red);">✅ 申請を承認</button>
-          <button onclick="updateShiftStatus('\${r.id}','approved')" style="padding:8px;border-radius:8px;background:var(--surface2);color:var(--text-sub);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--border);">↩️ 却下（維持）</button>
-        </div>\`;
-      })() : ''}
+      ${r.status === 'cancel_requested' && !personalUser ? buildCancelAdminUI(r) : ''}
       ${personalUser && (r.status === 'approved' || r.status === 'pending') ? `
       <button onclick="requestShiftCancel('${r.id}')" style="width:100%;padding:8px;border-radius:8px;background:#fff8f8;color:#dc2626;font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid rgba(220,38,38,0.3);">🔄 変更・取消を申請する</button>` : r.status === 'cancel_requested' && personalUser ? `
       <div style="text-align:center;font-size:12px;color:var(--amber);padding:6px;">管理者の確認をお待ちください</div>` : ''}
@@ -1390,6 +1403,16 @@ async function submitCancelRequest() {
   await loadShiftHistory();
   renderCalendar();
 }
+
+// Event delegation for cancel admin buttons
+document.addEventListener('click', function(e) {
+  var btn = e.target.closest('[data-action]');
+  if (!btn) return;
+  var action = btn.dataset.action;
+  var id = btn.dataset.shiftId;
+  if (action === 'reject-cancel') updateShiftStatus(id, 'rejected');
+  if (action === 'keep-shift') updateShiftStatus(id, 'approved');
+});
 
 async function updateShiftStatus(id, status) {
   const label = status === 'approved' ? '承認' : '却下';
