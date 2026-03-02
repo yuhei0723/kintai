@@ -8,7 +8,10 @@
 <meta name="apple-mobile-web-app-title" id="appTitle" content="勤怠管理">
 <link id="appleTouchIcon" rel="apple-touch-icon" href="">
 <title id="pageTitle">勤怠管理</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"></noscript>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 :root {
@@ -96,7 +99,7 @@ body::before {
 /* ── CLOCK ── */
 .clock-wrap { text-align:center; margin-bottom:24px; }
 .clock {
-  font-family:'DM Mono',monospace;
+  font-family:'DM Mono',ui-monospace,monospace;
   font-size:52px; font-weight:500;
   letter-spacing:-0.02em; line-height:1;
   margin-bottom:6px;
@@ -112,7 +115,7 @@ body::before {
 .label {
   font-size:11px; letter-spacing:0.15em;
   text-transform:uppercase; color:var(--text-sub);
-  font-family:'DM Mono',monospace;
+  font-family:'DM Mono',ui-monospace,monospace;
   margin-bottom:8px;
 }
 
@@ -220,7 +223,7 @@ textarea { resize:vertical; min-height:80px; }
 .cal-title { font-size:16px; font-weight:700; }
 .cal-nav { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:6px 12px; color:var(--text); cursor:pointer; font-size:14px; }
 .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
-.cal-day-label { text-align:center; font-size:11px; color:var(--text-sub); padding:6px 0; font-family:'DM Mono',monospace; }
+.cal-day-label { text-align:center; font-size:11px; color:var(--text-sub); padding:6px 0; font-family:'DM Mono',ui-monospace,monospace; }
 .cal-day {
   aspect-ratio:1; border-radius:8px; border:1px solid transparent;
   display:flex; align-items:center; justify-content:center;
@@ -268,7 +271,7 @@ textarea { resize:vertical; min-height:80px; }
   border-radius:12px; padding:16px; margin-top:16px;
   position:relative; z-index:1;
 }
-.setup-title-row { font-size:11px; letter-spacing:0.15em; text-transform:uppercase; color:var(--amber); font-family:'DM Mono',monospace; margin-bottom:10px; }
+.setup-title-row { font-size:11px; letter-spacing:0.15em; text-transform:uppercase; color:var(--amber); font-family:'DM Mono',ui-monospace,monospace; margin-bottom:10px; }
 .setup-note { font-size:11px; color:var(--text-sub); line-height:1.7; margin-top:8px; }
 .status-dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--red); margin-right:5px; vertical-align:middle; }
 .status-dot.on { background:var(--green); }
@@ -293,7 +296,7 @@ textarea { resize:vertical; min-height:80px; }
 .pin-key {
   padding:16px; border:1px solid var(--border2);
   border-radius:12px; background:var(--surface2); color:var(--text);
-  font-family:'DM Mono',monospace; font-size:20px; font-weight:500;
+  font-family:'DM Mono',ui-monospace,monospace; font-size:20px; font-weight:500;
   cursor:pointer; transition:all 0.1s;
 }
 .pin-key:active { background:var(--surface3); transform:scale(0.95); }
@@ -310,7 +313,7 @@ textarea { resize:vertical; min-height:80px; }
 .qr-item-type { font-size:11px; color:var(--text-sub); margin-top:2px; }
 .qr-canvas-wrap { display:flex; justify-content:center; margin-bottom:12px; }
 .qr-canvas-wrap canvas { border-radius:8px; }
-.qr-url { font-size:10px; color:var(--text-dim); word-break:break-all; margin-bottom:10px; font-family:'DM Mono',monospace; }
+.qr-url { font-size:10px; color:var(--text-dim); word-break:break-all; margin-bottom:10px; font-family:'DM Mono',ui-monospace,monospace; }
 .qr-btns { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
 .qr-btn {
   padding:10px; border:none; border-radius:8px;
@@ -422,7 +425,7 @@ textarea { resize:vertical; min-height:80px; }
   <div class="card" id="todayLogCard">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
       <div class="section-title" style="margin:0;">📋 本日の打刻状況</div>
-      <div id="punchLogUpdated" style="font-size:11px;color:var(--text-sub);font-family:'DM Mono',monospace;"></div>
+      <div id="punchLogUpdated" style="font-size:11px;color:var(--text-sub);font-family:'DM Mono',ui-monospace,monospace;"></div>
     </div>
     <div id="todayPunchLog"><div style="color:var(--text-sub);font-size:13px;padding:8px 0;">読み込み中...</div></div>
   </div>
@@ -934,12 +937,16 @@ async function submitLeave() {
 
 async function loadTodayPunchLog() {
   const data = await gasGet({action:'punch_today'});
-  if (!data) return;
+  const el = document.getElementById('todayPunchLog');
+  if (!data) {
+    if (el) el.innerHTML = '<div style="color:var(--text-sub);font-size:13px;">データを取得できませんでした</div>';
+    return;
+  }
   renderTodayPunchLog(data);
   const now = new Date();
   const t = now.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  const el = document.getElementById('punchLogUpdated');
-  if (el) el.textContent = t + ' 更新';
+  const updEl = document.getElementById('punchLogUpdated');
+  if (updEl) updEl.textContent = t + ' 更新';
 }
 
 function renderTodayPunchLog(logs) {
@@ -969,7 +976,7 @@ function renderTodayPunchLog(logs) {
     const statusBg = r.out ? 'var(--surface2)' : 'var(--green-bg)';
     return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
       <div style="font-weight:700;font-size:14px;color:var(--text);min-width:80px;">${r.name}</div>
-      <div style="font-size:13px;color:var(--text-sub);font-family:'DM Mono',monospace;flex:1;text-align:center;">
+      <div style="font-size:13px;color:var(--text-sub);font-family:'DM Mono',ui-monospace,monospace;flex:1;text-align:center;">
         ${r.in ? '🟢 ' + r.in : '—'}　${r.out ? '🔴 ' + r.out : r.in ? '<span style="color:var(--amber);">退勤待ち</span>' : ''}
       </div>
       <span style="font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;background:${statusBg};color:${statusColor};">${statusLabel}</span>
@@ -1854,6 +1861,8 @@ loadGasUrl();
 refreshSelects();
 initCalendar();
 initPersonalPage();
+// DOMが完全に描画されてからデータ取得
+setTimeout(() => { loadTodayPunchLog(); }, 300);
 // iPadチームのQRタブを非表示（初期）
 if (!personalUser) {
   // QRは営業チームのみ対象なのでそのまま表示
