@@ -1117,18 +1117,7 @@ function renderLeaveHistory() {
 
   el.innerHTML = html;
 
-  // innerHTML設定後にボタンへ直接イベントを登録
-  el.querySelectorAll('[data-la]').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      var action = this.dataset.la;
-      var id = this.dataset.lid;
-      if (action === 'approve') updateLeaveStatus(id, 'approved');
-      else if (action === 'reject') updateLeaveStatus(id, 'rejected');
-      else if (action === 'cancel-approve') updateLeaveStatus(id, 'cancelled');
-      else if (action === 'cancel-reject') updateLeaveStatus(id, 'approved');
-      else if (action === 'open-cancel') openLeaveCancelModal(id);
-    });
-  });
+  // イベントはbody委任（initApp）で処理
 }
 
 
@@ -1992,14 +1981,33 @@ function showToast(icon, text) {
 // INIT
 // ══════════════════════════════════
 // 全初期化をDOMContentLoaded後に確実に実行
+function handleLeaveAction(action, id) {
+  if (action === 'approve') updateLeaveStatus(id, 'approved');
+  else if (action === 'reject') updateLeaveStatus(id, 'rejected');
+  else if (action === 'cancel-approve') updateLeaveStatus(id, 'cancelled');
+  else if (action === 'cancel-reject') updateLeaveStatus(id, 'approved');
+  else if (action === 'open-cancel') openLeaveCancelModal(id);
+}
+
 function initApp() {
   try {
     loadGasUrl();
     refreshSelects();
     initCalendar();
     initPersonalPage();
-    updateClock(); // 時計を即座に更新
-    setTimeout(() => { loadTodayPunchLog(); }, 500);
+    updateClock();
+    setTimeout(function() { loadTodayPunchLog(); }, 500);
+
+    // 有給ボタン: body全体にclick+touchend委任（スマホ・iPad対応）
+    document.body.addEventListener('click', function(e) {
+      var btn = e.target.closest('[data-la]');
+      if (btn) handleLeaveAction(btn.dataset.la, btn.dataset.lid);
+    });
+    document.body.addEventListener('touchend', function(e) {
+      var btn = e.target.closest('[data-la]');
+      if (btn) { e.preventDefault(); handleLeaveAction(btn.dataset.la, btn.dataset.lid); }
+    }, {passive: false});
+
   } catch(e) {
     console.error('initApp error:', e);
   }
