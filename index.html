@@ -755,8 +755,6 @@ setInterval(async () => {
 }, 30000);
 
 // 初期ロード
-loadTodayPunchLog();
-
 // ══════════════════════════════════
 // PAGE NAV
 // ══════════════════════════════════
@@ -903,7 +901,8 @@ async function executePunch(name, type) {
 // ══════════════════════════════════
 // LEAVE
 // ══════════════════════════════════
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbyxRE4k76bwsmrrmya49vf6BRxjscWTS2c2O7bCwqWWBcw2z7KWBP-YuTYbzuLJXIm9Ow/exec';
+
+var GAS_URL = 'https://script.google.com/macros/s/AKfycbyxRE4k76bwsmrrmya49vf6BRxjscWTS2c2O7bCwqWWBcw2z7KWBP-YuTYbzuLJXIm9Ow/exec';
 
 async function gasCall(params) {
   const qs = Object.entries(params).map(([k,v]) => encodeURIComponent(k)+'='+encodeURIComponent(v)).join('&');
