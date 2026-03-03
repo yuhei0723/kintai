@@ -1122,6 +1122,7 @@ function renderLeaveHistory() {
 var leaveCancelTargetId = null;
 
 function openLeaveCancelModal(id) {
+  console.log('openLeaveCancelModal called, id=', id, 'type=', typeof id);
   leaveCancelTargetId = id;
   var noteEl = document.getElementById('leaveCancelNote');
   if (noteEl) noteEl.value = '';
@@ -1140,9 +1141,11 @@ async function submitLeaveCancelRequest() {
   var note = '';
   var noteEl = document.getElementById('leaveCancelNote');
   if (noteEl) note = noteEl.value.trim();
+  console.log('submitLeaveCancelRequest: id=', leaveCancelTargetId, 'note=', note);
   closeLeaveCancelModal();
   showToast('⏳', '申請中...');
-  await gasCall({action:'leave_cancel_request', id: leaveCancelTargetId, name: personalUser || '', cancelNote: note});
+  var result = await gasCall({action:'leave_cancel_request', id: leaveCancelTargetId, name: personalUser || '', cancelNote: note});
+  console.log('gasCall result:', result);
   showToast('🔄', '変更・取消を申請しました');
   await loadLeaveHistory();
 }
