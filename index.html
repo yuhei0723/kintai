@@ -1124,6 +1124,48 @@ function renderLeaveHistory() {
   el.innerHTML = html;
 }
 
+// ── 有給変更・取消モーダル ──
+var leaveCancelTargetId = null;
+
+function openLeaveCancelModal(id) {
+  leaveCancelTargetId = id;
+  var noteEl = document.getElementById('leaveCancelNote');
+  if (noteEl) noteEl.value = '';
+  var modal = document.getElementById('leaveCancelModal');
+  if (modal) { modal.style.display = 'flex'; }
+  else { console.error('leaveCancelModal not found'); }
+}
+
+function closeLeaveCancelModal() {
+  var modal = document.getElementById('leaveCancelModal');
+  if (modal) modal.style.display = 'none';
+  leaveCancelTargetId = null;
+}
+
+async function submitLeaveCancelRequest() {
+  var note = '';
+  var noteEl = document.getElementById('leaveCancelNote');
+  if (noteEl) note = noteEl.value.trim();
+  closeLeaveCancelModal();
+  showToast('⏳', '申請中...');
+  await gasCall({action:'leave_cancel_request', id: leaveCancelTargetId, name: personalUser || '', cancelNote: note});
+  showToast('🔄', '変更・取消を申請しました');
+  await loadLeaveHistory();
+}
+
+// Event delegation for leave buttons (data-leave-action)
+document.addEventListener('click', function(e) {
+  var btn = e.target.closest('[data-leave-action]');
+  if (!btn) return;
+  var action = btn.dataset.leaveAction;
+  var id = btn.dataset.leaveId;
+  if (action === 'approve') updateLeaveStatus(id, 'approved');
+  else if (action === 'reject') updateLeaveStatus(id, 'rejected');
+  else if (action === 'cancel-approve') updateLeaveStatus(id, 'cancelled');
+  else if (action === 'cancel-reject') updateLeaveStatus(id, 'approved');
+  else if (action === 'open-cancel') openLeaveCancelModal(id);
+});
+
 async function updateLeaveStatus(id, status) {
   const label = status === 'approved' ? '承認' : '却下';
   showToast('⏳', '処理中...');
