@@ -1064,8 +1064,8 @@ function buildLeaveAdminCancelUI(r) {
   }
   var s = 'padding:8px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;';
   html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
-  html += '<button data-leave-id="' + r.id + '" data-leave-action="cancel-approve" style="' + s + 'background:var(--red-bg);color:var(--red);border:1px solid var(--red);">✅ 取消を承認</button>';
-  html += '<button data-leave-id="' + r.id + '" data-leave-action="cancel-reject" style="' + s + 'background:var(--surface2);color:var(--text-sub);border:1px solid var(--border);">↩️ 却下（維持）</button>';
+  html += '<button data-lid="' + r.id + '" data-la="cancel-approve" style="' + s + 'background:var(--red-bg);color:var(--red);border:1px solid var(--red);">✅ 取消を承認</button>';
+  html += '<button data-lid="' + r.id + '" data-la="cancel-reject" style="' + s + 'background:var(--surface2);color:var(--text-sub);border:1px solid var(--border);">↩️ 却下（維持）</button>';
   html += '</div>';
   return html;
 }
@@ -1091,38 +1091,46 @@ function renderLeaveHistory() {
     html += '<div style="display:flex;align-items:center;justify-content:space-between;">';
     html += '<div>';
     html += '<div class="list-item-name">' + r.name + '</div>';
-    html += '<div class="list-item-sub">' + r.date + (r.reason ? '　' + r.reason : '') + '</div>';
+    var dateDisp = r.date ? String(r.date).replace('T15:00:00.000Z','').replace('T00:00:00.000Z','') : '';
+    html += '<div class="list-item-sub">' + dateDisp + (r.reason ? '　' + r.reason : '') + '</div>';
     html += '</div>';
     html += '<span class="tag ' + statusClass + '">' + statusLabel + '</span>';
     html += '</div>';
 
-    // 管理者：pending → 承認/却下ボタン
     if (r.status === 'pending' && !personalUser) {
       html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
-      html += '<button data-leave-id="' + r.id + '" data-leave-action="approve" style="padding:8px;border-radius:8px;background:var(--green-bg);color:var(--green);font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--green);">✅ 承認する</button>';
-      html += '<button data-leave-id="' + r.id + '" data-leave-action="reject" style="padding:8px;border-radius:8px;background:var(--red-bg);color:var(--red);font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--red);">❌ 却下する</button>';
+      html += '<button data-lid="' + r.id + '" data-la="approve" style="padding:8px;border-radius:8px;background:var(--green-bg);color:var(--green);font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--green);">✅ 承認する</button>';
+      html += '<button data-lid="' + r.id + '" data-la="reject" style="padding:8px;border-radius:8px;background:var(--red-bg);color:var(--red);font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--red);">❌ 却下する</button>';
       html += '</div>';
     }
-
-    // 管理者：cancel_requested → 取消承認/却下ボタン
     if (r.status === 'cancel_requested' && !personalUser) {
       html += buildLeaveAdminCancelUI(r);
     }
-
-    // 従業員・管理者共通：approved/pending → 変更・取消申請ボタン
     if (r.status === 'approved' || r.status === 'pending') {
-      html += '<button data-leave-id="' + r.id + '" data-leave-action="open-cancel" style="width:100%;padding:8px;border-radius:8px;background:#fff8f8;color:#dc2626;font-size:12px;font-weight:700;cursor:pointer;border:1px solid rgba(220,38,38,0.3);">🔄 変更・取消を申請する</button>';
+      html += '<button data-lid="' + r.id + '" data-la="open-cancel" style="width:100%;padding:8px;border-radius:8px;background:#fff8f8;color:#dc2626;font-size:12px;font-weight:700;cursor:pointer;border:1px solid rgba(220,38,38,0.3);">🔄 変更・取消を申請する</button>';
     }
-
-    // 従業員：cancel_requested → 待機メッセージ
     if (r.status === 'cancel_requested' && personalUser) {
       html += '<div style="text-align:center;font-size:12px;color:var(--amber);padding:6px;">管理者の確認をお待ちください</div>';
     }
-
     html += '</div>';
   });
+
   el.innerHTML = html;
+
+  // innerHTML設定後にボタンへ直接イベントを登録
+  el.querySelectorAll('[data-la]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var action = this.dataset.la;
+      var id = this.dataset.lid;
+      if (action === 'approve') updateLeaveStatus(id, 'approved');
+      else if (action === 'reject') updateLeaveStatus(id, 'rejected');
+      else if (action === 'cancel-approve') updateLeaveStatus(id, 'cancelled');
+      else if (action === 'cancel-reject') updateLeaveStatus(id, 'approved');
+      else if (action === 'open-cancel') openLeaveCancelModal(id);
+    });
+  });
 }
+
 
 // ── 有給変更・取消モーダル ──
 var leaveCancelTargetId = null;
@@ -1152,19 +1160,6 @@ async function submitLeaveCancelRequest() {
   showToast('🔄', '変更・取消を申請しました');
   await loadLeaveHistory();
 }
-
-// Event delegation for leave buttons (data-leave-action)
-document.addEventListener('click', function(e) {
-  var btn = e.target.closest('[data-leave-action]');
-  if (!btn) return;
-  var action = btn.dataset.leaveAction;
-  var id = btn.dataset.leaveId;
-  if (action === 'approve') updateLeaveStatus(id, 'approved');
-  else if (action === 'reject') updateLeaveStatus(id, 'rejected');
-  else if (action === 'cancel-approve') updateLeaveStatus(id, 'cancelled');
-  else if (action === 'cancel-reject') updateLeaveStatus(id, 'approved');
-  else if (action === 'open-cancel') openLeaveCancelModal(id);
-});
 
 async function updateLeaveStatus(id, status) {
   const label = status === 'approved' ? '承認' : '却下';
