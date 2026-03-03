@@ -885,7 +885,7 @@ async function executePunch(name, type) {
   const now = new Date();
   const timeStr = now.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
   try {
-    await fetch(gasUrl+'?action=punch&name='+encodeURIComponent(name)+'&type='+encodeURIComponent(type)+'&timestamp='+now.toISOString(), {method:'GET',mode:'no-cors'});
+    await gasGet({action:'punch', name:name, type:punchType, timestamp:now.toISOString()});
     showToast('✅', name+'さんの'+type+'を記録しました（'+timeStr+'）');
     setTimeout(loadTodayPunchLog, 1500);
   } catch(e) {
@@ -904,12 +904,9 @@ async function executePunch(name, type) {
 
 var GAS_URL = 'https://script.google.com/macros/s/AKfycbyxRE4k76bwsmrrmya49vf6BRxjscWTS2c2O7bCwqWWBcw2z7KWBP-YuTYbzuLJXIm9Ow/exec';
 
-async function gasCall(params) {
-  const qs = Object.entries(params).map(([k,v]) => encodeURIComponent(k)+'='+encodeURIComponent(v)).join('&');
-  try {
-    const res = await fetch(GAS_URL + '?' + qs, {method:'GET', mode:'no-cors'});
-    return true;
-  } catch(e) { return false; }
+function gasCall(params) {
+  // gasGetと同じJSONP方式でCORSを回避
+  return gasGet(params).catch(function() { return null; });
 }
 
 function gasGet(params) {
