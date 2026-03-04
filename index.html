@@ -1058,7 +1058,10 @@ function renderTodayPunchLog(logs) {
       <div style="font-size:13px;color:var(--text-sub);font-family:'DM Mono',ui-monospace,monospace;flex:1;text-align:center;">
         ${r.in ? '🟢 ' + r.in : '—'}　${r.out ? '🔴 ' + r.out : r.in ? '<span style="color:var(--amber);">退勤待ち</span>' : ''}
       </div>
-      <span style="font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;background:${statusBg};color:${statusColor};">${statusLabel}</span>
+      <div style="display:flex;align-items:center;">
+        <span style="font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;background:${statusBg};color:${statusColor};">${statusLabel}</span>
+        ${compBtn}
+      </div>
     </div>`;
   }).join('');
 }
