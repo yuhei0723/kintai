@@ -716,6 +716,7 @@ textarea { resize:vertical; min-height:80px; }
 
 <script>
 var employeeMaster = {};
+var compConfirmedToday = new Set(); // 本日代休確定済みの名前
 
 // ══════════════════════════════════
 // DATA
@@ -1053,7 +1054,7 @@ function renderTodayPunchLog(logs) {
     const statusLabel = r.out ? '退勤済' : r.in ? '出勤中' : '';
     const statusColor = r.out ? 'var(--text-sub)' : 'var(--green)';
     const statusBg = r.out ? 'var(--surface2)' : 'var(--green-bg)';
-    const compBtn = (!personalUser && todayIsComp && r.in) ?
+    const compBtn = (!personalUser && todayIsComp && r.in && !compConfirmedToday.has(r.name)) ?
       `<button onclick="confirmCompLeave('${r.name}')" style="margin-left:8px;padding:4px 8px;border-radius:6px;background:#eff6ff;color:#3b82f6;border:1px solid #3b82f6;font-size:11px;font-weight:700;cursor:pointer;">＋代休</button>` : '';
     return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
       <div style="font-weight:700;font-size:14px;color:var(--text);min-width:80px;">${r.name}</div>
@@ -2106,7 +2107,10 @@ async function confirmCompLeave(name) {
   // localStorageも更新
   const emp = employees.find(e => e.name === name);
   if (emp) { emp.compLeave = newComp; setData('employees', employees); }
+  compConfirmedToday.add(name);
   showToast('✅', name + 'さんの代休を1日付与しました（計' + newComp + '日）');
+  // ボタンを即座に非表示
+  loadTodayPunchLog();
 }
 
 function fmtDate(d) {
