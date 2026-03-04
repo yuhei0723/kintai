@@ -1290,6 +1290,7 @@ function renderCalendar() {
   // 現在表示中のユーザーのシフト状況をdate→statusでマップ化
   const currentName = personalUser || document.getElementById('shiftName').value;
   const dateStatusMap = {};
+  const dateNamesMap = {}; // date -> [{name, status}]
   function normDateKey(d) {
     if (!d) return '';
     var dt = new Date(d);
@@ -1304,6 +1305,11 @@ function renderCalendar() {
       const priority = {'approved':4,'cancel_requested':3,'pending':2,'rejected':1};
       if (!prev || (priority[s.status]||0) > (priority[prev]||0)) {
         dateStatusMap[key] = s.status;
+      }
+      // 名前リストに追加（重複排除）
+      if (!dateNamesMap[key]) dateNamesMap[key] = [];
+      if (!dateNamesMap[key].find(e => e.name === s.name)) {
+        dateNamesMap[key].push({name: s.name, status: s.status});
       }
     });
   });
@@ -1340,7 +1346,18 @@ function renderCalendar() {
 
     const isLocked = dateStatus === 'approved' || dateStatus === 'pending' || dateStatus === 'cancel_requested';
     const clickable = !isPast && !isLocked ? `onclick="toggleDate('${dateStr}')"` : '';
-    html += `<div class="${cls}" ${clickable}>${label}</div>`;
+    // 申請者未選択時は名前を小さく表示
+    let namesHtml = '';
+    if (!currentName && dateNamesMap[dateStr] && dateNamesMap[dateStr].length > 0) {
+      const statusColor = {'approved':'var(--green)','pending':'var(--blue)','cancel_requested':'#f59e0b','rejected':'var(--red)'};
+      namesHtml = '<div style="font-size:7px;line-height:1.3;margin-top:2px;overflow:hidden;max-height:28px;">' +
+        dateNamesMap[dateStr].map(e => {
+          const lastName = e.name.charAt(0); // 姓の1文字だけ
+          const color = statusColor[e.status] || 'var(--text-sub)';
+          return `<span style="color:${color};display:block;">${lastName}</span>`;
+        }).join('') + '</div>';
+    }
+    html += `<div class="${cls}" ${clickable} style="position:relative;padding-bottom:2px;">${label}${namesHtml}</div>`;
   }
   grid.innerHTML = html;
 }
