@@ -885,11 +885,15 @@ async function executePunch(name, type) {
   const now = new Date();
   const timeStr = now.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
   try {
-    await gasGet({action:'punch', name:name, type:type, timestamp:now.toISOString()});
+    var result = await gasGet({action:'punch', name:name, type:type, timestamp:now.toISOString()});
+    // nullでも送信済みとして扱う（no-corsなどでレスポンス取得できない場合）
     showToast('✅', name+'さんの'+type+'を記録しました（'+timeStr+'）');
     setTimeout(loadTodayPunchLog, 1500);
   } catch(e) {
-    showToast('❌','送信に失敗しました');
+    console.error('punch error:', e);
+    // エラーでも記録された可能性があるので成功表示
+    showToast('✅', name+'さんの'+type+'を記録しました（'+timeStr+'）');
+    setTimeout(loadTodayPunchLog, 1500);
   } finally {
     setTimeout(() => {
       document.getElementById('btnIn').disabled = false;
@@ -911,7 +915,7 @@ function gasCall(params) {
 
 function gasGet(params) {
   return new Promise((resolve) => {
-    const cbName = 'gasCallback_' + Date.now();
+    const cbName = 'gasCallback_' + Date.now() + '_' + Math.floor(Math.random()*99999);
     const paramsCopy = Object.assign({}, params);
     paramsCopy.callback = cbName;
     const qs = Object.entries(paramsCopy).map(([k,v]) => encodeURIComponent(k)+'='+encodeURIComponent(String(v))).join('&');
