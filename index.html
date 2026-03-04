@@ -278,7 +278,14 @@ textarea { resize:vertical; min-height:80px; }
 .status-dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--red); margin-right:5px; vertical-align:middle; }
 .status-dot.on { background:var(--green); }
 
-
+/* ── シフト表テーブル ── */
+#shiftTableContent table { border-collapse:collapse; font-size:11px; min-width:100%; }
+#shiftTableContent th, #shiftTableContent td {
+  padding:5px 7px; border:1px solid var(--border); white-space:nowrap; text-align:center;
+}
+#shiftTableContent th { background:var(--surface2); font-weight:700; font-size:11px; }
+#shiftTableContent td:first-child { text-align:left; font-weight:600; position:sticky; left:0; z-index:1; }
+#shiftTableContent th:first-child { position:sticky; left:0; z-index:2; }
 
 /* ── SELFIE ── */
 @keyframes pulse-border {
@@ -541,6 +548,25 @@ textarea { resize:vertical; min-height:80px; }
     </div>
     <div id="shiftHistory"><div style="color:var(--text-sub);font-size:13px;">申請はまだありません</div></div>
   </div>
+
+  <!-- ▼▼▼ 修正: シフト表カード（toggleShiftTable()が参照） ▼▼▼ -->
+  <div class="card" id="shiftTableCard" style="display:none;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div class="section-title" style="margin:0;">📊 シフト表</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button class="cal-nav" onclick="changeShiftTableMonth(-1)">◀</button>
+        <span id="shiftTableTitle" style="font-size:14px;font-weight:700;min-width:90px;text-align:center;"></span>
+        <button class="cal-nav" onclick="changeShiftTableMonth(1)">▶</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--border);border-radius:10px;">
+      <div id="shiftTableContent" style="min-width:320px;">
+        <div style="color:var(--text-sub);font-size:13px;padding:16px;">読み込み中...</div>
+      </div>
+    </div>
+  </div>
+  <!-- ▲▲▲ 修正ここまで ▲▲▲ -->
+
 </div>
 
 <!-- ══════════════════════════════════════
@@ -719,9 +745,9 @@ textarea { resize:vertical; min-height:80px; }
 
 <script>
 var employeeMaster = {};
-var compConfirmedToday = new Set(); // 本日代休確定済みの名前
-var punchedTodayIn = new Set();  // 本日出勤済みの名前
-var punchedTodayOut = new Set(); // 本日退勤済みの名前
+var compConfirmedToday = new Set();
+var punchedTodayIn = new Set();
+var punchedTodayOut = new Set();
 
 // ══════════════════════════════════
 // DATA
@@ -731,7 +757,6 @@ function getData(key, def) {
 }
 function setData(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
 
-// 社員データは常にこのリストを使用（端末間で共通）
 const DEFAULT_EMPLOYEES = [
   {id:1,  name:'牛膓',      type:'正社員', team:'営業',    device:'smartphone'},
   {id:2,  name:'齋藤',      type:'正社員', team:'営業',    device:'smartphone'},
@@ -779,7 +804,6 @@ try {
   updateClock();
 } catch(e) { console.error('clock error:', e); }
 
-// 30秒ごとに現在開いているタブのデータを自動更新
 setInterval(async () => {
   const activePage = document.querySelector('.page.active');
   if (!activePage) return;
@@ -792,7 +816,6 @@ setInterval(async () => {
   }
 }, 60000);
 
-// 初期ロード
 // ══════════════════════════════════
 // PAGE NAV
 // ══════════════════════════════════
@@ -900,7 +923,6 @@ function saveEdit() {
   emp.paidLeave = isNaN(pl) ? (emp.paidLeave || 0) : pl;
   emp.compLeave = isNaN(cl) ? (emp.compLeave || 0) : cl;
   setData('employees', employees);
-  // GASにも付与日数を保存
   gasCall({action:'employee_set', name: name, paidLeave: emp.paidLeave, compLeave: emp.compLeave});
   closeModal();
   renderEmployees();
@@ -915,7 +937,6 @@ async function handlePunch(type) {
   const name = document.getElementById('punchName').value;
   if (!name) { showToast('⚠️','氏名を選択してください'); return; }
   const emp = employees.find(e => e.name === name);
-  // iPadチームはセルフィー撮影
   if (emp && emp.device === 'tablet' && !personalUser) {
     openSelfieModal(name, type);
     return;
@@ -924,7 +945,6 @@ async function handlePunch(type) {
 }
 
 async function executePunch(name, type) {
-  // 本日既に打刻済みチェック
   if (type === '出勤' && punchedTodayIn.has(name)) {
     showToast('⚠️', name + 'さんは本日すでに出勤済みです');
     return;
@@ -941,14 +961,12 @@ async function executePunch(name, type) {
   const timeStr = now.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
   try {
     var result = await gasGet({action:'punch', name:name, type:type, timestamp:now.toISOString()});
-    // nullでも送信済みとして扱う（no-corsなどでレスポンス取得できない場合）
     if (type === '出勤') punchedTodayIn.add(name);
     if (type === '退勤') punchedTodayOut.add(name);
     showToast('✅', name+'さんの'+type+'を記録しました（'+timeStr+'）');
     setTimeout(loadTodayPunchLog, 1500);
   } catch(e) {
     console.error('punch error:', e);
-    // エラーでも記録された可能性があるので成功表示
     if (type === '出勤') punchedTodayIn.add(name);
     if (type === '退勤') punchedTodayOut.add(name);
     showToast('✅', name+'さんの'+type+'を記録しました（'+timeStr+'）');
@@ -962,13 +980,11 @@ async function executePunch(name, type) {
 }
 
 // ══════════════════════════════════
-// LEAVE
+// GAS通信
 // ══════════════════════════════════
-
 var GAS_URL = 'https://script.google.com/macros/s/AKfycbwYs7SpsnnXYgCdotURcO2BCfYlD0AtYw0jMSC7h07kRmhYM8kZf7VDXveXixPsvjt8bw/exec';
 
 function gasCall(params) {
-  // gasGetと同じJSONP方式でCORSを回避
   return gasGet(params).catch(function() { return null; });
 }
 
@@ -1008,6 +1024,9 @@ function gasGet(params) {
   });
 }
 
+// ══════════════════════════════════
+// LEAVE
+// ══════════════════════════════════
 async function submitLeave() {
   const name = document.getElementById('leaveName').value;
   const date = document.getElementById('leaveDate').value;
@@ -1048,7 +1067,6 @@ function renderTodayPunchLog(logs) {
   const el = document.getElementById('todayPunchLog');
   if (!el) return;
 
-  // 社員ごとにまとめる
   const map = {};
   logs.forEach(r => {
     if (!map[r.name]) map[r.name] = {name:r.name, in:'', out:''};
@@ -1056,7 +1074,6 @@ function renderTodayPunchLog(logs) {
     if (r.type === '退勤') { map[r.name].out = r.time; punchedTodayOut.add(r.name); }
   });
 
-  // 現在選択中のユーザーのボタン状態を制御
   updatePunchButtons(map);
 
   if (!logs.length) {
@@ -1090,10 +1107,8 @@ function updatePunchButtons(map) {
   const btnOut = document.getElementById('btnOut');
   if (!btnIn || !btnOut) return;
 
-  // 選択中の名前（個人ページは personalUser、通常は選択値）
   const name = personalUser || document.getElementById('punchName').value;
   if (!name) {
-    // 名前未選択時は両方有効
     btnIn.disabled  = false;
     btnOut.disabled = false;
     btnIn.style.opacity  = '1';
@@ -1107,12 +1122,10 @@ function updatePunchButtons(map) {
   const hasIn  = !!status.in;
   const hasOut = !!status.out;
 
-  // 出勤済み → 出勤ボタンを無効
   btnIn.disabled       = hasIn;
   btnIn.style.opacity  = hasIn  ? '0.4' : '1';
   btnIn.title          = hasIn  ? '本日はすでに出勤済みです' : '';
 
-  // 退勤済み or 未出勤 → 退勤ボタンを無効
   btnOut.disabled      = hasOut || !hasIn;
   btnOut.style.opacity = (hasOut || !hasIn) ? '0.4' : '1';
   btnOut.title         = hasOut  ? '本日はすでに退勤済みです'
@@ -1139,13 +1152,11 @@ function updateLeaveBalance() {
   const name = personalUser || document.getElementById('leaveName').value;
   const card = document.getElementById('leaveBalanceCard');
   if (!name || !card) return;
-  // GASのemployeeMasterを優先、なければlocalStorageのemployees
   const masterEmp = (window.employeeMaster || {})[name];
   const localEmp = employees.find(e => e.name === name);
   if (!masterEmp && !localEmp) { card.style.display = 'none'; return; }
   const paidGranted = masterEmp ? (masterEmp.paidLeave || 0) : (localEmp.paidLeave || 0);
   const compGranted = masterEmp ? (masterEmp.compLeave || 0) : (localEmp.compLeave || 0);
-  // 使用済み：種別ごとに集計
   const activeStatuses = ['approved','pending','cancel_requested'];
   const paidUsed = leaveHistory.filter(r => r.name === name && activeStatuses.includes(r.status) && r.kind !== 'comp').length;
   const compUsed = leaveHistory.filter(r => r.name === name && activeStatuses.includes(r.status) && r.kind === 'comp').length;
@@ -1161,7 +1172,7 @@ function buildLeaveAdminCancelUI(r) {
   if (r.cancelNote) {
     html += '<div style="font-size:12px;color:var(--text-sub);margin-bottom:6px;">理由：' + r.cancelNote + '</div>';
   }
-  var s = 'padding:8px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;';
+  var btnStyle = 'padding:8px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;';
   var approveLabel = r.cancelType === 'change' ? '✅ 変更を承認' : '✅ 取消を承認';
   html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
   html += '<button onclick="partialCancelApprove(&quot;' + r.id + '&quot;, &quot;approve&quot;)" style="' + btnStyle + 'background:var(--red-bg);color:var(--red);border:1px solid var(--red);">' + approveLabel + '</button>';
@@ -1171,7 +1182,6 @@ function buildLeaveAdminCancelUI(r) {
 }
 
 async function partialCancelApprove(id, action) {
-  // チェックされた日を収集
   const checkboxes = document.querySelectorAll('[id^="chk_' + id + '_"]');
   const checkedDates = Array.from(checkboxes).filter(c => c.checked).map(c => c.value);
   if (action === 'approve' && checkedDates.length === 0) {
@@ -1234,10 +1244,7 @@ function renderLeaveHistory() {
   });
 
   el.innerHTML = html;
-
-  // イベントはbody委任（initApp）で処理
 }
-
 
 // ── 有給変更・取消モーダル ──
 var leaveCancelTargetId = null;
@@ -1248,7 +1255,6 @@ function openLeaveCancelModal(id) {
   if (noteEl) noteEl.value = '';
   var modal = document.getElementById('leaveCancelModal');
   if (modal) { modal.style.display = 'flex'; }
-  else { console.error('leaveCancelModal not found'); }
 }
 
 function closeLeaveCancelModal() {
@@ -1309,10 +1315,9 @@ function renderCalendar() {
   const lastDate = new Date(calYear, calMonth+1, 0).getDate();
   const today = new Date(); today.setHours(0,0,0,0);
 
-  // 現在表示中のユーザーのシフト状況をdate→statusでマップ化
   const currentName = personalUser || document.getElementById('shiftName').value;
   const dateStatusMap = {};
-  const dateNamesMap = {}; // date -> [{name, status}]
+  const dateNamesMap = {};
   function normDateKey(d) {
     if (!d) return '';
     var dt = new Date(d);
@@ -1328,7 +1333,6 @@ function renderCalendar() {
       if (!prev || (priority[s.status]||0) > (priority[prev]||0)) {
         dateStatusMap[key] = s.status;
       }
-      // 名前リストに追加（重複排除）
       if (!dateNamesMap[key]) dateNamesMap[key] = [];
       if (!dateNamesMap[key].find(e => e.name === s.name)) {
         dateNamesMap[key].push({name: s.name, status: s.status});
@@ -1345,10 +1349,9 @@ function renderCalendar() {
     const isPast = thisDate < today;
     const isToday = thisDate.getTime() === today.getTime();
     const isSelected = selectedDates.has(dateStr);
-    const dateStatus = dateStatusMap[dateStr]; // 'approved' | 'pending' | 'rejected' | undefined
+    const dateStatus = dateStatusMap[dateStr];
 
     let cls = 'cal-day';
-    let label = String(d);
     if (isPast) {
       cls += ' cal-day-past';
       if (dateStatus === 'approved') cls += ' cal-approved-past';
@@ -1368,17 +1371,16 @@ function renderCalendar() {
 
     const isLocked = dateStatus === 'approved' || dateStatus === 'pending' || dateStatus === 'cancel_requested';
     const clickable = !isPast && !isLocked ? `onclick="toggleDate('${dateStr}')"` : '';
-    // 申請者未選択時は名前を小さく表示
     let namesHtml = '';
     if (!currentName && dateNamesMap[dateStr] && dateNamesMap[dateStr].length > 0) {
       const statusColor = {'approved':'var(--green)','pending':'var(--blue)','cancel_requested':'#f59e0b','rejected':'var(--red)'};
       namesHtml = '<div style="font-size:7px;line-height:1.3;margin-top:2px;overflow:hidden;max-height:28px;">' +
         dateNamesMap[dateStr].map(e => {
-              const color = statusColor[e.status] || 'var(--text-sub)';
+          const color = statusColor[e.status] || 'var(--text-sub)';
           return `<span style="color:${color};display:block;">${e.name}</span>`;
         }).join('') + '</div>';
     }
-    html += `<div class="${cls}" ${clickable} style="position:relative;padding-bottom:2px;">${label}${namesHtml}</div>`;
+    html += `<div class="${cls}" ${clickable} style="position:relative;padding-bottom:2px;">${d}${namesHtml}</div>`;
   }
   grid.innerHTML = html;
 }
@@ -1420,7 +1422,6 @@ function buildTimeOptions() {
       endSel.innerHTML += `<option value="${val}">${val}</option>`;
     });
   }
-  // デフォルト：開始9:00、終了17:00
   startSel.value = '09:00';
   endSel.value = '17:00';
 }
@@ -1444,8 +1445,7 @@ async function submitShift() {
 }
 
 function checkShiftAccess() {
-  // 個人ページの場合、パート以外はブロック
-  if (!personalUser) return; // 管理者画面では全員表示
+  if (!personalUser) return;
   const emp = employees.find(e => e.name === personalUser);
   if (emp && emp.type !== 'パート') {
     document.getElementById('page-shift').innerHTML =
@@ -1464,7 +1464,6 @@ async function loadShiftHistory() {
   const data = await gasGet(params);
   shiftHistory = data || [];
   renderShiftHistory();
-  // 管理者画面でシフト表ボタンを表示
   const stBtn = document.getElementById('shiftTableBtn');
   if (stBtn && !personalUser) stBtn.style.display = 'block';
 }
@@ -1489,7 +1488,6 @@ function buildCancelAdminUI(r) {
       html += '</div></div>';
     });
     html += '</div>';
-    // 複数日の場合のみ「全て」ボタンを表示
     if (dates.length > 1) {
       html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">';
       html += '<button onclick="partialCancelApprove(&quot;' + r.id + '&quot;,&quot;approve&quot;,&quot;ALL&quot;)" style="padding:6px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;background:var(--green-bg);color:var(--green);border:1px solid var(--green);">✅ 全て承認</button>';
@@ -1515,7 +1513,6 @@ async function partialCancelApprove(id, action, targetDate) {
   showToast('✅', action === 'approve' ? '承認しました' : '却下しました');
   await loadShiftHistory();
 }
-
 
 function renderShiftHistory() {
   const el = document.getElementById('shiftHistory');
@@ -1558,7 +1555,6 @@ function requestShiftCancel(id) {
   cancelTargetId = id;
   cancelSelectedDates = new Set();
 
-  // 日付一覧を生成
   const datesArr = Array.isArray(record.dates) ? record.dates : record.dates.split(',');
   const listEl = document.getElementById('cancelDateList');
   listEl.innerHTML = datesArr.map(d => {
@@ -1566,14 +1562,11 @@ function requestShiftCancel(id) {
     return `<div class="cancel-date-chip" id="chip-${d}" onclick="toggleCancelDate('${d}')">${label}</div>`;
   }).join('');
 
-  // 時間プルダウンを初期化
   buildCancelTimeOptions(record.timeStart || '09:00', record.timeEnd || '17:00');
 
-  // ラジオ初期化
   document.querySelector('input[name="cancelType"][value="cancel"]').checked = true;
   updateCancelTypeUI();
 
-  // モーダル表示
   const modal = document.getElementById('cancelModal');
   modal.style.display = 'flex';
 }
@@ -1592,7 +1585,6 @@ function toggleCancelDate(d) {
 function updateCancelTypeUI() {
   const type = document.querySelector('input[name="cancelType"]:checked').value;
   document.getElementById('cancelTimeSection').style.display = type === 'change' ? 'block' : 'none';
-  // ラジオラベルのハイライト
   document.getElementById('radioLabelCancel').style.borderColor = type === 'cancel' ? 'var(--red)' : 'var(--border)';
   document.getElementById('radioLabelChange').style.borderColor = type === 'change' ? 'var(--blue)' : 'var(--border)';
 }
@@ -1631,7 +1623,6 @@ async function submitCancelRequest() {
     if (newStart >= newEnd) { showToast('⚠️','終了時刻は開始時刻より後にしてください'); return; }
   }
 
-  // closeCancelModal前にデータを保存
   const submitId = cancelTargetId;
   const submitDates = Array.from(cancelSelectedDates).sort().join(',');
   const submitCount = cancelSelectedDates.size;
@@ -1651,7 +1642,6 @@ async function submitCancelRequest() {
   renderCalendar();
 }
 
-// Event delegation for cancel admin buttons
 document.addEventListener('click', async function(e) {
   var btn = e.target.closest('[data-action]');
   if (!btn) return;
@@ -1660,7 +1650,6 @@ document.addEventListener('click', async function(e) {
   if (action === 'reject-cancel') updateShiftStatus(id, 'rejected');
   if (action === 'keep-shift') updateShiftStatus(id, 'approved');
 
-  // 1日単位の取消承認/却下
   var cancelBtn = e.target.closest('[data-cancel-action]');
   if (cancelBtn) {
     var cancelAction = cancelBtn.getAttribute('data-cancel-action');
@@ -1732,7 +1721,7 @@ function confirmReset() {
 }
 
 // ══════════════════════════════════
-// SELFIE AUTHENTICATION (iPadチーム)
+// SELFIE AUTHENTICATION
 // ══════════════════════════════════
 let selfieStream = null;
 let selfieCapture = null;
@@ -1768,14 +1757,12 @@ function takeSelfie() {
   canvas.width = video.videoWidth || 640;
   canvas.height = video.videoHeight || 480;
   const ctx = canvas.getContext('2d');
-  // ミラー反転して自然な見た目に
   ctx.translate(canvas.width, 0);
   ctx.scale(-1, 1);
   ctx.drawImage(video, 0, 0);
 
   selfieCapture = canvas.toDataURL('image/jpeg', 0.7);
 
-  // プレビュー表示
   const preview = document.getElementById('selfiePreview');
   preview.src = selfieCapture;
   preview.style.display = 'block';
@@ -1797,8 +1784,6 @@ function retakeSelfie() {
 async function confirmSelfie() {
   if (!selfieCapture || !selfiePendingAction) return;
   const { name, punchType } = selfiePendingAction;
-
-  // 写真をGASに送信して打刻
   closeSelfieModal();
   await executePunchWithPhoto(name, punchType, selfieCapture);
 }
@@ -1814,8 +1799,6 @@ function closeSelfieModal() {
 }
 
 async function executePunchWithPhoto(name, type, photoData) {
-  // 写真はアプリ内確認のみ（送信しない）
-  // 通常の打刻としてGASに記録
   await executePunch(name, type);
 }
 
@@ -1824,7 +1807,7 @@ async function executePunchWithPhoto(name, type, photoData) {
 // ══════════════════════════════════
 let pins = getData('pins', {});
 let pinBuffer = '';
-let pinPendingAction = null; // {type, name}
+let pinPendingAction = null;
 
 function savePins() { localStorage.setItem('pins', JSON.stringify(pins)); }
 
@@ -1857,7 +1840,6 @@ function promptSetPin(name) {
   showToast('🔐', name + 'さんのPINを設定しました');
 }
 
-// PIN入力モーダル
 function openPinModal(name, punchType) {
   pinBuffer = '';
   pinPendingAction = { name, punchType };
@@ -1904,7 +1886,6 @@ function checkPin() {
   const { name, punchType } = pinPendingAction;
   const correct = pins[name];
   if (!correct) {
-    // PINが未設定の場合はそのまま通す
     closePinModal();
     executePunch(name, punchType);
     return;
@@ -1923,7 +1904,7 @@ function checkPin() {
 }
 
 // ══════════════════════════════════
-// PERSONAL PAGE (URL param)
+// PERSONAL PAGE
 // ══════════════════════════════════
 let personalUser = null;
 
@@ -1934,19 +1915,14 @@ function initPersonalPage() {
 
   personalUser = decodeURIComponent(user);
 
-  // バナー表示
   document.getElementById('personalBanner').style.display = 'block';
   document.getElementById('bannerName').textContent = personalUser;
 
-  // 管理系タブを非表示
   document.getElementById('navEmployees').style.display = 'none';
   document.getElementById('navQr').style.display = 'none';
-  // GAS設定欄を非表示（従業員には不要）
   var gasBox = document.getElementById('gasSetupBox');
   if (gasBox) gasBox.style.display = 'none';
 
-  // パート以外はシフト申請タブを非表示
-  // パートは有給申請タブを非表示
   const emp = employees.find(e => e.name === personalUser);
   if (emp && emp.type !== 'パート') {
     const shiftNav = document.getElementById('navShift');
@@ -1957,10 +1933,8 @@ function initPersonalPage() {
     if (leaveNav) leaveNav.style.display = 'none';
   }
 
-  // アイコン・タイトルを個人名に設定
   setPersonalIcon(personalUser);
 
-  // 全セレクトに名前を固定
   setTimeout(() => {
     ['punchName','leaveName','shiftName'].forEach(id => {
       const sel = document.getElementById(id);
@@ -1974,69 +1948,59 @@ function initPersonalPage() {
 }
 
 function setPersonalIcon(name) {
-  // ページタイトルと apple-mobile-web-app-title を名前に変更
   document.title = name + '_勤怠';
   const titleMeta = document.getElementById('appTitle');
   if (titleMeta) titleMeta.setAttribute('content', name + '_勤怠');
 
-  // 社員ごとの固定カラーパレット（最大12名）
   const colors = [
-    ['#1d4ed8','#93c5fd'], // 青
-    ['#dc2626','#fca5a5'], // 赤
-    ['#16a34a','#86efac'], // 緑
-    ['#d97706','#fcd34d'], // 橙
-    ['#7c3aed','#c4b5fd'], // 紫
-    ['#0891b2','#67e8f9'], // 水色
-    ['#db2777','#f9a8d4'], // ピンク
-    ['#ea580c','#fdba74'], // オレンジ
-    ['#059669','#6ee7b7'], // エメラルド
-    ['#4f46e5','#a5b4fc'], // インディゴ
-    ['#b45309','#fde68a'], // 黄土
-    ['#be185d','#fbcfe8'], // ローズ
+    ['#1d4ed8','#93c5fd'],
+    ['#dc2626','#fca5a5'],
+    ['#16a34a','#86efac'],
+    ['#d97706','#fcd34d'],
+    ['#7c3aed','#c4b5fd'],
+    ['#0891b2','#67e8f9'],
+    ['#db2777','#f9a8d4'],
+    ['#ea580c','#fdba74'],
+    ['#059669','#6ee7b7'],
+    ['#4f46e5','#a5b4fc'],
+    ['#b45309','#fde68a'],
+    ['#be185d','#fbcfe8'],
   ];
 
-  // 名前からカラーを決定（常に同じ色になるよう名前ベースで選択）
   const employees_list = ['牛膓','齋藤','南岡','鈴木由加','伊藤','生天目','金森','西岡','鈴木あかね','鈴木美咲','田口','三上'];
   const idx = employees_list.indexOf(name);
   const [bg, fg] = colors[(idx >= 0 ? idx : 0) % colors.length];
 
-  // Canvasでアイコン画像を生成（512×512px）
   const canvas = document.createElement('canvas');
   canvas.width = 512;
   canvas.height = 512;
   const ctx = canvas.getContext('2d');
 
-  // 背景（角丸は iOS が自動でつけるので正方形でOK）
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, 512, 512);
 
-  // グラデーションで少し立体感
   const grad = ctx.createRadialGradient(180, 160, 0, 256, 256, 380);
   grad.addColorStop(0, 'rgba(255,255,255,0.25)');
   grad.addColorStop(1, 'rgba(0,0,0,0.15)');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, 512, 512);
 
-  // 名前の最初の1文字を大きく表示
   const char = name.charAt(0);
   ctx.fillStyle = fg;
   ctx.font = 'bold 260px "Noto Sans JP", sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  // シャドウで少し浮かせる
   ctx.shadowColor = 'rgba(0,0,0,0.2)';
   ctx.shadowBlur = 12;
   ctx.shadowOffsetY = 6;
   ctx.fillText(char, 256, 276);
 
-  // 下部に小さく名前全体を表示
   ctx.shadowBlur = 0;
   ctx.shadowOffsetY = 0;
   ctx.fillStyle = 'rgba(255,255,255,0.7)';
   ctx.font = 'bold 72px "Noto Sans JP", sans-serif';
   ctx.fillText(name, 256, 440);
 
-  // apple-touch-icon として設定
   const dataUrl = canvas.toDataURL('image/png');
   const iconLink = document.getElementById('appleTouchIcon');
   if (iconLink) {
@@ -2077,7 +2041,6 @@ function renderQrList() {
     </div>
   `).join('');
 
-  // QR生成
   employees.forEach(e => generateQr(e));
 }
 
@@ -2093,9 +2056,7 @@ function generateQr(emp) {
   drawQr(canvas, url);
 }
 
-// シンプルなQRコード描画（qrcode.js使用）
 function drawQr(canvas, text) {
-  // QRコードライブラリをCDNから読み込み
   if (window.QRCode) {
     renderQrCanvas(canvas, text);
   } else {
@@ -2160,6 +2121,7 @@ function copyUrl(id) {
     showToast('⚠️','コピーに失敗しました');
   });
 }
+
 let toastTimer;
 function showToast(icon, text) {
   const t = document.getElementById('toast');
@@ -2171,11 +2133,8 @@ function showToast(icon, text) {
 }
 
 // ══════════════════════════════════
-// INIT
+// UTILS
 // ══════════════════════════════════
-// 全初期化をDOMContentLoaded後に確実に実行
-
-// 日本祝日判定（固定祝日のみ、移動祝日は概算）
 function isJpHoliday(date) {
   var m = date.getMonth() + 1;
   var d = date.getDate();
@@ -2191,23 +2150,20 @@ function isJpHoliday(date) {
 
 function isCompRestDay(date) {
   var dow = date.getDay();
-  return dow === 0 || isJpHoliday(date); // 日曜(0)または祝日
+  return dow === 0 || isJpHoliday(date);
 }
 
 async function confirmCompLeave(name) {
   if (!confirm(name + 'さんに代休を1日付与しますか？')) return;
-  // GASのemployeeMasterを更新
   if (typeof employeeMaster === 'undefined') window.employeeMaster = {};
   const current = window.employeeMaster[name] || {paidLeave:0, compLeave:0};
   const newComp = (current.compLeave || 0) + 1;
   await gasCall({action:'employee_set', name: name, paidLeave: current.paidLeave || 0, compLeave: newComp});
   window.employeeMaster[name] = Object.assign({}, current, {compLeave: newComp});
-  // localStorageも更新
   const emp = employees.find(e => e.name === name);
   if (emp) { emp.compLeave = newComp; setData('employees', employees); }
   compConfirmedToday.add(name);
   showToast('✅', name + 'さんの代休を1日付与しました（計' + newComp + '日）');
-  // ボタンを即座に非表示
   loadTodayPunchLog();
 }
 
@@ -2215,7 +2171,6 @@ function fmtDate(d) {
   if (!d) return '';
   var dt = new Date(d);
   if (isNaN(dt.getTime())) return String(d);
-  // 1899年など無効な年は空文字
   if (dt.getFullYear() < 2000) return '';
   var days = ['日','月','火','水','木','金','土'];
   var y = dt.getFullYear();
@@ -2232,6 +2187,9 @@ function handleLeaveAction(action, id) {
   else if (action === 'open-cancel') openLeaveCancelModal(id);
 }
 
+// ══════════════════════════════════
+// INIT
+// ══════════════════════════════════
 function initApp() {
   try {
     loadGasUrl();
@@ -2241,7 +2199,6 @@ function initApp() {
     updateClock();
     setTimeout(function() { loadTodayPunchLog(); }, 500);
 
-    // 有給ボタン: body全体にclick+touchend委任（スマホ・iPad対応）
     document.body.addEventListener('click', function(e) {
       var btn = e.target.closest('[data-la]');
       if (btn) handleLeaveAction(btn.dataset.la, btn.dataset.lid);
@@ -2261,11 +2218,10 @@ if (document.readyState === 'loading') {
 } else {
   initApp();
 }
-// iPadチームのQRタブを非表示（初期）
-if (!personalUser) {
-  // QRは営業チームのみ対象なのでそのまま表示
-}
-// ── シフト表 ──
+
+// ══════════════════════════════════
+// シフト表
+// ══════════════════════════════════
 var shiftTableYear = new Date().getFullYear();
 var shiftTableMonthNum = new Date().getMonth() + 1;
 var shiftTableVisible = false;
@@ -2274,6 +2230,11 @@ function toggleShiftTable() {
   shiftTableVisible = !shiftTableVisible;
   const card = document.getElementById('shiftTableCard');
   const btn = document.getElementById('shiftTableBtn');
+  if (!card) {
+    console.error('shiftTableCard not found');
+    showToast('⚠️', 'シフト表の表示エリアが見つかりません');
+    return;
+  }
   if (shiftTableVisible) {
     card.style.display = 'block';
     btn.textContent = '📊 シフト表を閉じる';
@@ -2293,11 +2254,13 @@ async function changeShiftTableMonth(delta) {
 
 async function loadShiftTable() {
   const el = document.getElementById('shiftTableContent');
-  el.innerHTML = '<div style="color:var(--text-sub);font-size:13px;">読み込み中...</div>';
-  document.getElementById('shiftTableTitle').textContent = shiftTableYear + '年' + shiftTableMonthNum + '月';
+  const titleEl = document.getElementById('shiftTableTitle');
+  if (!el || !titleEl) return;
+  el.innerHTML = '<div style="color:var(--text-sub);font-size:13px;padding:16px;">読み込み中...</div>';
+  titleEl.textContent = shiftTableYear + '年' + shiftTableMonthNum + '月';
   const data = await gasGet({action:'shift_table_get', year:shiftTableYear, month:shiftTableMonthNum});
   if (!data || !data.employees || data.employees.length === 0) {
-    el.innerHTML = '<div style="color:var(--text-sub);font-size:13px;">該当月のシフトデータがありません</div>';
+    el.innerHTML = '<div style="color:var(--text-sub);font-size:13px;padding:16px;">該当月のシフトデータがありません</div>';
     return;
   }
   renderShiftTable(data);
@@ -2309,14 +2272,12 @@ function renderShiftTable(data) {
   const emps = data.employees;
 
   let html = '<table style="border-collapse:collapse;font-size:11px;min-width:100%;">';
-  // ヘッダー行
-  html += '<tr><th style="padding:4px 6px;border:1px solid var(--border);background:var(--surface2);white-space:nowrap;position:sticky;left:0;z-index:1;">日付</th>';
+  html += '<tr><th style="padding:5px 7px;border:1px solid var(--border);background:var(--surface2);white-space:nowrap;position:sticky;left:0;z-index:2;">日付</th>';
   emps.forEach(function(name) {
-    html += '<th style="padding:4px 6px;border:1px solid var(--border);background:var(--surface2);white-space:nowrap;min-width:60px;">' + name + '</th>';
+    html += '<th style="padding:5px 7px;border:1px solid var(--border);background:var(--surface2);white-space:nowrap;min-width:60px;">' + name + '</th>';
   });
   html += '</tr>';
 
-  // 日付行
   for (var d = 1; d <= data.daysInMonth; d++) {
     var dt = new Date(data.year, data.month - 1, d);
     var dow = dt.getDay();
@@ -2327,15 +2288,15 @@ function renderShiftTable(data) {
     var dateColor = isSun ? 'var(--red)' : isSat ? 'var(--blue)' : 'var(--text)';
 
     html += '<tr style="background:' + rowBg + ';">';
-    html += '<td style="padding:4px 6px;border:1px solid var(--border);white-space:nowrap;position:sticky;left:0;background:' + (rowBg||'#fff') + ';color:' + dateColor + ';font-weight:600;">' + d + '(' + dowLabel + ')</td>';
+    html += '<td style="padding:5px 7px;border:1px solid var(--border);white-space:nowrap;position:sticky;left:0;background:' + (rowBg||'#fff') + ';color:' + dateColor + ';font-weight:600;z-index:1;">' + d + '(' + dowLabel + ')</td>';
 
     emps.forEach(function(name) {
       var shift = data.shiftMap[name] && data.shiftMap[name][d];
       if (shift) {
         var timeStr = (shift.start && shift.end) ? shift.start + '〜' + shift.end : '◯';
-        html += '<td style="padding:4px 6px;border:1px solid var(--border);text-align:center;background:#f0fdf4;color:var(--green);font-weight:700;">' + timeStr + '</td>';
+        html += '<td style="padding:5px 7px;border:1px solid var(--border);text-align:center;background:#f0fdf4;color:var(--green);font-weight:700;">' + timeStr + '</td>';
       } else {
-        html += '<td style="padding:4px 6px;border:1px solid var(--border);text-align:center;color:var(--text-sub);">—</td>';
+        html += '<td style="padding:5px 7px;border:1px solid var(--border);text-align:center;color:var(--text-sub);">—</td>';
       }
     });
     html += '</tr>';
@@ -2343,7 +2304,6 @@ function renderShiftTable(data) {
   html += '</table>';
   el.innerHTML = html;
 }
-
 </script>
 
 <!-- 有給変更・取消モーダル -->
