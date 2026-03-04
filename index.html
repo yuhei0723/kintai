@@ -717,6 +717,8 @@ textarea { resize:vertical; min-height:80px; }
 <script>
 var employeeMaster = {};
 var compConfirmedToday = new Set(); // 本日代休確定済みの名前
+var punchedTodayIn = new Set();  // 本日出勤済みの名前
+var punchedTodayOut = new Set(); // 本日退勤済みの名前
 
 // ══════════════════════════════════
 // DATA
@@ -919,6 +921,15 @@ async function handlePunch(type) {
 }
 
 async function executePunch(name, type) {
+  // 本日既に打刻済みチェック
+  if (type === '出勤' && punchedTodayIn.has(name)) {
+    showToast('⚠️', name + 'さんは本日すでに出勤済みです');
+    return;
+  }
+  if (type === '退勤' && punchedTodayOut.has(name)) {
+    showToast('⚠️', name + 'さんは本日すでに退勤済みです');
+    return;
+  }
   const gasUrl = (localStorage.getItem('gasUrl') || 'https://script.google.com/macros/s/AKfycbwYs7SpsnnXYgCdotURcO2BCfYlD0AtYw0jMSC7h07kRmhYM8kZf7VDXveXixPsvjt8bw/exec');
   if (!gasUrl) { showToast('⚠️','GAS URLが設定されていません'); return; }
   document.getElementById('btnIn').disabled = true;
@@ -928,11 +939,15 @@ async function executePunch(name, type) {
   try {
     var result = await gasGet({action:'punch', name:name, type:type, timestamp:now.toISOString()});
     // nullでも送信済みとして扱う（no-corsなどでレスポンス取得できない場合）
+    if (type === '出勤') punchedTodayIn.add(name);
+    if (type === '退勤') punchedTodayOut.add(name);
     showToast('✅', name+'さんの'+type+'を記録しました（'+timeStr+'）');
     setTimeout(loadTodayPunchLog, 1500);
   } catch(e) {
     console.error('punch error:', e);
     // エラーでも記録された可能性があるので成功表示
+    if (type === '出勤') punchedTodayIn.add(name);
+    if (type === '退勤') punchedTodayOut.add(name);
     showToast('✅', name+'さんの'+type+'を記録しました（'+timeStr+'）');
     setTimeout(loadTodayPunchLog, 1500);
   } finally {
@@ -1034,8 +1049,8 @@ function renderTodayPunchLog(logs) {
   const map = {};
   logs.forEach(r => {
     if (!map[r.name]) map[r.name] = {name:r.name, in:'', out:''};
-    if (r.type === '出勤') map[r.name].in = r.time;
-    if (r.type === '退勤') map[r.name].out = r.time;
+    if (r.type === '出勤') { map[r.name].in = r.time; punchedTodayIn.add(r.name); }
+    if (r.type === '退勤') { map[r.name].out = r.time; punchedTodayOut.add(r.name); }
   });
 
   // 現在選択中のユーザーのボタン状態を制御
@@ -1046,10 +1061,8 @@ function renderTodayPunchLog(logs) {
     return;
   }
 
-  console.log('punch map:', JSON.stringify(map));
   const rows = Object.values(map).sort((a,b) => a.in.localeCompare(b.in));
   const todayIsComp = isCompRestDay(new Date());
-  console.log('todayIsComp:', todayIsComp, 'day:', new Date().getDay(), 'personalUser:', personalUser);
   el.innerHTML = rows.map(r => {
     const statusLabel = r.out ? '退勤済' : r.in ? '出勤中' : '';
     const statusColor = r.out ? 'var(--text-sub)' : 'var(--green)';
@@ -2093,7 +2106,7 @@ function isJpHoliday(date) {
 
 function isCompRestDay(date) {
   var dow = date.getDay();
-  return dow === 0 || dow === 3 || isJpHoliday(date); // 日曜(0)・水曜(3=テスト用)・祝日
+  return dow === 0 || isJpHoliday(date); // 日曜(0)または祝日
 }
 
 async function confirmCompLeave(name) {
