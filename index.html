@@ -1202,13 +1202,20 @@ function renderCalendar() {
   // 現在表示中のユーザーのシフト状況をdate→statusでマップ化
   const currentName = personalUser || document.getElementById('shiftName').value;
   const dateStatusMap = {};
+  function normDateKey(d) {
+    if (!d) return '';
+    var dt = new Date(d);
+    if (isNaN(dt.getTime()) || dt.getFullYear() < 2000) return '';
+    return dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0');
+  }
   shiftHistory.filter(s => !currentName || s.name === currentName).forEach(s => {
     s.dates.forEach(d => {
-      // 同じ日に複数申請がある場合、approved > pending > rejected の優先度
-      const prev = dateStatusMap[d];
+      const key = normDateKey(d);
+      if (!key) return;
+      const prev = dateStatusMap[key];
       const priority = {'approved':4,'cancel_requested':3,'pending':2,'rejected':1};
       if (!prev || (priority[s.status]||0) > (priority[prev]||0)) {
-        dateStatusMap[d] = s.status;
+        dateStatusMap[key] = s.status;
       }
     });
   });
