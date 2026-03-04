@@ -2271,6 +2271,26 @@ async function loadShiftTable() {
   renderShiftTable(data);
 }
 
+function parseTime(t) {
+  if (!t) return '';
+  var s = String(t);
+  // Already HH:MM format
+  if (/^\d{2}:\d{2}$/.test(s)) return s;
+  // ISO string like "1899-12-30T09:00:00.000Z" - use UTC hours
+  if (s.includes('T')) {
+    var d = new Date(s);
+    if (!isNaN(d)) {
+      var h = String(d.getUTCHours()).padStart(2,'0');
+      var m = String(d.getUTCMinutes()).padStart(2,'0');
+      return h + ':' + m;
+    }
+  }
+  // "Sat Dec 30 09:00:00 GMT+0900 2026" style - extract HH:MM
+  var match = s.match(/(\d{2}):(\d{2}):\d{2}/);
+  if (match) return match[1] + ':' + match[2];
+  return s.substring(0, 5);
+}
+
 function renderShiftTable(data) {
   const el = document.getElementById('shiftTableContent');
   const days = ['日','月','火','水','木','金','土'];
@@ -2298,7 +2318,7 @@ function renderShiftTable(data) {
     emps.forEach(function(name) {
       var shift = data.shiftMap[name] && data.shiftMap[name][d];
       if (shift) {
-        var timeStr = (shift.start && shift.end) ? shift.start + '〜' + shift.end : '◯';
+        var timeStr = (shift.start && shift.end) ? parseTime(shift.start) + '〜' + parseTime(shift.end) : '◯';
         html += '<td style="padding:5px 7px;border:1px solid var(--border);text-align:center;background:#f0fdf4;color:var(--green);font-weight:700;">' + timeStr + '</td>';
       } else {
         html += '<td style="padding:5px 7px;border:1px solid var(--border);text-align:center;color:var(--text-sub);">—</td>';
