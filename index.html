@@ -476,7 +476,10 @@ textarea { resize:vertical; min-height:80px; }
   </div>
 
   <div class="card">
-    <div class="section-title">📋 申請履歴</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+      <div class="section-title" style="margin:0;">📋 申請履歴</div>
+      <button id="shiftTableBtn" onclick="toggleShiftTable()" style="display:none;padding:6px 12px;border-radius:8px;background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue);font-size:12px;font-weight:700;cursor:pointer;">📊 シフト表を見る</button>
+    </div>
     <div id="leaveHistory"><div style="color:var(--text-sub);font-size:13px;">申請はまだありません</div></div>
   </div>
 </div>
@@ -1461,6 +1464,9 @@ async function loadShiftHistory() {
   const data = await gasGet(params);
   shiftHistory = data || [];
   renderShiftHistory();
+  // 管理者画面でシフト表ボタンを表示
+  const stBtn = document.getElementById('shiftTableBtn');
+  if (stBtn && !personalUser) stBtn.style.display = 'block';
 }
 
 function buildCancelAdminUI(r) {
@@ -2259,6 +2265,85 @@ if (document.readyState === 'loading') {
 if (!personalUser) {
   // QRは営業チームのみ対象なのでそのまま表示
 }
+// ── シフト表 ──
+var shiftTableYear = new Date().getFullYear();
+var shiftTableMonthNum = new Date().getMonth() + 1;
+var shiftTableVisible = false;
+
+function toggleShiftTable() {
+  shiftTableVisible = !shiftTableVisible;
+  const card = document.getElementById('shiftTableCard');
+  const btn = document.getElementById('shiftTableBtn');
+  if (shiftTableVisible) {
+    card.style.display = 'block';
+    btn.textContent = '📊 シフト表を閉じる';
+    loadShiftTable();
+  } else {
+    card.style.display = 'none';
+    btn.textContent = '📊 シフト表を見る';
+  }
+}
+
+async function changeShiftTableMonth(delta) {
+  shiftTableMonthNum += delta;
+  if (shiftTableMonthNum > 12) { shiftTableMonthNum = 1; shiftTableYear++; }
+  if (shiftTableMonthNum < 1)  { shiftTableMonthNum = 12; shiftTableYear--; }
+  await loadShiftTable();
+}
+
+async function loadShiftTable() {
+  const el = document.getElementById('shiftTableContent');
+  el.innerHTML = '<div style="color:var(--text-sub);font-size:13px;">読み込み中...</div>';
+  document.getElementById('shiftTableTitle').textContent = shiftTableYear + '年' + shiftTableMonthNum + '月';
+  const data = await gasGet({action:'shift_table_get', year:shiftTableYear, month:shiftTableMonthNum});
+  if (!data || !data.employees || data.employees.length === 0) {
+    el.innerHTML = '<div style="color:var(--text-sub);font-size:13px;">該当月のシフトデータがありません</div>';
+    return;
+  }
+  renderShiftTable(data);
+}
+
+function renderShiftTable(data) {
+  const el = document.getElementById('shiftTableContent');
+  const days = ['日','月','火','水','木','金','土'];
+  const emps = data.employees;
+
+  let html = '<table style="border-collapse:collapse;font-size:11px;min-width:100%;">';
+  // ヘッダー行
+  html += '<tr><th style="padding:4px 6px;border:1px solid var(--border);background:var(--surface2);white-space:nowrap;position:sticky;left:0;z-index:1;">日付</th>';
+  emps.forEach(function(name) {
+    html += '<th style="padding:4px 6px;border:1px solid var(--border);background:var(--surface2);white-space:nowrap;min-width:60px;">' + name + '</th>';
+  });
+  html += '</tr>';
+
+  // 日付行
+  for (var d = 1; d <= data.daysInMonth; d++) {
+    var dt = new Date(data.year, data.month - 1, d);
+    var dow = dt.getDay();
+    var dowLabel = days[dow];
+    var isSun = dow === 0;
+    var isSat = dow === 6;
+    var rowBg = isSun ? '#fff5f5' : isSat ? '#f0f4ff' : '';
+    var dateColor = isSun ? 'var(--red)' : isSat ? 'var(--blue)' : 'var(--text)';
+
+    html += '<tr style="background:' + rowBg + ';">';
+    html += '<td style="padding:4px 6px;border:1px solid var(--border);white-space:nowrap;position:sticky;left:0;background:' + (rowBg||'#fff') + ';color:' + dateColor + ';font-weight:600;">' + d + '(' + dowLabel + ')</td>';
+
+    emps.forEach(function(name) {
+      var shift = data.shiftMap[name] && data.shiftMap[name][d];
+      if (shift) {
+        var timeStr = (shift.start && shift.end) ? shift.start + '〜' + shift.end : '◯';
+        html += '<td style="padding:4px 6px;border:1px solid var(--border);text-align:center;background:#f0fdf4;color:var(--green);font-weight:700;">' + timeStr + '</td>';
+      } else {
+        html += '<td style="padding:4px 6px;border:1px solid var(--border);text-align:center;color:var(--text-sub);">—</td>';
+      }
+    });
+    html += '</tr>';
+  }
+  html += '</table>';
+  el.innerHTML = html;
+}
+
 </script>
 
 <!-- 有給変更・取消モーダル -->
