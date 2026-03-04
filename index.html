@@ -2238,6 +2238,10 @@ function toggleShiftTable() {
   if (shiftTableVisible) {
     card.style.display = 'block';
     btn.textContent = '📊 シフト表を閉じる';
+    // カードが表示されてからスクロール
+    setTimeout(() => {
+      card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
     loadShiftTable();
   } else {
     card.style.display = 'none';
@@ -2263,6 +2267,7 @@ async function loadShiftTable() {
     el.innerHTML = '<div style="color:var(--text-sub);font-size:13px;padding:16px;">該当月のシフトデータがありません</div>';
     return;
   }
+  console.log('shift_table data:', JSON.stringify(data).substring(0,200));
   renderShiftTable(data);
 }
 
