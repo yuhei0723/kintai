@@ -1470,26 +1470,44 @@ function buildCancelAdminUI(r) {
     html += '<div style="font-size:12px;color:var(--blue);margin-bottom:6px;">新時間：' + r.newTime + '</div>';
   }
   if (r.cancelDates) {
-    var dates = r.cancelDates.split(',');
+    var dates = r.cancelDates.split(',').filter(function(d){ return d.trim(); });
     html += '<div style="font-size:11px;color:var(--text-sub);margin-bottom:4px;">対象日（1日ずつ承認可）：</div>';
     html += '<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:8px;">';
     dates.forEach(function(d) {
-      var label = fmtDate(d);
+      var esc = d.trim().replace(/"/g,'&quot;');
       html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 8px;background:var(--surface2);border-radius:8px;">';
-      html += '<span style="font-size:12px;">' + label + '</span>';
+      html += '<span style="font-size:12px;">' + fmtDate(d) + '</span>';
       html += '<div style="display:flex;gap:4px;">';
-      html += '<button data-cancel-id="' + r.id + '" data-cancel-date="' + d + '" data-cancel-action="approve-date" style="padding:3px 8px;border-radius:6px;background:var(--green-bg);color:var(--green);border:1px solid var(--green);font-size:11px;font-weight:700;cursor:pointer;">✅ 承認</button>';
-      html += '<button data-cancel-id="' + r.id + '" data-cancel-action="reject-date" style="padding:3px 8px;border-radius:6px;background:var(--surface3);color:var(--text-sub);border:1px solid var(--border);font-size:11px;font-weight:700;cursor:pointer;">↩ 却下</button>';
+      html += '<button onclick="partialCancelApprove(&quot;' + r.id + '&quot;,&quot;approve&quot;,&quot;' + esc + '&quot;)" style="padding:3px 8px;border-radius:6px;background:var(--green-bg);color:var(--green);border:1px solid var(--green);font-size:11px;font-weight:700;cursor:pointer;">✅ 承認</button>';
+      html += '<button onclick="partialCancelApprove(&quot;' + r.id + '&quot;,&quot;reject&quot;,&quot;' + esc + '&quot;)" style="padding:3px 8px;border-radius:6px;background:var(--surface3);color:var(--text-sub);border:1px solid var(--border);font-size:11px;font-weight:700;cursor:pointer;">↩ 却下</button>';
       html += '</div></div>';
     });
     html += '</div>';
+    // 複数日の場合のみ「全て」ボタンを表示
+    if (dates.length > 1) {
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">';
+      html += '<button onclick="partialCancelApprove(&quot;' + r.id + '&quot;,&quot;approve&quot;,&quot;ALL&quot;)" style="padding:6px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;background:var(--green-bg);color:var(--green);border:1px solid var(--green);">✅ 全て承認</button>';
+      html += '<button onclick="partialCancelApprove(&quot;' + r.id + '&quot;,&quot;reject&quot;,&quot;ALL&quot;)" style="padding:6px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;background:var(--surface2);color:var(--text-sub);border:1px solid var(--border);">↩️ 全て却下</button>';
+      html += '</div>';
+    }
   }
-  var btnStyle = 'padding:6px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;';
-  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">';
-  html += '<button data-shift-id="' + r.id + '" data-action="reject-cancel" style="' + btnStyle + 'background:var(--green-bg);color:var(--green);border:1px solid var(--green);">✅ 全て承認</button>';
-  html += '<button data-shift-id="' + r.id + '" data-action="keep-shift" style="' + btnStyle + 'background:var(--surface2);color:var(--text-sub);border:1px solid var(--border);">↩️ 全て却下</button>';
-  html += '</div>';
   return html;
+}
+
+async function partialCancelApprove(id, action, targetDate) {
+  var shift = shiftHistory.find(function(s){ return s.id === id; });
+  if (!shift) return;
+  var allDates = shift.cancelDates ? shift.cancelDates.split(',').filter(function(d){ return d.trim(); }) : [];
+  var dates = (targetDate === 'ALL') ? allDates : [targetDate];
+  if (!confirm((action === 'approve' ? '承認' : '却下') + 'しますか？\n' + dates.map(fmtDate).join('、'))) return;
+  await gasCall({
+    action: 'shift_partial_cancel_approve',
+    id: id,
+    approvedDates: dates.join(','),
+    approveAction: action
+  });
+  showToast('✅', action === 'approve' ? '承認しました' : '却下しました');
+  await loadShiftHistory();
 }
 
 
