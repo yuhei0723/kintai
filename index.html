@@ -892,6 +892,8 @@ function saveEdit() {
   emp.paidLeave = isNaN(pl) ? (emp.paidLeave || 0) : pl;
   emp.compLeave = isNaN(cl) ? (emp.compLeave || 0) : cl;
   setData('employees', employees);
+  // GASにも付与日数を保存
+  gasCall({action:'employee_set', name: name, paidLeave: emp.paidLeave, compLeave: emp.compLeave});
   closeModal();
   renderEmployees();
   refreshSelects();
@@ -1099,8 +1101,12 @@ async function loadLeaveHistory() {
   const params = personalUser
     ? {action:'leave_get', name: personalUser}
     : {action:'leave_get'};
-  const data = await gasGet(params);
+  const [data, masterData] = await Promise.all([
+    gasGet(params),
+    gasGet({action:'employee_get'})
+  ]);
   leaveHistory = data || [];
+  if (masterData) employeeMaster = masterData;
   renderLeaveHistory();
   updateLeaveBalance();
 }
@@ -1109,11 +1115,12 @@ function updateLeaveBalance() {
   const name = personalUser || document.getElementById('leaveName').value;
   const card = document.getElementById('leaveBalanceCard');
   if (!name || !card) return;
-  const emp = employees.find(e => e.name === name);
-  if (!emp) { card.style.display = 'none'; return; }
-  // 付与日数
-  const paidGranted = emp.paidLeave || 0;
-  const compGranted = emp.compLeave || 0;
+  // GASのemployeeMasterを優先、なければlocalStorageのemployees
+  const masterEmp = employeeMaster[name];
+  const localEmp = employees.find(e => e.name === name);
+  if (!masterEmp && !localEmp) { card.style.display = 'none'; return; }
+  const paidGranted = masterEmp ? (masterEmp.paidLeave || 0) : (localEmp.paidLeave || 0);
+  const compGranted = masterEmp ? (masterEmp.compLeave || 0) : (localEmp.compLeave || 0);
   // 使用済み：種別ごとに集計
   const activeStatuses = ['approved','pending','cancel_requested'];
   const paidUsed = leaveHistory.filter(r => r.name === name && activeStatuses.includes(r.status) && r.kind !== 'comp').length;
@@ -2082,11 +2089,15 @@ function isCompRestDay(date) {
 }
 
 async function confirmCompLeave(name) {
+  // GASのemployeeMasterを更新
+  const current = employeeMaster[name] || {paidLeave:0, compLeave:0};
+  const newComp = (current.compLeave || 0) + 1;
+  await gasCall({action:'employee_set', name: name, paidLeave: current.paidLeave || 0, compLeave: newComp});
+  employeeMaster[name] = Object.assign({}, current, {compLeave: newComp});
+  // localStorageも更新
   const emp = employees.find(e => e.name === name);
-  if (!emp) return;
-  emp.compLeave = (emp.compLeave || 0) + 1;
-  setData('employees', employees);
-  showToast('✅', name + 'さんの代休を1日付与しました（残' + emp.compLeave + '日）');
+  if (emp) { emp.compLeave = newComp; setData('employees', employees); }
+  showToast('✅', name + 'さんの代休を1日付与しました（計' + newComp + '日）');
 }
 
 function fmtDate(d) {
