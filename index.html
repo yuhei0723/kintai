@@ -437,15 +437,39 @@ textarea { resize:vertical; min-height:80px; }
      PAGE: 有給申請
 ══════════════════════════════════════ -->
 <div class="page" id="page-leave">
+  <div class="card" id="leaveBalanceCard" style="display:none;">
+    <div class="section-title">📊 休暇残日数</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px;">
+      <div style="text-align:center;padding:12px;background:var(--green-bg);border-radius:10px;border:1px solid var(--green);">
+        <div style="font-size:11px;color:var(--green);font-weight:700;margin-bottom:4px;">有給休暇</div>
+        <div id="paidLeaveBalance" style="font-size:24px;font-weight:800;color:var(--green);">-</div>
+        <div style="font-size:11px;color:var(--text-sub);">日</div>
+      </div>
+      <div style="text-align:center;padding:12px;background:var(--blue-bg);border-radius:10px;border:1px solid var(--blue);">
+        <div style="font-size:11px;color:var(--blue);font-weight:700;margin-bottom:4px;">代休</div>
+        <div id="compLeaveBalance" style="font-size:24px;font-weight:800;color:var(--blue);">-</div>
+        <div style="font-size:11px;color:var(--text-sub);">日</div>
+      </div>
+    </div>
+  </div>
+
   <div class="card">
     <div class="section-title">📝 有給申請</div>
     <div class="label">申請者</div>
     <div class="sel-wrap" style="margin-bottom:16px;">
-      <select id="leaveName"><option value="">-- 選択してください --</option></select>
+      <select id="leaveName" onchange="updateLeaveBalance()"><option value="">-- 選択してください --</option></select>
       <span class="sel-arrow">▼</span>
     </div>
     <div class="label">取得日</div>
     <input type="date" id="leaveDate">
+    <div class="label">休暇種別</div>
+    <div class="sel-wrap" style="margin-bottom:16px;">
+      <select id="leaveKind">
+        <option value="paid">有給休暇</option>
+        <option value="comp">代休</option>
+      </select>
+      <span class="sel-arrow">▼</span>
+    </div>
     <div class="label">理由（任意）</div>
     <textarea id="leaveReason" placeholder="私用のため　など"></textarea>
     <button class="btn-full btn-full-amber" onclick="submitLeave()">申請する</button>
@@ -615,6 +639,10 @@ textarea { resize:vertical; min-height:80px; }
       </select>
       <span class="sel-arrow">▼</span>
     </div>
+    <div class="label" style="margin-top:12px;">有給付与日数</div>
+    <input type="number" id="editPaidLeave" min="0" max="40" step="0.5" placeholder="0">
+    <div class="label" style="margin-top:8px;">代休付与日数</div>
+    <input type="number" id="editCompLeave" min="0" max="40" step="0.5" placeholder="0">
     <div class="modal-actions">
       <button class="btn-full" style="background:var(--surface3);color:var(--text);border:1px solid var(--border);" onclick="closeModal()">キャンセル</button>
       <button class="btn-full btn-full-amber" onclick="saveEdit()">保存</button>
@@ -843,6 +871,8 @@ function openEdit(id) {
   const emp = employees.find(e => e.id === id);
   document.getElementById('editEmpName').value = emp.name;
   document.getElementById('editEmpType').value = emp.type;
+  document.getElementById('editPaidLeave').value = emp.paidLeave !== undefined ? emp.paidLeave : '';
+  document.getElementById('editCompLeave').value = emp.compLeave !== undefined ? emp.compLeave : '';
   document.getElementById('editOverlay').classList.add('open');
 }
 
@@ -857,6 +887,10 @@ function saveEdit() {
   if (!name) { showToast('⚠️','氏名を入力してください'); return; }
   const emp = employees.find(e => e.id === editingId);
   emp.name = name; emp.type = type;
+  var pl = parseFloat(document.getElementById('editPaidLeave').value);
+  var cl = parseFloat(document.getElementById('editCompLeave').value);
+  emp.paidLeave = isNaN(pl) ? (emp.paidLeave || 0) : pl;
+  emp.compLeave = isNaN(cl) ? (emp.compLeave || 0) : cl;
   setData('employees', employees);
   closeModal();
   renderEmployees();
@@ -958,11 +992,13 @@ async function submitLeave() {
   if (!name) { showToast('⚠️','申請者を選択してください'); return; }
   if (!date) { showToast('⚠️','取得日を選択してください'); return; }
 
+  const kind = document.getElementById('leaveKind') ? document.getElementById('leaveKind').value : 'paid';
   showToast('⏳','送信中...');
-  await gasCall({action:'leave_submit', name, date, reason: reason||''});
+  await gasCall({action:'leave_submit', name, date, reason: reason||'', kind: kind});
   document.getElementById('leaveDate').value = '';
   document.getElementById('leaveReason').value = '';
-  showToast('📝','有給申請を送信しました');
+  document.getElementById('leaveKind').value = 'paid';
+  showToast('📝', kind === 'comp' ? '代休申請を送信しました' : '有給申請を送信しました');
   await loadLeaveHistory();
 }
 
@@ -1006,10 +1042,13 @@ function renderTodayPunchLog(logs) {
   }
 
   const rows = Object.values(map).sort((a,b) => a.in.localeCompare(b.in));
+  const todayIsComp = isCompRestDay(new Date());
   el.innerHTML = rows.map(r => {
     const statusLabel = r.out ? '退勤済' : r.in ? '出勤中' : '';
     const statusColor = r.out ? 'var(--text-sub)' : 'var(--green)';
     const statusBg = r.out ? 'var(--surface2)' : 'var(--green-bg)';
+    const compBtn = (!personalUser && todayIsComp && r.in) ?
+      `<button onclick="confirmCompLeave('${r.name}')" style="margin-left:8px;padding:4px 8px;border-radius:6px;background:#eff6ff;color:#3b82f6;border:1px solid #3b82f6;font-size:11px;font-weight:700;cursor:pointer;">＋代休</button>` : '';
     return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
       <div style="font-weight:700;font-size:14px;color:var(--text);min-width:80px;">${r.name}</div>
       <div style="font-size:13px;color:var(--text-sub);font-family:'DM Mono',ui-monospace,monospace;flex:1;text-align:center;">
@@ -1063,6 +1102,27 @@ async function loadLeaveHistory() {
   const data = await gasGet(params);
   leaveHistory = data || [];
   renderLeaveHistory();
+  updateLeaveBalance();
+}
+
+function updateLeaveBalance() {
+  const name = personalUser || document.getElementById('leaveName').value;
+  const card = document.getElementById('leaveBalanceCard');
+  if (!name || !card) return;
+  const emp = employees.find(e => e.name === name);
+  if (!emp) { card.style.display = 'none'; return; }
+  // 付与日数
+  const paidGranted = emp.paidLeave || 0;
+  const compGranted = emp.compLeave || 0;
+  // 使用済み：種別ごとに集計
+  const activeStatuses = ['approved','pending','cancel_requested'];
+  const paidUsed = leaveHistory.filter(r => r.name === name && activeStatuses.includes(r.status) && r.kind !== 'comp').length;
+  const compUsed = leaveHistory.filter(r => r.name === name && activeStatuses.includes(r.status) && r.kind === 'comp').length;
+  const paidRemain = Math.max(0, paidGranted - paidUsed);
+  const compRemain = Math.max(0, compGranted - compUsed);
+  document.getElementById('paidLeaveBalance').textContent = paidRemain;
+  document.getElementById('compLeaveBalance').textContent = compRemain;
+  card.style.display = 'block';
 }
 
 function buildLeaveAdminCancelUI(r) {
@@ -2001,6 +2061,33 @@ function showToast(icon, text) {
 // INIT
 // ══════════════════════════════════
 // 全初期化をDOMContentLoaded後に確実に実行
+
+// 日本祝日判定（固定祝日のみ、移動祝日は概算）
+function isJpHoliday(date) {
+  var m = date.getMonth() + 1;
+  var d = date.getDate();
+  var holidays = [
+    [1,1],[1,2],[1,3],[2,11],[2,23],[3,20],[3,21],[4,29],[5,3],[5,4],[5,5],
+    [7,15],[8,11],[9,15],[9,23],[10,13],[11,3],[11,23],[12,23]
+  ];
+  for (var i = 0; i < holidays.length; i++) {
+    if (holidays[i][0] === m && holidays[i][1] === d) return true;
+  }
+  return false;
+}
+
+function isCompRestDay(date) {
+  var dow = date.getDay();
+  return dow === 0 || isJpHoliday(date); // 日曜(0)または祝日
+}
+
+async function confirmCompLeave(name) {
+  const emp = employees.find(e => e.name === name);
+  if (!emp) return;
+  emp.compLeave = (emp.compLeave || 0) + 1;
+  setData('employees', employees);
+  showToast('✅', name + 'さんの代休を1日付与しました（残' + emp.compLeave + '日）');
+}
 
 function fmtDate(d) {
   if (!d) return '';
