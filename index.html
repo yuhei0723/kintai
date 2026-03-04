@@ -240,6 +240,8 @@ textarea { resize:vertical; min-height:80px; }
 .cal-day.cal-approved { position:relative; }
 .cal-day.cal-pending { background:var(--blue-bg); color:var(--blue); border-color:var(--blue); cursor:default; }
 .cal-day.cal-rejected { background:var(--red-bg); color:var(--red); border-color:var(--red); opacity:0.6; cursor:default; text-decoration:line-through; }
+.cal-day.cal-cancel-req { background:#fff8e1; color:#f59e0b; border-color:#f59e0b; cursor:default; font-weight:700; }
+.cal-day.cal-cancel-req::after { content:'↩'; position:absolute; top:2px; right:3px; font-size:8px; }
 .cal-day.cal-approved-past { opacity:0.6; background:var(--green-bg); color:var(--green); }
 
 /* シフト取消モーダルの日付チップ */
@@ -1204,7 +1206,8 @@ function renderCalendar() {
     s.dates.forEach(d => {
       // 同じ日に複数申請がある場合、approved > pending > rejected の優先度
       const prev = dateStatusMap[d];
-      if (!prev || s.status === 'approved' || (s.status === 'pending' && prev === 'rejected')) {
+      const priority = {'approved':4,'cancel_requested':3,'pending':2,'rejected':1};
+      if (!prev || (priority[s.status]||0) > (priority[prev]||0)) {
         dateStatusMap[d] = s.status;
       }
     });
@@ -1230,6 +1233,8 @@ function renderCalendar() {
       cls += ' cal-approved';
     } else if (dateStatus === 'pending') {
       cls += ' cal-pending';
+    } else if (dateStatus === 'cancel_requested') {
+      cls += ' cal-cancel-req';
     } else if (dateStatus === 'rejected') {
       cls += ' cal-rejected';
     } else if (isSelected) {
@@ -1238,7 +1243,7 @@ function renderCalendar() {
       cls += ' today';
     }
 
-    const isLocked = dateStatus === 'approved' || dateStatus === 'pending';
+    const isLocked = dateStatus === 'approved' || dateStatus === 'pending' || dateStatus === 'cancel_requested';
     const clickable = !isPast && !isLocked ? `onclick="toggleDate('${dateStr}')"` : '';
     html += `<div class="${cls}" ${clickable}>${label}</div>`;
   }
@@ -1989,7 +1994,9 @@ function showToast(icon, text) {
 function fmtDate(d) {
   if (!d) return '';
   var dt = new Date(d);
-  if (isNaN(dt)) return String(d).replace('T15:00:00.000Z','').replace('T00:00:00.000Z','');
+  if (isNaN(dt.getTime())) return String(d);
+  // 1899年など無効な年は空文字
+  if (dt.getFullYear() < 2000) return '';
   var days = ['日','月','火','水','木','金','土'];
   var y = dt.getFullYear();
   var m = String(dt.getMonth()+1).padStart(2,'0');
