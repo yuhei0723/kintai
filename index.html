@@ -1043,6 +1043,7 @@ function renderTodayPunchLog(logs) {
     return;
   }
 
+  console.log('punch map:', JSON.stringify(map));
   const rows = Object.values(map).sort((a,b) => a.in.localeCompare(b.in));
   const todayIsComp = isCompRestDay(new Date());
   console.log('todayIsComp:', todayIsComp, 'day:', new Date().getDay(), 'personalUser:', personalUser);
