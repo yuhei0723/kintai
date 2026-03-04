@@ -1097,7 +1097,7 @@ function renderLeaveHistory() {
     html += '<div style="display:flex;align-items:center;justify-content:space-between;">';
     html += '<div>';
     html += '<div class="list-item-name">' + r.name + '</div>';
-    var dateDisp = r.date ? String(r.date).replace('T15:00:00.000Z','').replace('T00:00:00.000Z','') : '';
+    var dateDisp = r.date ? fmtDate(r.date) : '';
     html += '<div class="list-item-sub">' + dateDisp + (r.reason ? '　' + r.reason : '') + '</div>';
     html += '</div>';
     html += '<span class="tag ' + statusClass + '">' + statusLabel + '</span>';
@@ -1334,8 +1334,7 @@ function buildCancelAdminUI(r) {
   var html = '<div style="font-size:12px;color:var(--amber);font-weight:700;margin-bottom:4px;">🔄 ' + typeLabel + 'の申請があります</div>';
   if (r.cancelDates) {
     var dateStr = r.cancelDates.split(',').map(function(d) {
-      var dt = new Date(d);
-      return (dt.getMonth()+1) + '/' + dt.getDate() + '(' + days[dt.getDay()] + ')';
+      return fmtDate(d);
     }).join('、');
     html += '<div style="font-size:12px;color:var(--text-sub);margin-bottom:4px;">対象日：' + dateStr + '</div>';
   }
@@ -1357,8 +1356,9 @@ function renderShiftHistory() {
     const statusLabel = r.status==='pending' ? '🔵 審査中' : r.status==='approved' ? '✅ 承認済み' : r.status==='cancel_requested' ? '🔄 変更・取消申請中' : '❌ 却下';
     const statusClass = r.status==='pending' ? 'tag-pending' : r.status==='approved' ? 'tag-approved' : r.status==='cancel_requested' ? 'tag-pending' : 'tag-rejected';
     const datesArr = Array.isArray(r.dates) ? r.dates : r.dates.split(',');
-    const datesPreview = datesArr.slice(0,3).join('、') + (datesArr.length > 3 ? '　他' + (datesArr.length-3) + '日' : '');
-    const timeInfo = (r.timeStart && r.timeEnd) ? r.timeStart + '〜' + r.timeEnd : '';
+    const datesPreview = datesArr.slice(0,3).map(d => fmtDate(d)).join('、') + (datesArr.length > 3 ? '　他' + (datesArr.length-3) + '日' : '');
+    const isValidTime = (t) => t && !t.includes('1899');
+    const timeInfo = (isValidTime(r.timeStart) && isValidTime(r.timeEnd)) ? r.timeStart.substring(11,16) + '〜' + r.timeEnd.substring(11,16) : '';
     return `
     <div class="list-item" style="flex-direction:column;align-items:stretch;gap:10px;">
       <div style="display:flex;align-items:center;justify-content:space-between;">
@@ -1394,9 +1394,7 @@ function requestShiftCancel(id) {
   const datesArr = Array.isArray(record.dates) ? record.dates : record.dates.split(',');
   const listEl = document.getElementById('cancelDateList');
   listEl.innerHTML = datesArr.map(d => {
-    const dt = new Date(d);
-    const days = ['日','月','火','水','木','金','土'];
-    const label = (dt.getMonth()+1) + '/' + dt.getDate() + '(' + days[dt.getDay()] + ')';
+    const label = fmtDate(d);
     return `<div class="cancel-date-chip" id="chip-${d}" onclick="toggleCancelDate('${d}')">${label}</div>`;
   }).join('');
 
@@ -1987,6 +1985,18 @@ function showToast(icon, text) {
 // INIT
 // ══════════════════════════════════
 // 全初期化をDOMContentLoaded後に確実に実行
+
+function fmtDate(d) {
+  if (!d) return '';
+  var dt = new Date(d);
+  if (isNaN(dt)) return String(d).replace('T15:00:00.000Z','').replace('T00:00:00.000Z','');
+  var days = ['日','月','火','水','木','金','土'];
+  var y = dt.getFullYear();
+  var m = String(dt.getMonth()+1).padStart(2,'0');
+  var day = String(dt.getDate()).padStart(2,'0');
+  return y + '/' + m + '/' + day + '（' + days[dt.getDay()] + '）';
+}
+
 function handleLeaveAction(action, id) {
   if (action === 'approve') updateLeaveStatus(id, 'approved');
   else if (action === 'reject') updateLeaveStatus(id, 'rejected');
