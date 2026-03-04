@@ -885,7 +885,7 @@ async function executePunch(name, type) {
   const now = new Date();
   const timeStr = now.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
   try {
-    await gasGet({action:'punch', name:name, type:punchType, timestamp:now.toISOString()});
+    await gasGet({action:'punch', name:name, type:type, timestamp:now.toISOString()});
     showToast('✅', name+'さんの'+type+'を記録しました（'+timeStr+'）');
     setTimeout(loadTodayPunchLog, 1500);
   } catch(e) {
