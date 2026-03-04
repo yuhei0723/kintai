@@ -2085,7 +2085,7 @@ function isJpHoliday(date) {
 
 function isCompRestDay(date) {
   var dow = date.getDay();
-  return dow === 0 || isJpHoliday(date); // 日曜(0)または祝日
+  return dow === 0 || dow === 3 || isJpHoliday(date); // 日曜(0)・水曜(3=テスト用)・祝日
 }
 
 async function confirmCompLeave(name) {
