@@ -1475,18 +1475,22 @@ async function submitCancelRequest() {
     if (newStart >= newEnd) { showToast('⚠️','終了時刻は開始時刻より後にしてください'); return; }
   }
 
+  // closeCancelModal前にデータを保存
+  const submitId = cancelTargetId;
+  const submitDates = Array.from(cancelSelectedDates).sort().join(',');
+  const submitCount = cancelSelectedDates.size;
   closeCancelModal();
   showToast('⏳', '申請中...');
   await gasCall({
     action: 'shift_cancel_request',
-    id: cancelTargetId,
+    id: submitId,
     name: personalUser,
     cancelType: type,
-    cancelDates: Array.from(cancelSelectedDates).sort().join(','),
+    cancelDates: submitDates,
     newTimeStart: newStart,
     newTimeEnd: newEnd
   });
-  showToast('🔄', cancelSelectedDates.size + '日分の' + (type === 'cancel' ? '取消' : '時間変更') + 'を申請しました');
+  showToast('🔄', submitCount + '日分の' + (type === 'cancel' ? '取消' : '時間変更') + 'を申請しました');
   await loadShiftHistory();
   renderCalendar();
 }
