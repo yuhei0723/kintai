@@ -476,10 +476,7 @@ textarea { resize:vertical; min-height:80px; }
   </div>
 
   <div class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-      <div class="section-title" style="margin:0;">📋 申請履歴</div>
-      <button id="shiftTableBtn" onclick="toggleShiftTable()" style="display:none;padding:6px 12px;border-radius:8px;background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue);font-size:12px;font-weight:700;cursor:pointer;">📊 シフト表を見る</button>
-    </div>
+    <div class="section-title">📋 申請履歴</div>
     <div id="leaveHistory"><div style="color:var(--text-sub);font-size:13px;">申請はまだありません</div></div>
   </div>
 </div>
@@ -538,7 +535,10 @@ textarea { resize:vertical; min-height:80px; }
   </div>
 
   <div class="card">
-    <div class="section-title">📋 申請履歴</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+      <div class="section-title" style="margin:0;">📋 申請履歴</div>
+      <button id="shiftTableBtn" onclick="toggleShiftTable()" style="display:none;padding:6px 12px;border-radius:8px;background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue);font-size:12px;font-weight:700;cursor:pointer;">📊 シフト表を見る</button>
+    </div>
     <div id="shiftHistory"><div style="color:var(--text-sub);font-size:13px;">申請はまだありません</div></div>
   </div>
 </div>
