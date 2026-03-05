@@ -441,10 +441,11 @@ textarea { resize:vertical; min-height:80px; }
 <div id="personalBanner" style="display:none;background:linear-gradient(90deg,#fffbeb,#fef3c7);border-bottom:2px solid #f59e0b;padding:10px 20px;text-align:center;font-size:13px;color:#92400e;font-weight:600;">
   👤 <span id="bannerName"></span>さんの専用ページ
 </div>
+<div id="adminNotificationBanner" style="display:none;margin:0 16px 16px;padding:14px 16px;background:linear-gradient(135deg,#f59e0b,#d97706);border-radius:14px;color:#fff;box-shadow:0 4px 16px rgba(245,158,11,0.3);"></div>
 
 <!-- ══════════════════════════════════════
      PAGE: 打刻
-══════════════════════════════════════ -->
+══════════════════════════════════ -->
 <div class="page active" id="page-punch">
   <div class="card">
     <div class="clock-wrap">
@@ -1409,6 +1410,7 @@ async function loadLeaveHistory() {
   if (masterData) { employeeMaster = masterData; window.employeeMaster = masterData; }
   renderLeaveHistory();
   updateLeaveBalance();
+  checkAdminNotifications();
 }
 
 function updateLeaveBalance() {
@@ -1502,8 +1504,14 @@ function renderLeaveHistory() {
     if (r.status === 'cancel_requested' && !personalUser) {
       html += buildLeaveAdminCancelUI(r);
     }
-    if (r.status === 'approved' || r.status === 'pending') {
+    if ((r.status === 'approved' || r.status === 'pending') && personalUser) {
       html += '<button data-lid="' + r.id + '" data-la="open-cancel" style="width:100%;padding:8px;border-radius:8px;background:#fff8f8;color:#dc2626;font-size:12px;font-weight:700;cursor:pointer;border:1px solid rgba(220,38,38,0.3);">🔄 変更・取消を申請する</button>';
+    }
+    if ((r.status === 'approved' || r.status === 'pending') && !personalUser) {
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
+      html += '<button onclick="openAdminLeaveEditModal(&quot;' + r.id + '&quot;)" style="padding:8px;border-radius:8px;background:var(--blue-bg,#eff6ff);color:var(--blue,#2563eb);font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--blue,#2563eb);">✏️ 日程変更</button>';
+      html += '<button onclick="adminLeaveDirect(&quot;' + r.id + '&quot;,&quot;cancel&quot;)" style="padding:8px;border-radius:8px;background:var(--red-bg);color:var(--red);font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--red);">🗑️ 取消</button>';
+      html += '</div>';
     }
     if (r.status === 'cancel_requested' && personalUser) {
       html += '<div style="text-align:center;font-size:12px;color:var(--amber);padding:6px;">管理者の確認をお待ちください</div>';
@@ -1543,28 +1551,40 @@ function updateLeaveCancelTypeUI() {
 }
 
 async function submitLeaveCancelRequest() {
-  var type = document.querySelector('input[name="leaveCancelType"]:checked').value;
-  var note = document.getElementById('leaveCancelNote').value.trim();
-  var newDate = '';
-  if (type === 'change') {
-    newDate = document.getElementById('leaveCancelNewDate').value;
-    if (!newDate) { showToast('⚠️', '変更後の日付を選択してください'); return; }
+  try {
+    // ラジオボタンを安全に取得（checked でなくても value を取れるよう fallback）
+    var typeRadio = document.querySelector('input[name="leaveCancelType"]:checked');
+    var type = typeRadio ? typeRadio.value : 'cancel';
+    var noteEl = document.getElementById('leaveCancelNote');
+    var note = noteEl ? noteEl.value.trim() : '';
+    var newDate = '';
+    if (type === 'change') {
+      var newDateEl = document.getElementById('leaveCancelNewDate');
+      newDate = newDateEl ? newDateEl.value : '';
+      if (!newDate) { showToast('⚠️', '変更後の日付を選択してください'); return; }
+    }
+    var targetId = leaveCancelTargetId; // 先にIDを保存
+    console.log('[leaveCancel] targetId before close:', targetId, typeof targetId);
+    if (!targetId) { showToast('⚠️', '申請IDが取得できませんでした。再度お試しください'); return; }
+    closeLeaveCancelModal();            // その後モーダルを閉じる
+    console.log('[leaveCancel] targetId after close:', targetId, 'leaveCancelTargetId:', leaveCancelTargetId);
+    showToast('⏳', '申請中...');
+    await gasGet({
+      action: 'leave_cancel_request',
+      id: targetId,
+      name: personalUser || '',
+      cancelType: type,
+      newDate: newDate,
+      cancelNote: note
+    });
+    showToast('🔄', type === 'change' ? '日程変更を申請しました' : '取消を申請しました');
+    // GASの書き込み完了を待ってから再取得
+    await new Promise(function(r){ setTimeout(r, 1500); });
+    await loadLeaveHistory();
+  } catch(e) {
+    console.error('submitLeaveCancelRequest error:', e);
+    showToast('⚠️', '申請中にエラーが発生しました: ' + e.message);
   }
-  var targetId = leaveCancelTargetId; // 先にIDを保存
-  closeLeaveCancelModal();            // その後モーダルを閉じる（nullになってもOK）
-  showToast('⏳', '申請中...');
-  await gasGet({
-    action: 'leave_cancel_request',
-    id: targetId,
-    name: personalUser || '',
-    cancelType: type,
-    newDate: newDate,
-    cancelNote: note
-  });
-  showToast('🔄', type === 'change' ? '日程変更を申請しました' : '取消を申請しました');
-  // GASの書き込み完了を待ってから再取得
-  await new Promise(function(r){ setTimeout(r, 1500); });
-  await loadLeaveHistory();
 }
 
 // 管理者：有給変更・取消の承認/却下
@@ -1778,6 +1798,7 @@ async function loadShiftHistory() {
   renderShiftHistory();
   const stBtn = document.getElementById('shiftTableBtn');
   if (stBtn && !personalUser) stBtn.style.display = 'block';
+  checkAdminNotifications();
 }
 
 function buildCancelAdminUI(r) {
@@ -1854,6 +1875,11 @@ function renderShiftHistory() {
       ${personalUser && (r.status === 'approved' || r.status === 'pending') ? `
       <button onclick="requestShiftCancel('${r.id}')" style="width:100%;padding:8px;border-radius:8px;background:#fff8f8;color:#dc2626;font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid rgba(220,38,38,0.3);">🔄 変更・取消を申請する</button>` : r.status === 'cancel_requested' && personalUser ? `
       <div style="text-align:center;font-size:12px;color:var(--amber);padding:6px;">管理者の確認をお待ちください</div>` : ''}
+      ${!personalUser && (r.status === 'approved' || r.status === 'pending') ? `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <button onclick="openAdminShiftEditModal('${r.id}')" style="padding:8px;border-radius:8px;background:#eff6ff;color:#2563eb;font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid #2563eb;">✏️ 日程変更</button>
+        <button onclick="adminShiftDirect('${r.id}','cancel')" style="padding:8px;border-radius:8px;background:var(--red-bg);color:var(--red);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--red);">🗑️ 取消</button>
+      </div>` : ''}
     </div>`;
   }).join('');
 }
@@ -2663,7 +2689,46 @@ function printQr(id, name) {
       <img src="${dataUrl}">
       <p>${url}</p>
       <script>window.onload=()=>window.print()<\/script>
-    </body></html>
+    
+<!-- 管理者：有給日程変更モーダル -->
+<div id="adminLeaveEditModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--surface);border-radius:20px;padding:24px 20px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(37,99,235,0.2);">
+    <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px;">✏️ 有給日程変更</div>
+    <div style="font-size:13px;color:var(--text-sub);margin-bottom:16px;">変更後の取得日を選択してください</div>
+    <div class="label">取得日</div>
+    <input type="date" id="adminLeaveEditDate" style="width:100%;margin-bottom:16px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <button onclick="closeAdminLeaveEditModal()" style="padding:12px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text-sub);font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">キャンセル</button>
+      <button onclick="submitAdminLeaveEdit()" style="padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,#2563eb,#3b82f6);color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">変更する</button>
+    </div>
+  </div>
+</div>
+
+<!-- 管理者：シフト日程変更モーダル -->
+<div id="adminShiftEditModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--surface);border-radius:20px;padding:24px 20px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(37,99,235,0.2);">
+    <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px;">✏️ シフト日程変更</div>
+    <div style="font-size:13px;color:var(--text-sub);margin-bottom:16px;">変更後の日程・時間を入力してください</div>
+    <div class="label">日付</div>
+    <input type="date" id="adminShiftEditDate" style="width:100%;margin-bottom:12px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+      <div>
+        <div class="label">開始時間</div>
+        <input type="time" id="adminShiftEditTimeStart" style="width:100%;">
+      </div>
+      <div>
+        <div class="label">終了時間</div>
+        <input type="time" id="adminShiftEditTimeEnd" style="width:100%;">
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <button onclick="closeAdminShiftEditModal()" style="padding:12px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text-sub);font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">キャンセル</button>
+      <button onclick="submitAdminShiftEdit()" style="padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,#2563eb,#3b82f6);color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">変更する</button>
+    </div>
+  </div>
+</div>
+
+</body></html>
   `);
   win.document.close();
 }
@@ -2742,6 +2807,152 @@ function handleLeaveAction(action, id) {
   else if (action === 'open-cancel') openLeaveCancelModal(id);
 }
 
+
+// ══════════════════════════════════
+// 管理者：有給・シフト直接操作
+// ══════════════════════════════════
+
+// 有給：直接取消
+async function adminLeaveDirect(id, action) {
+  if (!confirm('この有給申請を取消しますか？')) return;
+  showToast('⏳', '処理中...');
+  await gasGet({action: 'admin_leave_cancel', id: id});
+  showToast('🗑️', '有給申請を取消しました');
+  await new Promise(function(r){ setTimeout(r, 1000); });
+  await loadLeaveHistory();
+}
+
+// 有給：日程変更モーダルを開く
+var adminLeaveEditTargetId = null;
+function openAdminLeaveEditModal(id) {
+  adminLeaveEditTargetId = id;
+  var rec = leaveHistory.find(function(r){ return r.id === id; });
+  if (!rec) return;
+  document.getElementById('adminLeaveEditDate').value = rec.date ? rec.date.substring(0,10) : '';
+  document.getElementById('adminLeaveEditModal').style.display = 'flex';
+}
+function closeAdminLeaveEditModal() {
+  document.getElementById('adminLeaveEditModal').style.display = 'none';
+  adminLeaveEditTargetId = null;
+}
+async function submitAdminLeaveEdit() {
+  var newDate = document.getElementById('adminLeaveEditDate').value;
+  if (!newDate) { showToast('⚠️', '日付を選択してください'); return; }
+  var targetId = adminLeaveEditTargetId;
+  closeAdminLeaveEditModal();
+  showToast('⏳', '処理中...');
+  await gasGet({action: 'admin_leave_date_update', id: targetId, newDate: newDate});
+  showToast('✅', '日程を変更しました');
+  await new Promise(function(r){ setTimeout(r, 1000); });
+  await loadLeaveHistory();
+}
+
+// シフト：直接取消
+async function adminShiftDirect(id, action) {
+  if (!confirm('このシフト申請を取消しますか？')) return;
+  showToast('⏳', '処理中...');
+  await gasGet({action: 'admin_shift_cancel', id: id});
+  showToast('🗑️', 'シフト申請を取消しました');
+  await new Promise(function(r){ setTimeout(r, 1000); });
+  await loadShiftHistory();
+}
+
+// シフト：日程変更モーダルを開く
+var adminShiftEditTargetId = null;
+function openAdminShiftEditModal(id) {
+  adminShiftEditTargetId = id;
+  var rec = shiftHistory.find(function(r){ return r.id === id; });
+  if (!rec) return;
+  var dates = Array.isArray(rec.dates) ? rec.dates : rec.dates.split(',');
+  document.getElementById('adminShiftEditDate').value = dates[0] || '';
+  document.getElementById('adminShiftEditTimeStart').value = rec.timeStart || '09:00';
+  document.getElementById('adminShiftEditTimeEnd').value = rec.timeEnd || '17:00';
+  document.getElementById('adminShiftEditModal').style.display = 'flex';
+}
+function closeAdminShiftEditModal() {
+  document.getElementById('adminShiftEditModal').style.display = 'none';
+  adminShiftEditTargetId = null;
+}
+async function submitAdminShiftEdit() {
+  var newDate = document.getElementById('adminShiftEditDate').value;
+  var newStart = document.getElementById('adminShiftEditTimeStart').value;
+  var newEnd = document.getElementById('adminShiftEditTimeEnd').value;
+  if (!newDate) { showToast('⚠️', '日付を選択してください'); return; }
+  var targetId = adminShiftEditTargetId;
+  closeAdminShiftEditModal();
+  showToast('⏳', '処理中...');
+  await gasGet({action: 'admin_shift_date_update', id: targetId, newDate: newDate, timeStart: newStart, timeEnd: newEnd});
+  showToast('✅', '日程を変更しました');
+  await new Promise(function(r){ setTimeout(r, 1000); });
+  await loadShiftHistory();
+}
+
+
+// ══════════════════════════════════
+// 管理者変更通知バナー
+// ══════════════════════════════════
+function checkAdminNotifications() {
+  if (!personalUser) return;
+  var notifications = [];
+
+  (leaveHistory || []).forEach(function(r) {
+    if (!r.adminNote) return;
+    var msg = '';
+    if (r.adminNote.startsWith('date_changed:')) {
+      var newD = r.adminNote.split(':')[1];
+      msg = '📅 有給申請（' + fmtDate(r.date) + '）が管理者により ' + fmtDate(newD) + ' に変更されました';
+    } else if (r.adminNote === 'cancelled') {
+      msg = '🗑️ 有給申請（' + fmtDate(r.date) + '）が管理者により取消されました';
+    }
+    if (msg) notifications.push({msg: msg, id: r.id, type: 'leave'});
+  });
+
+  (shiftHistory || []).forEach(function(r) {
+    if (!r.adminNote) return;
+    var datesArr = Array.isArray(r.dates) ? r.dates : r.dates.split(',');
+    var dateLabel = datesArr.length > 0 ? fmtDate(datesArr[0]) : '';
+    var msg = '';
+    if (r.adminNote.startsWith('date_changed:')) {
+      var newD = r.adminNote.split(':')[1];
+      msg = '📅 シフト申請（' + dateLabel + '）が管理者により ' + fmtDate(newD) + ' に変更されました';
+    } else if (r.adminNote === 'cancelled') {
+      msg = '🗑️ シフト申請（' + dateLabel + '）が管理者により取消されました';
+    }
+    if (msg) notifications.push({msg: msg, id: r.id, type: 'shift'});
+  });
+
+  renderAdminNotificationBanner(notifications);
+}
+
+function renderAdminNotificationBanner(notifications) {
+  var el = document.getElementById('adminNotificationBanner');
+  if (!el) return;
+  if (!notifications.length) { el.style.display = 'none'; return; }
+
+  var items = notifications.map(function(n) {
+    return '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:10px 12px;background:rgba(255,255,255,0.08);border-radius:10px;">'
+      + '<div style="font-size:13px;line-height:1.5;">' + n.msg + '</div>'
+      + '<button data-nid="' + n.id + '" data-ntype="' + n.type + '" class="admin-note-confirm" style="flex-shrink:0;padding:4px 10px;border:none;border-radius:6px;background:rgba(255,255,255,0.2);color:#fff;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">確認</button>'
+      + '</div>';
+  }).join('');
+
+  el.innerHTML = '<div style="font-size:13px;font-weight:800;margin-bottom:8px;">📢 お知らせ</div>' + items;
+  el.style.display = 'block';
+}
+async function confirmAdminNote(id, type) {
+  await gasGet({action: 'admin_note_clear', id: id, sheetType: type});
+  // ローカルのadminNoteもクリア
+  if (type === 'leave') {
+    var rec = (leaveHistory || []).find(function(r){ return r.id === id; });
+    if (rec) rec.adminNote = '';
+    checkAdminNotifications();
+  } else {
+    var rec = (shiftHistory || []).find(function(r){ return r.id === id; });
+    if (rec) rec.adminNote = '';
+    checkAdminNotifications();
+  }
+}
+
 // ══════════════════════════════════
 // INIT
 // ══════════════════════════════════
@@ -2759,6 +2970,8 @@ function initApp() {
     document.body.addEventListener('click', function(e) {
       var btn = e.target.closest('[data-la]');
       if (btn) handleLeaveAction(btn.dataset.la, btn.dataset.lid);
+      var nBtn = e.target.closest('.admin-note-confirm');
+      if (nBtn) confirmAdminNote(nBtn.dataset.nid, nBtn.dataset.ntype);
     });
     document.body.addEventListener('touchend', function(e) {
       var btn = e.target.closest('[data-la]');
@@ -2998,7 +3211,46 @@ function printShiftTable() {
     <h2>📊 シフト表　\${data.year}年\${data.month}月</h2>
     \${tableEl.innerHTML}
     <script>window.onload=function(){window.print();}<\/script>
-    </body></html>
+    
+<!-- 管理者：有給日程変更モーダル -->
+<div id="adminLeaveEditModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--surface);border-radius:20px;padding:24px 20px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(37,99,235,0.2);">
+    <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px;">✏️ 有給日程変更</div>
+    <div style="font-size:13px;color:var(--text-sub);margin-bottom:16px;">変更後の取得日を選択してください</div>
+    <div class="label">取得日</div>
+    <input type="date" id="adminLeaveEditDate" style="width:100%;margin-bottom:16px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <button onclick="closeAdminLeaveEditModal()" style="padding:12px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text-sub);font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">キャンセル</button>
+      <button onclick="submitAdminLeaveEdit()" style="padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,#2563eb,#3b82f6);color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">変更する</button>
+    </div>
+  </div>
+</div>
+
+<!-- 管理者：シフト日程変更モーダル -->
+<div id="adminShiftEditModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--surface);border-radius:20px;padding:24px 20px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(37,99,235,0.2);">
+    <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px;">✏️ シフト日程変更</div>
+    <div style="font-size:13px;color:var(--text-sub);margin-bottom:16px;">変更後の日程・時間を入力してください</div>
+    <div class="label">日付</div>
+    <input type="date" id="adminShiftEditDate" style="width:100%;margin-bottom:12px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+      <div>
+        <div class="label">開始時間</div>
+        <input type="time" id="adminShiftEditTimeStart" style="width:100%;">
+      </div>
+      <div>
+        <div class="label">終了時間</div>
+        <input type="time" id="adminShiftEditTimeEnd" style="width:100%;">
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <button onclick="closeAdminShiftEditModal()" style="padding:12px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text-sub);font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">キャンセル</button>
+      <button onclick="submitAdminShiftEdit()" style="padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,#2563eb,#3b82f6);color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">変更する</button>
+    </div>
+  </div>
+</div>
+
+</body></html>
   `);
   win.document.close();
 }
@@ -3068,5 +3320,44 @@ function printShiftTable() {
     </div>
   </div>
 </div>
+
+<!-- 管理者：有給日程変更モーダル -->
+<div id="adminLeaveEditModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--surface);border-radius:20px;padding:24px 20px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(37,99,235,0.2);">
+    <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px;">✏️ 有給日程変更</div>
+    <div style="font-size:13px;color:var(--text-sub);margin-bottom:16px;">変更後の取得日を選択してください</div>
+    <div class="label">取得日</div>
+    <input type="date" id="adminLeaveEditDate" style="width:100%;margin-bottom:16px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <button onclick="closeAdminLeaveEditModal()" style="padding:12px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text-sub);font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">キャンセル</button>
+      <button onclick="submitAdminLeaveEdit()" style="padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,#2563eb,#3b82f6);color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">変更する</button>
+    </div>
+  </div>
+</div>
+
+<!-- 管理者：シフト日程変更モーダル -->
+<div id="adminShiftEditModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--surface);border-radius:20px;padding:24px 20px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(37,99,235,0.2);">
+    <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px;">✏️ シフト日程変更</div>
+    <div style="font-size:13px;color:var(--text-sub);margin-bottom:16px;">変更後の日程・時間を入力してください</div>
+    <div class="label">日付</div>
+    <input type="date" id="adminShiftEditDate" style="width:100%;margin-bottom:12px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+      <div>
+        <div class="label">開始時間</div>
+        <input type="time" id="adminShiftEditTimeStart" style="width:100%;">
+      </div>
+      <div>
+        <div class="label">終了時間</div>
+        <input type="time" id="adminShiftEditTimeEnd" style="width:100%;">
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <button onclick="closeAdminShiftEditModal()" style="padding:12px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text-sub);font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">キャンセル</button>
+      <button onclick="submitAdminShiftEdit()" style="padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,#2563eb,#3b82f6);color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">変更する</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
