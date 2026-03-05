@@ -1460,22 +1460,7 @@ function buildLeaveAdminCancelUI(r) {
   return html;
 }
 
-async function partialCancelApprove(id, action) {
-  const checkboxes = document.querySelectorAll('[id^="chk_' + id + '_"]');
-  const checkedDates = Array.from(checkboxes).filter(c => c.checked).map(c => c.value);
-  if (action === 'approve' && checkedDates.length === 0) {
-    showToast('⚠️', '承認する日を1日以上選択してください');
-    return;
-  }
-  await gasCall({
-    action: 'shift_partial_cancel_approve',
-    id: id,
-    approvedDates: checkedDates.join(','),
-    approveAction: action
-  });
-  showToast('✅', action === 'approve' ? '承認しました' : '却下しました');
-  await loadShiftHistory();
-}
+// (partialCancelApprove は下で定義済み)
 
 function renderLeaveHistory() {
   var el = document.getElementById('leaveHistory');
@@ -2811,6 +2796,7 @@ function parseTime(t) {
 }
 
 function renderShiftTable(data) {
+  _lastShiftTableData = data;
   const el = document.getElementById('shiftTableContent');
   const days = ['日','月','火','水','木','金','土'];
   const emps = data.employees;
@@ -2851,13 +2837,6 @@ function renderShiftTable(data) {
 
 // ── シフト表データのキャッシュ ──
 var _lastShiftTableData = null;
-
-// renderShiftTable をオーバーラップしてデータをキャッシュ
-var _origRenderShiftTable = renderShiftTable;
-function renderShiftTable(data) {
-  _lastShiftTableData = data;
-  _origRenderShiftTable(data);
-}
 
 // ── Excel エクスポート ──
 function exportShiftTableExcel() {
