@@ -1815,46 +1815,24 @@ function buildCancelAdminUI(r) {
     html += '<div style="font-size:11px;color:var(--text-sub);margin-bottom:4px;">対象日（1日ずつ承認可）：</div>';
     html += '<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:8px;">';
     dates.forEach(function(d) {
-      var esc = d.trim().replace(/"/g,'&quot;');
+      var dTrimmed = d.trim();
       html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 8px;background:var(--surface2);border-radius:8px;">';
-      html += '<span style="font-size:12px;">' + fmtDate(d) + '</span>';
+      html += '<span style="font-size:12px;">' + fmtDate(dTrimmed) + '</span>';
       html += '<div style="display:flex;gap:4px;">';
-      html += '<button onclick="partialCancelApprove(&quot;' + r.id + '&quot;,&quot;approve&quot;,&quot;' + esc + '&quot;)" style="padding:3px 8px;border-radius:6px;background:var(--green-bg);color:var(--green);border:1px solid var(--green);font-size:11px;font-weight:700;cursor:pointer;">✅ 承認</button>';
-      html += '<button onclick="partialCancelApprove(&quot;' + r.id + '&quot;,&quot;reject&quot;,&quot;' + esc + '&quot;)" style="padding:3px 8px;border-radius:6px;background:var(--surface3);color:var(--text-sub);border:1px solid var(--border);font-size:11px;font-weight:700;cursor:pointer;">↩ 却下</button>';
+      html += '<button data-pcid="' + r.id + '" data-pcaction="approve" data-pcdate="' + dTrimmed + '" class="partial-cancel-btn" style="padding:3px 8px;border-radius:6px;background:var(--green-bg);color:var(--green);border:1px solid var(--green);font-size:11px;font-weight:700;cursor:pointer;">✅ 承認</button>';
+      html += '<button data-pcid="' + r.id + '" data-pcaction="reject" data-pcdate="' + dTrimmed + '" class="partial-cancel-btn" style="padding:3px 8px;border-radius:6px;background:var(--surface3);color:var(--text-sub);border:1px solid var(--border);font-size:11px;font-weight:700;cursor:pointer;">↩ 却下</button>';
       html += '</div></div>';
     });
     html += '</div>';
     if (dates.length > 1) {
       html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">';
-      html += '<button onclick="partialCancelApprove(&quot;' + r.id + '&quot;,&quot;approve&quot;,&quot;ALL&quot;)" style="padding:6px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;background:var(--green-bg);color:var(--green);border:1px solid var(--green);">✅ 全て承認</button>';
-      html += '<button onclick="partialCancelApprove(&quot;' + r.id + '&quot;,&quot;reject&quot;,&quot;ALL&quot;)" style="padding:6px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;background:var(--surface2);color:var(--text-sub);border:1px solid var(--border);">↩️ 全て却下</button>';
+      html += '<button data-pcid="' + r.id + '" data-pcaction="approve" data-pcdate="ALL" class="partial-cancel-btn" style="padding:6px;border-radius:8px;background:var(--green-bg);color:var(--green);border:1px solid var(--green);font-size:12px;font-weight:700;cursor:pointer;">✅ 全て承認</button>';
+      html += '<button data-pcid="' + r.id + '" data-pcaction="reject" data-pcdate="ALL" class="partial-cancel-btn" style="padding:6px;border-radius:8px;background:var(--surface3);color:var(--text-sub);border:1px solid var(--border);font-size:12px;font-weight:700;cursor:pointer;">↩ 全て却下</button>';
       html += '</div>';
     }
   }
+  html += '</div>';
   return html;
-}
-
-async function partialCancelApprove(id, action, targetDate) {
-  console.log('[partialCancelApprove] id:', id, 'action:', action, 'targetDate:', targetDate);
-  var shift = shiftHistory.find(function(s){ return String(s.id) === String(id); });
-  console.log('[partialCancelApprove] shift found:', !!shift, shift ? JSON.stringify({newDate:shift.newDate, cancelType:shift.cancelType, cancelDates:shift.cancelDates}) : 'NOT FOUND');
-  if (!shift) { console.error('[partialCancelApprove] shift not found in shiftHistory, ids:', shiftHistory.map(function(s){return s.id;})); return; }
-  var allDates = shift.cancelDates ? shift.cancelDates.split(',').filter(function(d){ return d.trim(); }) : [];
-  var dates = (targetDate === 'ALL') ? allDates : [targetDate];
-  if (!confirm((action === 'approve' ? '承認' : '却下') + 'しますか？\n' + dates.map(fmtDate).join('、'))) return;
-  showToast('⏳', '処理中...');
-  console.log('[partialCancelApprove] sending gasGet:', {id:id, approvedDates:dates.join(','), approveAction:action, newDate:shift.newDate||''});
-  await gasGet({
-    action: 'shift_partial_cancel_approve',
-    id: id,
-    approvedDates: dates.join(','),
-    approveAction: action,
-    newDate: shift.newDate || ''
-  });
-  showToast('✅', action === 'approve' ? '承認しました' : '却下しました');
-  await new Promise(function(r){ setTimeout(r, 1500); });
-  await loadShiftHistory();
-  renderCalendar();
 }
 
 function renderShiftHistory() {
@@ -2988,6 +2966,8 @@ function initApp() {
       if (btn) handleLeaveAction(btn.dataset.la, btn.dataset.lid);
       var nBtn = e.target.closest('.admin-note-confirm');
       if (nBtn) confirmAdminNote(nBtn.dataset.nid, nBtn.dataset.ntype);
+      var pcBtn = e.target.closest('.partial-cancel-btn');
+      if (pcBtn) partialCancelApprove(pcBtn.dataset.pcid, pcBtn.dataset.pcaction, pcBtn.dataset.pcdate);
     });
     document.body.addEventListener('touchend', function(e) {
       var btn = e.target.closest('[data-la]');
