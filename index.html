@@ -2193,8 +2193,7 @@ function saveBulkHolidays() {
   if (!text) return;
   var list = loadCompanyHolidays();
   var added = 0, skipped = 0;
-  text.split('
-').forEach(function(line) {
+  text.split('\n').forEach(function(line) {
     line = line.trim();
     if (!line) return;
     var parts = line.split(/\s+/);
