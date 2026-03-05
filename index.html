@@ -899,6 +899,10 @@ if (!employees || employees.length === 0) {
 }
 let leaveHistory = getData('leaveHistory', []);
 let shiftHistory = getData('shiftHistory', []);
+let personalUser = null;  // 宣言を前方に移動（TDZエラー防止）
+let pins = getData('pins', {});  // 宣言を前方に移動（TDZエラー防止）
+let pinBuffer = '';
+let pinPendingAction = null;
 let editingId = null;
 
 // ══════════════════════════════════
@@ -2151,9 +2155,7 @@ async function executePunchWithPhoto(name, type, photoData) {
 // ══════════════════════════════════
 // PIN AUTHENTICATION
 // ══════════════════════════════════
-let pins = getData('pins', {});
-let pinBuffer = '';
-let pinPendingAction = null;
+// (pins/pinBuffer/pinPendingAction は前方で宣言済み)
 
 function savePins() { localStorage.setItem('pins', JSON.stringify(pins)); }
 
@@ -2252,7 +2254,7 @@ function checkPin() {
 // ══════════════════════════════════
 // PERSONAL PAGE
 // ══════════════════════════════════
-let personalUser = null;
+// (personalUser は前方で宣言済み)
 
 function initPersonalPage() {
   const params = new URLSearchParams(window.location.search);
