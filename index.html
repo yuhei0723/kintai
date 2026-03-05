@@ -1977,7 +1977,7 @@ async function submitCancelRequest() {
   const submitCount = cancelSelectedDates.size;
   closeCancelModal();
   showToast('⏳', '申請中...');
-  await gasCall({
+  await gasGet({
     action: 'shift_cancel_request',
     id: submitId,
     name: personalUser,
@@ -1988,6 +1988,7 @@ async function submitCancelRequest() {
     newDate: newDate
   });
   showToast('🔄', submitCount + '日分の' + (type === 'cancel' ? '取消' : '日程・時間変更') + 'を申請しました');
+  await new Promise(function(r){ setTimeout(r, 1500); });
   await loadShiftHistory();
   renderCalendar();
 }
