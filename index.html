@@ -731,6 +731,23 @@ textarea { resize:vertical; min-height:80px; }
   </div>
 
   <div class="card">
+    <div class="section-title">📅 会社指定休日（有給奨励日）</div>
+    <div style="font-size:13px;color:var(--text-sub);margin-bottom:14px;line-height:1.7;">
+      会社カレンダーで定める指定休日・有給奨励日を登録します。法定休日の消化日としてカウントされます。
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <input type="date" id="newCompanyHoliday" style="flex:1;margin-bottom:0;">
+      <input type="text" id="newCompanyHolidayLabel" placeholder="例：夏季休暇" style="flex:1;margin-bottom:0;">
+      <button onclick="addCompanyHoliday()" style="padding:12px 16px;border:none;border-radius:10px;background:linear-gradient(135deg,#d97706,#f59e0b);color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">追加</button>
+    </div>
+    <div id="companyHolidayList" style="margin-bottom:12px;"></div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="bulkAddCompanyHolidays()" style="flex:1;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">📋 まとめて入力</button>
+      <button onclick="clearCompanyHolidays()" style="flex:1;padding:10px;border:1px solid var(--red);border-radius:10px;background:var(--red-bg);color:var(--red);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">🗑 全削除</button>
+    </div>
+  </div>
+
+  <div class="card">
     <div class="section-title">🏢 チーム・部署管理</div>
     <div style="font-size:13px;color:var(--text-sub);margin-bottom:14px;line-height:1.7;">
       チームを追加・削除できます。社員追加時のチーム選択に反映されます。
@@ -754,6 +771,26 @@ textarea { resize:vertical; min-height:80px; }
     <div style="font-size:13px;color:var(--text-sub);margin-bottom:12px;">申請履歴・社員データをリセットします。打刻ログはスプレッドシートに残ります。</div>
     <button class="btn-full btn-full-red" onclick="confirmReset()" style="margin-bottom:8px;">データをリセット</button>
     <button class="btn-full" style="background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber);" onclick="resetTeams()">🏢 チームをデフォルトに戻す</button>
+  </div>
+</div>
+
+<!-- ── MODAL: 会社指定休日まとめて入力 ── -->
+<div class="overlay" id="bulkHolidayOverlay">
+  <div class="modal">
+    <div class="modal-title">📋 会社指定休日まとめて入力</div>
+    <div style="font-size:12px;color:var(--text-sub);margin-bottom:10px;line-height:1.7;">
+      1行に1日ずつ入力してください。<br>
+      形式: <b>YYYY-MM-DD</b> または <b>YYYY-MM-DD 名称</b><br>
+      例:<br>
+      2025-08-13 夏季休暇<br>
+      2025-08-14<br>
+      2025-12-30 年末休暇
+    </div>
+    <textarea id="bulkHolidayText" style="width:100%;height:160px;padding:10px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-family:'DM Mono',monospace;font-size:13px;resize:vertical;box-sizing:border-box;" placeholder="2025-08-13 夏季休暇&#10;2025-08-14&#10;2025-12-30 年末休暇"></textarea>
+    <div class="modal-actions" style="margin-top:12px;">
+      <button class="btn-full" style="background:var(--surface3);color:var(--text);border:1px solid var(--border);" onclick="document.getElementById('bulkHolidayOverlay').classList.remove('open')">キャンセル</button>
+      <button class="btn-full btn-full-amber" onclick="saveBulkHolidays()">登録する</button>
+    </div>
   </div>
 </div>
 
@@ -956,7 +993,7 @@ function showPage(id) {
     loadShiftHistory().then(() => renderCalendar());
   }
   if (id === 'qr') renderQrList();
-  if (id === 'settings') { renderTeamList(); loadAnnualHolidayDays(); }
+  if (id === 'settings') { renderTeamList(); loadAnnualHolidayDays(); renderCompanyHolidayList(); }
 }
 
 // ══════════════════════════════════
@@ -1399,7 +1436,8 @@ function updateLeaveBalance() {
     var holidayUsed = calcLegalHolidayUsed(name);
     var holidayRemain = Math.max(0, annualHolidays - holidayUsed);
     if (legalBalEl) legalBalEl.textContent = holidayRemain;
-    if (legalDetailEl) legalDetailEl.textContent = holidayUsed + '/' + annualHolidays + '日消化';
+    var fy = (new Date().getMonth() >= 3) ? new Date().getFullYear() : new Date().getFullYear()-1;
+    if (legalDetailEl) legalDetailEl.textContent = holidayUsed + '/' + annualHolidays + '日消化（' + fy + '年度）';
   } else {
     if (legalBalEl) legalBalEl.textContent = '未設定';
     if (legalDetailEl) legalDetailEl.textContent = '設定→設定タブ';
@@ -1963,20 +2001,55 @@ function saveAnnualHolidayDays() {
 //   「土日に出勤打刻がない かつ 有給・代休申請もない日」を消化休日とする
 // 実際の法定休日消化: 「打刻がない日 = 休んだ日」なので、今年1/1から昨日まで
 // 打刻ログ(GASから取得済み)と申請履歴から算出
+// 日本の祝日リストを返す（固定祝日のみ、移動祝日は主要なもの概算）
+function getJapaneseHolidays(year) {
+  // 固定祝日（月/日）
+  var fixed = [
+    [1,1],[2,11],[2,23],[4,29],[5,3],[5,4],[5,5],
+    [7,20],[8,11],[9,23],[10,14],[11,3],[11,23],[12,23]
+  ];
+  var holidays = new Set();
+  fixed.forEach(function(md) {
+    holidays.add(year + '-' + String(md[0]).padStart(2,'0') + '-' + String(md[1]).padStart(2,'0'));
+  });
+  // 元日・成人の日・敬老の日・体育の日・春分の日 等は年によって変わるが
+  // 日曜と祝日は別々にチェックするため、ここでは主要固定日のみで十分
+  return holidays;
+}
+
 function calcLegalHolidayUsed(name) {
   var today = new Date();
-  var yearStart = new Date(today.getFullYear(), 0, 1); // 1/1
+
+  // 年度: 4/1〜3/31（当月が4月以降なら今年度、3月以前なら前年度開始）
+  var fiscalYear = today.getMonth() >= 3 ? today.getFullYear() : today.getFullYear() - 1;
+  var yearStart = new Date(fiscalYear, 3, 1);     // 4/1
+  var yearEnd   = new Date(fiscalYear + 1, 2, 31); // 翌3/31
+
   var yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
   yesterday.setHours(23, 59, 59, 999);
 
-  // 今年1/1〜昨日の全日付を生成
+  // カウント対象は「年度開始〜昨日」まで
+  var rangeEnd = yesterday < yearEnd ? yesterday : yearEnd;
+
+  // 年度内の全日付を生成
   var allDays = [];
   var cur = new Date(yearStart);
-  while (cur <= yesterday) {
+  while (cur <= rangeEnd) {
     allDays.push(new Date(cur));
     cur.setDate(cur.getDate() + 1);
   }
+
+  // 祝日セット（年度をまたぐので両年分）
+  var holidays = new Set([
+    ...Array.from(getJapaneseHolidays(fiscalYear)),
+    ...Array.from(getJapaneseHolidays(fiscalYear + 1))
+  ]);
+
+  // 会社指定休日セット
+  var companyHolidaySet = new Set(
+    loadCompanyHolidays().map(function(h) { return h.date; })
+  );
 
   // 打刻があった日のセット（YYYY-MM-DD形式）
   var punchedDays = new Set();
@@ -2027,18 +2100,115 @@ function calcLegalHolidayUsed(name) {
     });
   });
 
-  // 法定休日消化数 = 打刻なし AND 有給/代休申請なし AND シフト申請なし の日数
+  // 法定休日消化数 =
+  //   土曜 or 日曜 or 祝日 の日で
+  //   打刻なし AND 有給/代休申請なし AND シフト申請なし → 休日消化
   var holidayUsed = 0;
   allDays.forEach(function(d) {
+    var dow = d.getDay(); // 0=日, 6=土
     var key = d.getFullYear() + '-' +
       String(d.getMonth()+1).padStart(2,'0') + '-' +
       String(d.getDate()).padStart(2,'0');
+    // 土日または祝日のみ対象
+    var isHoliday = (dow === 0 || holidays.has(key) || companyHolidaySet.has(key));
+    if (!isHoliday) return;
+    // 出勤・有給・シフトがなければ休日消化
     if (!punchedDays.has(key) && !leaveDays.has(key) && !shiftDays.has(key)) {
       holidayUsed++;
     }
   });
 
   return holidayUsed;
+}
+
+// ── 会社指定休日 管理 ──
+function loadCompanyHolidays() {
+  return JSON.parse(localStorage.getItem('companyHolidays') || '[]');
+}
+
+function saveCompanyHolidaysData(list) {
+  localStorage.setItem('companyHolidays', JSON.stringify(list));
+}
+
+function renderCompanyHolidayList() {
+  var list = loadCompanyHolidays();
+  var el = document.getElementById('companyHolidayList');
+  if (!el) return;
+  if (!list.length) {
+    el.innerHTML = '<div style="font-size:13px;color:var(--text-sub);padding:8px 0;">登録されていません</div>';
+    return;
+  }
+  // 日付順にソート
+  list.sort(function(a, b) { return a.date.localeCompare(b.date); });
+  el.innerHTML = list.map(function(h, i) {
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">' +
+      '<div>' +
+        '<span style="font-size:13px;font-weight:700;color:var(--amber);">' + h.date + '</span>' +
+        (h.label ? '<span style="font-size:12px;color:var(--text-sub);margin-left:8px;">' + h.label + '</span>' : '') +
+      '</div>' +
+      '<button onclick="removeCompanyHoliday(' + i + ')" style="background:var(--red-bg);color:var(--red);border:1px solid var(--red);border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;">削除</button>' +
+    '</div>';
+  }).join('');
+}
+
+function addCompanyHoliday() {
+  var dateEl = document.getElementById('newCompanyHoliday');
+  var labelEl = document.getElementById('newCompanyHolidayLabel');
+  var date = dateEl.value;
+  var label = labelEl.value.trim();
+  if (!date) { showToast('⚠️', '日付を入力してください'); return; }
+  var list = loadCompanyHolidays();
+  if (list.some(function(h) { return h.date === date; })) {
+    showToast('⚠️', 'すでに登録済みの日付です'); return;
+  }
+  list.push({ date: date, label: label });
+  saveCompanyHolidaysData(list);
+  dateEl.value = '';
+  labelEl.value = '';
+  renderCompanyHolidayList();
+  showToast('✅', date + ' を登録しました');
+}
+
+function removeCompanyHoliday(index) {
+  var list = loadCompanyHolidays();
+  list.splice(index, 1);
+  saveCompanyHolidaysData(list);
+  renderCompanyHolidayList();
+}
+
+function clearCompanyHolidays() {
+  if (!confirm('会社指定休日をすべて削除しますか？')) return;
+  saveCompanyHolidaysData([]);
+  renderCompanyHolidayList();
+  showToast('🗑', '全削除しました');
+}
+
+function bulkAddCompanyHolidays() {
+  document.getElementById('bulkHolidayText').value = '';
+  document.getElementById('bulkHolidayOverlay').classList.add('open');
+}
+
+function saveBulkHolidays() {
+  var text = document.getElementById('bulkHolidayText').value.trim();
+  if (!text) return;
+  var list = loadCompanyHolidays();
+  var added = 0, skipped = 0;
+  text.split('
+').forEach(function(line) {
+    line = line.trim();
+    if (!line) return;
+    var parts = line.split(/\s+/);
+    var date = parts[0];
+    var label = parts.slice(1).join(' ');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { skipped++; return; }
+    if (list.some(function(h) { return h.date === date; })) { skipped++; return; }
+    list.push({ date: date, label: label });
+    added++;
+  });
+  saveCompanyHolidaysData(list);
+  renderCompanyHolidayList();
+  document.getElementById('bulkHolidayOverlay').classList.remove('open');
+  showToast('✅', added + '件登録しました' + (skipped ? '（' + skipped + '件スキップ）' : ''));
 }
 
 function saveGasUrlSettings() {
