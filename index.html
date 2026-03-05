@@ -1466,7 +1466,40 @@ function buildLeaveAdminCancelUI(r) {
   return html;
 }
 
-// (partialCancelApprove は下で定義済み)
+async function partialCancelApprove(id, action, targetDate) {
+  console.log('[partialCancelApprove] id:', id, 'action:', action, 'targetDate:', targetDate);
+  var shift = shiftHistory.find(function(s){ return String(s.id) === String(id); });
+  console.log('[partialCancelApprove] shift found:', !!shift, shift ? JSON.stringify({newDate:shift.newDate, cancelType:shift.cancelType, cancelDates:shift.cancelDates}) : 'NOT FOUND');
+  if (!shift) { console.error('[partialCancelApprove] NOT FOUND, ids:', shiftHistory.map(function(s){return s.id;})); return; }
+  var allDates = shift.cancelDates ? shift.cancelDates.split(',').filter(function(d){ return d.trim(); }) : [];
+  var dates = (targetDate === 'ALL') ? allDates : [targetDate];
+  if (!confirm((action === 'approve' ? '承認' : '却下') + 'しますか？\n' + dates.map(fmtDate).join('、'))) return;
+  // ISO形式の日付をYYYY-MM-DDに変換
+  function toYMD(d) {
+    if (!d) return '';
+    var s = String(d);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    var dt = new Date(s);
+    if (isNaN(dt.getTime())) return s;
+    var jst = new Date(dt.getTime() + 9*60*60*1000);
+    return jst.getUTCFullYear() + '-' + String(jst.getUTCMonth()+1).padStart(2,'0') + '-' + String(jst.getUTCDate()).padStart(2,'0');
+  }
+  var normDates = dates.map(toYMD).join(',');
+  var normNewDate = toYMD(shift.newDate || '');
+  console.log('[partialCancelApprove] sending gasGet:', {id:id, approvedDates:normDates, approveAction:action, newDate:normNewDate});
+  showToast('⏳', '処理中...');
+  await gasGet({
+    action: 'shift_partial_cancel_approve',
+    id: id,
+    approvedDates: normDates,
+    approveAction: action,
+    newDate: normNewDate
+  });
+  showToast('✅', action === 'approve' ? '承認しました' : '却下しました');
+  await new Promise(function(r){ setTimeout(r, 1500); });
+  await loadShiftHistory();
+  renderCalendar();
+}
 
 function renderLeaveHistory() {
   var el = document.getElementById('leaveHistory');
