@@ -1840,14 +1840,18 @@ async function partialCancelApprove(id, action, targetDate) {
   var allDates = shift.cancelDates ? shift.cancelDates.split(',').filter(function(d){ return d.trim(); }) : [];
   var dates = (targetDate === 'ALL') ? allDates : [targetDate];
   if (!confirm((action === 'approve' ? '承認' : '却下') + 'しますか？\n' + dates.map(fmtDate).join('、'))) return;
-  await gasCall({
+  showToast('⏳', '処理中...');
+  await gasGet({
     action: 'shift_partial_cancel_approve',
     id: id,
     approvedDates: dates.join(','),
-    approveAction: action
+    approveAction: action,
+    newDate: shift.newDate || ''
   });
   showToast('✅', action === 'approve' ? '承認しました' : '却下しました');
+  await new Promise(function(r){ setTimeout(r, 1500); });
   await loadShiftHistory();
+  renderCalendar();
 }
 
 function renderShiftHistory() {
