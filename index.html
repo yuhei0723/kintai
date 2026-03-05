@@ -518,7 +518,7 @@ textarea { resize:vertical; min-height:80px; }
         <div id="compLeaveBalance" style="font-size:24px;font-weight:800;color:var(--blue);">-</div>
         <div style="font-size:11px;color:var(--text-sub);">日</div>
       </div>
-      <div style="text-align:center;padding:12px;background:var(--amber-bg);border-radius:10px;border:1px solid var(--amber);">
+      <div id="legalHolidayCard" style="text-align:center;padding:12px;background:var(--amber-bg);border-radius:10px;border:1px solid var(--amber);">
         <div style="font-size:11px;color:var(--amber);font-weight:700;margin-bottom:4px;">法定休日</div>
         <div id="legalHolidayBalance" style="font-size:24px;font-weight:800;color:var(--amber);">-</div>
         <div style="font-size:11px;color:var(--text-sub);">日残</div>
@@ -1439,19 +1439,25 @@ function updateLeaveBalance() {
   document.getElementById('paidLeaveBalance').textContent = paidRemain;
   document.getElementById('compLeaveBalance').textContent = compRemain;
 
-  // 法定休日残数を計算・表示
-  var annualHolidays = parseInt(localStorage.getItem('annualHolidayDays') || '0') || 0;
+  // 法定休日残数を計算・表示（正社員のみ）
   var legalBalEl = document.getElementById('legalHolidayBalance');
   var legalDetailEl = document.getElementById('legalHolidayDetail');
-  if (annualHolidays > 0) {
-    var holidayUsed = calcLegalHolidayUsed(name);
-    var holidayRemain = Math.max(0, annualHolidays - holidayUsed);
-    if (legalBalEl) legalBalEl.textContent = holidayRemain;
-    var fy = (new Date().getMonth() >= 3) ? new Date().getFullYear() : new Date().getFullYear()-1;
-    if (legalDetailEl) legalDetailEl.textContent = holidayUsed + '/' + annualHolidays + '日消化（' + fy + '年度）';
-  } else {
-    if (legalBalEl) legalBalEl.textContent = '未設定';
-    if (legalDetailEl) legalDetailEl.textContent = '設定→設定タブ';
+  var legalCard = document.getElementById('legalHolidayCard');
+  var empType = (masterEmp && masterEmp.type) || (localEmp && localEmp.type) || '';
+  var isFulltime = (empType !== 'パート');
+  if (legalCard) legalCard.style.display = isFulltime ? '' : 'none';
+  if (isFulltime) {
+    var annualHolidays = parseInt(localStorage.getItem('annualHolidayDays') || '0') || 0;
+    if (annualHolidays > 0) {
+      var holidayUsed = calcLegalHolidayUsed(name);
+      var holidayRemain = Math.max(0, annualHolidays - holidayUsed);
+      if (legalBalEl) legalBalEl.textContent = holidayRemain;
+      var fy = (new Date().getMonth() >= 3) ? new Date().getFullYear() : new Date().getFullYear()-1;
+      if (legalDetailEl) legalDetailEl.textContent = holidayUsed + '/' + annualHolidays + '日消化（' + fy + '年度）';
+    } else {
+      if (legalBalEl) legalBalEl.textContent = '未設定';
+      if (legalDetailEl) legalDetailEl.textContent = '設定→設定タブ';
+    }
   }
 
   card.style.display = 'block';
@@ -2115,6 +2121,9 @@ function getJapaneseHolidays(year) {
 }
 
 function calcLegalHolidayUsed(name) {
+  // パート社員は法定休日管理対象外
+  var emp = employees.find(function(e){ return e.name === name; });
+  if (emp && emp.type === 'パート') return 0;
   var today = new Date();
 
   // 年度: 4/1〜3/31
