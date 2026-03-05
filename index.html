@@ -1552,7 +1552,7 @@ async function submitLeaveCancelRequest() {
   }
   closeLeaveCancelModal();
   showToast('⏳', '申請中...');
-  await gasCall({
+  await gasGet({
     action: 'leave_cancel_request',
     id: leaveCancelTargetId,
     name: personalUser || '',
@@ -1561,6 +1561,8 @@ async function submitLeaveCancelRequest() {
     cancelNote: note
   });
   showToast('🔄', type === 'change' ? '日程変更を申請しました' : '取消を申請しました');
+  // GASの書き込み完了を待ってから再取得
+  await new Promise(function(r){ setTimeout(r, 1500); });
   await loadLeaveHistory();
 }
 
@@ -1572,13 +1574,14 @@ async function approveLeaveCancelRequest(id, action) {
   var actionLabel = action === 'approve' ? '承認' : '却下（維持）';
   if (!confirm(typeLabel + 'を' + actionLabel + 'しますか？')) return;
   showToast('⏳', '処理中...');
-  await gasCall({
+  await gasGet({
     action: 'leave_cancel_approve',
     id: id,
     approveAction: action,
     newDate: record.newDate || ''
   });
   showToast(action === 'approve' ? '✅' : '↩️', typeLabel + 'を' + actionLabel + 'しました');
+  await new Promise(function(r){ setTimeout(r, 1500); });
   await loadLeaveHistory();
 }
 
