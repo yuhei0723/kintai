@@ -1255,7 +1255,7 @@ async function submitLeave() {
   await loadLeaveHistory();
 }
 
-async // ── 今年の打刻ログ全件取得（法定休日計算用）──
+// ── 今年の打刻ログ全件取得（法定休日計算用）──
 async function loadYearPunchLogs() {
   try {
     const year = new Date().getFullYear();
