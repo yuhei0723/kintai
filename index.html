@@ -1691,6 +1691,7 @@ function renderCalendar() {
     return dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0');
   }
   shiftHistory.filter(s => !currentName || s.name === currentName).forEach(s => {
+    if (s.status === 'cancelled') return; // 取消済みはカレンダーに表示しない
     s.dates.forEach(d => {
       const key = normDateKey(d);
       if (!key) return;
@@ -1873,7 +1874,7 @@ function renderShiftHistory() {
   const el = document.getElementById('shiftHistory');
   if (!shiftHistory.length) { el.innerHTML = '<div style="color:var(--text-sub);font-size:13px;">申請はまだありません</div>'; return; }
   el.innerHTML = shiftHistory.map(r => {
-    const statusLabel = r.status==='pending' ? '🔵 審査中' : r.status==='approved' ? '✅ 承認済み' : r.status==='cancel_requested' ? '🔄 変更・取消申請中' : '❌ 却下';
+    const statusLabel = r.status==='pending' ? '🔵 審査中' : r.status==='approved' ? '✅ 承認済み' : r.status==='cancel_requested' ? '🔄 変更・取消申請中' : r.status==='cancelled' ? '🗑️ 取消済み' : '❌ 却下';
     const statusClass = r.status==='pending' ? 'tag-pending' : r.status==='approved' ? 'tag-approved' : r.status==='cancel_requested' ? 'tag-pending' : 'tag-rejected';
     const datesArr = Array.isArray(r.dates) ? r.dates : r.dates.split(',');
     const datesPreview = datesArr.slice(0,3).map(d => fmtDate(d)).join('、') + (datesArr.length > 3 ? '　他' + (datesArr.length-3) + '日' : '');
