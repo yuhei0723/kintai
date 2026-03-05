@@ -506,7 +506,7 @@ textarea { resize:vertical; min-height:80px; }
 <div class="page" id="page-leave">
   <div class="card" id="leaveBalanceCard" style="display:none;">
     <div class="section-title">📊 休暇残日数</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px;">
       <div style="text-align:center;padding:12px;background:var(--green-bg);border-radius:10px;border:1px solid var(--green);">
         <div style="font-size:11px;color:var(--green);font-weight:700;margin-bottom:4px;">有給休暇</div>
         <div id="paidLeaveBalance" style="font-size:24px;font-weight:800;color:var(--green);">-</div>
@@ -516,6 +516,12 @@ textarea { resize:vertical; min-height:80px; }
         <div style="font-size:11px;color:var(--blue);font-weight:700;margin-bottom:4px;">代休</div>
         <div id="compLeaveBalance" style="font-size:24px;font-weight:800;color:var(--blue);">-</div>
         <div style="font-size:11px;color:var(--text-sub);">日</div>
+      </div>
+      <div style="text-align:center;padding:12px;background:var(--amber-bg);border-radius:10px;border:1px solid var(--amber);">
+        <div style="font-size:11px;color:var(--amber);font-weight:700;margin-bottom:4px;">法定休日</div>
+        <div id="legalHolidayBalance" style="font-size:24px;font-weight:800;color:var(--amber);">-</div>
+        <div style="font-size:11px;color:var(--text-sub);">日残</div>
+        <div id="legalHolidayDetail" style="font-size:10px;color:var(--text-dim);margin-top:2px;">-/-日</div>
       </div>
     </div>
   </div>
@@ -709,6 +715,19 @@ textarea { resize:vertical; min-height:80px; }
     <div class="label">WebアプリURL</div>
     <input type="text" id="gasUrlSettings" value="https://script.google.com/macros/s/AKfycbwYs7SpsnnXYgCdotURcO2BCfYlD0AtYw0jMSC7h07kRmhYM8kZf7VDXveXixPsvjt8bw/exec">
     <button class="btn-full btn-full-amber" onclick="saveGasUrlSettings()">保存する</button>
+  </div>
+
+  <div class="card">
+    <div class="section-title">📅 年間法定休日設定</div>
+    <div style="font-size:13px;color:var(--text-sub);margin-bottom:14px;line-height:1.7;">
+      会社が定める年間の法定休日数を設定します。従業員の休日消化状況の計算に使用します。
+    </div>
+    <div class="label">年間法定休日数</div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+      <input type="number" id="annualHolidayDays" min="0" max="366" step="1" placeholder="例：120" style="flex:1;margin-bottom:0;">
+      <span style="font-size:14px;color:var(--text-sub);white-space:nowrap;">日 / 年</span>
+    </div>
+    <button class="btn-full btn-full-amber" onclick="saveAnnualHolidayDays()">保存する</button>
   </div>
 
   <div class="card">
@@ -927,13 +946,13 @@ function showPage(id) {
   document.getElementById('page-'+id).classList.add('active');
   event.target.classList.add('active');
   if (id === 'employees') { refreshTeamSelects(); renderEmployees(); renderPinSettingsList(); }
-  if (id === 'leave') loadLeaveHistory();
+  if (id === 'leave') { loadLeaveHistory(); loadYearPunchLogs(); }
   if (id === 'shift') {
     checkShiftAccess();
     loadShiftHistory().then(() => renderCalendar());
   }
   if (id === 'qr') renderQrList();
-  if (id === 'settings') renderTeamList();
+  if (id === 'settings') { renderTeamList(); loadAnnualHolidayDays(); }
 }
 
 // ══════════════════════════════════
@@ -1232,6 +1251,21 @@ async function submitLeave() {
   await loadLeaveHistory();
 }
 
+async // ── 今年の打刻ログ全件取得（法定休日計算用）──
+async function loadYearPunchLogs() {
+  try {
+    const year = new Date().getFullYear();
+    const data = await gasGet({action: 'punch_year_get', year: year});
+    if (Array.isArray(data)) {
+      window.allPunchLogs = data;
+      // 有給申請ページが表示中なら残日数を再計算
+      updateLeaveBalance();
+    }
+  } catch(e) {
+    console.warn('punch_year_get error:', e);
+  }
+}
+
 async function loadTodayPunchLog() {
   const el = document.getElementById('todayPunchLog');
   try {
@@ -1352,6 +1386,21 @@ function updateLeaveBalance() {
   const compRemain = Math.max(0, compGranted - compUsed);
   document.getElementById('paidLeaveBalance').textContent = paidRemain;
   document.getElementById('compLeaveBalance').textContent = compRemain;
+
+  // 法定休日残数を計算・表示
+  var annualHolidays = parseInt(localStorage.getItem('annualHolidayDays') || '0') || 0;
+  var legalBalEl = document.getElementById('legalHolidayBalance');
+  var legalDetailEl = document.getElementById('legalHolidayDetail');
+  if (annualHolidays > 0) {
+    var holidayUsed = calcLegalHolidayUsed(name);
+    var holidayRemain = Math.max(0, annualHolidays - holidayUsed);
+    if (legalBalEl) legalBalEl.textContent = holidayRemain;
+    if (legalDetailEl) legalDetailEl.textContent = holidayUsed + '/' + annualHolidays + '日消化';
+  } else {
+    if (legalBalEl) legalBalEl.textContent = '未設定';
+    if (legalDetailEl) legalDetailEl.textContent = '設定→設定タブ';
+  }
+
   card.style.display = 'block';
 }
 
@@ -1888,6 +1937,106 @@ function saveGasUrl() {
   showToast('✅','GAS URLを保存しました');
 }
 
+// ── 年間法定休日設定 ──
+function loadAnnualHolidayDays() {
+  var days = parseInt(localStorage.getItem('annualHolidayDays') || '0') || 0;
+  var el = document.getElementById('annualHolidayDays');
+  if (el) el.value = days || '';
+  return days;
+}
+
+function saveAnnualHolidayDays() {
+  var val = parseInt(document.getElementById('annualHolidayDays').value) || 0;
+  localStorage.setItem('annualHolidayDays', val);
+  showToast('✅', '年間法定休日数を ' + val + ' 日に設定しました');
+  // 有給申請ページが表示中なら再計算
+  updateLeaveBalance();
+}
+
+// ── 法定休日消化数を計算 ──
+// 定義: 今年の1/1〜昨日までで「打刻なし かつ 有給・代休申請なし」の平日以外の日数
+// ※「休日」の定義は土日 or 会社指定休日 → ここでは土日のみをカウント対象とし
+//   「土日に出勤打刻がない かつ 有給・代休申請もない日」を消化休日とする
+// 実際の法定休日消化: 「打刻がない日 = 休んだ日」なので、今年1/1から昨日まで
+// 打刻ログ(GASから取得済み)と申請履歴から算出
+function calcLegalHolidayUsed(name) {
+  var today = new Date();
+  var yearStart = new Date(today.getFullYear(), 0, 1); // 1/1
+  var yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  yesterday.setHours(23, 59, 59, 999);
+
+  // 今年1/1〜昨日の全日付を生成
+  var allDays = [];
+  var cur = new Date(yearStart);
+  while (cur <= yesterday) {
+    allDays.push(new Date(cur));
+    cur.setDate(cur.getDate() + 1);
+  }
+
+  // 打刻があった日のセット（YYYY-MM-DD形式）
+  var punchedDays = new Set();
+  (window.allPunchLogs || []).forEach(function(log) {
+    if (log.name !== name) return;
+    var d = new Date(log.timestamp || log.date || '');
+    if (isNaN(d)) return;
+    var key = d.getFullYear() + '-' +
+      String(d.getMonth()+1).padStart(2,'0') + '-' +
+      String(d.getDate()).padStart(2,'0');
+    punchedDays.add(key);
+  });
+
+  // 有給・代休申請があった日のセット
+  var leaveDays = new Set();
+  var activeStatuses = ['approved', 'pending', 'cancel_requested'];
+  leaveHistory.filter(function(r) {
+    return r.name === name && activeStatuses.includes(r.status);
+  }).forEach(function(r) {
+    // r.date は "YYYY-MM-DD" または Date
+    var dateStr = '';
+    if (typeof r.date === 'string') {
+      dateStr = r.date.substring(0, 10);
+    } else if (r.date) {
+      var d = new Date(r.date);
+      dateStr = d.getFullYear() + '-' +
+        String(d.getMonth()+1).padStart(2,'0') + '-' +
+        String(d.getDate()).padStart(2,'0');
+    }
+    if (dateStr) leaveDays.add(dateStr);
+  });
+
+  // シフト申請があった日のセット（出勤日扱いのため除外）
+  var shiftDays = new Set();
+  (shiftHistory || []).filter(function(r) {
+    return r.name === name && activeStatuses.includes(r.status);
+  }).forEach(function(r) {
+    (r.dates || []).forEach(function(d) {
+      var dateStr = '';
+      if (typeof d === 'string') dateStr = d.substring(0, 10);
+      else if (d) {
+        var dd = new Date(d);
+        dateStr = dd.getFullYear() + '-' +
+          String(dd.getMonth()+1).padStart(2,'0') + '-' +
+          String(dd.getDate()).padStart(2,'0');
+      }
+      if (dateStr) shiftDays.add(dateStr);
+    });
+  });
+
+  // 法定休日消化数 = 打刻なし AND 有給/代休申請なし AND シフト申請なし の日数
+  var holidayUsed = 0;
+  allDays.forEach(function(d) {
+    var key = d.getFullYear() + '-' +
+      String(d.getMonth()+1).padStart(2,'0') + '-' +
+      String(d.getDate()).padStart(2,'0');
+    if (!punchedDays.has(key) && !leaveDays.has(key) && !shiftDays.has(key)) {
+      holidayUsed++;
+    }
+  });
+
+  return holidayUsed;
+}
+
 function saveGasUrlSettings() {
   const url = document.getElementById('gasUrlSettings').value.trim();
   if (!url || !url.startsWith('https://')) { showToast('⚠️','正しいURLを入力してください'); return; }
@@ -2390,6 +2539,7 @@ function handleLeaveAction(action, id) {
 function initApp() {
   try {
     loadGasUrl();
+    loadAnnualHolidayDays();
     refreshTeamSelects();
     refreshSelects();
     initCalendar();
