@@ -1500,6 +1500,7 @@ async function partialCancelApprove(id, action, targetDate) {
   await loadShiftHistory();
   renderCalendar();
 }
+window.partialCancelApprove = partialCancelApprove;
 
 function renderLeaveHistory() {
   var el = document.getElementById('leaveHistory');
@@ -3000,7 +3001,7 @@ function initApp() {
       var nBtn = e.target.closest('.admin-note-confirm');
       if (nBtn) confirmAdminNote(nBtn.dataset.nid, nBtn.dataset.ntype);
       var pcBtn = e.target.closest('.partial-cancel-btn');
-      if (pcBtn) partialCancelApprove(pcBtn.dataset.pcid, pcBtn.dataset.pcaction, pcBtn.dataset.pcdate);
+      if (pcBtn) window.partialCancelApprove(pcBtn.dataset.pcid, pcBtn.dataset.pcaction, pcBtn.dataset.pcdate);
     });
     document.body.addEventListener('touchend', function(e) {
       var btn = e.target.closest('[data-la]');
