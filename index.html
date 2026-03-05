@@ -1550,11 +1550,12 @@ async function submitLeaveCancelRequest() {
     newDate = document.getElementById('leaveCancelNewDate').value;
     if (!newDate) { showToast('⚠️', '変更後の日付を選択してください'); return; }
   }
-  closeLeaveCancelModal();
+  var targetId = leaveCancelTargetId; // 先にIDを保存
+  closeLeaveCancelModal();            // その後モーダルを閉じる（nullになってもOK）
   showToast('⏳', '申請中...');
   await gasGet({
     action: 'leave_cancel_request',
-    id: leaveCancelTargetId,
+    id: targetId,
     name: personalUser || '',
     cancelType: type,
     newDate: newDate,
