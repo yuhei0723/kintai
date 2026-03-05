@@ -1447,15 +1447,19 @@ function updateLeaveBalance() {
 }
 
 function buildLeaveAdminCancelUI(r) {
-  var html = '<div style="font-size:12px;color:var(--amber);font-weight:700;margin-bottom:4px;">🔄 変更・取消の申請があります</div>';
+  var typeLabel = r.cancelType === 'change' ? '日程変更' : '取消';
+  var html = '<div style="font-size:12px;color:var(--amber);font-weight:700;margin-bottom:6px;">🔄 ' + typeLabel + 'の申請があります</div>';
+  if (r.cancelType === 'change' && r.newDate) {
+    html += '<div style="font-size:12px;color:var(--blue);margin-bottom:6px;">変更希望日：' + fmtDate(r.newDate) + '</div>';
+  }
   if (r.cancelNote) {
-    html += '<div style="font-size:12px;color:var(--text-sub);margin-bottom:6px;">理由：' + r.cancelNote + '</div>';
+    html += '<div style="font-size:12px;color:var(--text-sub);margin-bottom:8px;">理由：' + r.cancelNote + '</div>';
   }
   var btnStyle = 'padding:8px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;';
   var approveLabel = r.cancelType === 'change' ? '✅ 変更を承認' : '✅ 取消を承認';
   html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
-  html += '<button onclick="partialCancelApprove(&quot;' + r.id + '&quot;, &quot;approve&quot;)" style="' + btnStyle + 'background:var(--red-bg);color:var(--red);border:1px solid var(--red);">' + approveLabel + '</button>';
-  html += '<button onclick="partialCancelApprove(&quot;' + r.id + '&quot;, &quot;reject&quot;)" style="' + btnStyle + 'background:var(--surface2);color:var(--text-sub);border:1px solid var(--border);">↩️ 却下（維持）</button>';
+  html += '<button onclick="approveLeaveCancelRequest(&quot;' + r.id + '&quot;, &quot;approve&quot;)" style="' + btnStyle + 'background:var(--green-bg);color:var(--green);border:1px solid var(--green);">' + approveLabel + '</button>';
+  html += '<button onclick="approveLeaveCancelRequest(&quot;' + r.id + '&quot;, &quot;reject&quot;)" style="' + btnStyle + 'background:var(--surface2);color:var(--text-sub);border:1px solid var(--border);">↩️ 却下（維持）</button>';
   html += '</div>';
   return html;
 }
@@ -1515,26 +1519,66 @@ var leaveCancelTargetId = null;
 
 function openLeaveCancelModal(id) {
   leaveCancelTargetId = id;
-  var noteEl = document.getElementById('leaveCancelNote');
-  if (noteEl) noteEl.value = '';
-  var modal = document.getElementById('leaveCancelModal');
-  if (modal) { modal.style.display = 'flex'; }
+  // フォームリセット
+  document.getElementById('leaveCancelNote').value = '';
+  document.getElementById('leaveCancelNewDate').value = '';
+  document.querySelector('input[name="leaveCancelType"][value="cancel"]').checked = true;
+  updateLeaveCancelTypeUI();
+  document.getElementById('leaveCancelModal').style.display = 'flex';
 }
 
 function closeLeaveCancelModal() {
-  var modal = document.getElementById('leaveCancelModal');
-  if (modal) modal.style.display = 'none';
+  document.getElementById('leaveCancelModal').style.display = 'none';
   leaveCancelTargetId = null;
 }
 
+function updateLeaveCancelTypeUI() {
+  var type = document.querySelector('input[name="leaveCancelType"]:checked').value;
+  var dateSection = document.getElementById('leaveCancelDateSection');
+  if (dateSection) dateSection.style.display = type === 'change' ? 'block' : 'none';
+  var labelCancel = document.getElementById('leaveCancelRadioCancel');
+  var labelChange = document.getElementById('leaveCancelRadioChange');
+  if (labelCancel) labelCancel.style.borderColor = type === 'cancel' ? 'var(--red)' : 'var(--border)';
+  if (labelChange) labelChange.style.borderColor = type === 'change' ? 'var(--blue)' : 'var(--border)';
+}
+
 async function submitLeaveCancelRequest() {
-  var note = '';
-  var noteEl = document.getElementById('leaveCancelNote');
-  if (noteEl) note = noteEl.value.trim();
+  var type = document.querySelector('input[name="leaveCancelType"]:checked').value;
+  var note = document.getElementById('leaveCancelNote').value.trim();
+  var newDate = '';
+  if (type === 'change') {
+    newDate = document.getElementById('leaveCancelNewDate').value;
+    if (!newDate) { showToast('⚠️', '変更後の日付を選択してください'); return; }
+  }
   closeLeaveCancelModal();
   showToast('⏳', '申請中...');
-  await gasCall({action:'leave_cancel_request', id: leaveCancelTargetId, name: personalUser || '', cancelNote: note});
-  showToast('🔄', '変更・取消を申請しました');
+  await gasCall({
+    action: 'leave_cancel_request',
+    id: leaveCancelTargetId,
+    name: personalUser || '',
+    cancelType: type,
+    newDate: newDate,
+    cancelNote: note
+  });
+  showToast('🔄', type === 'change' ? '日程変更を申請しました' : '取消を申請しました');
+  await loadLeaveHistory();
+}
+
+// 管理者：有給変更・取消の承認/却下
+async function approveLeaveCancelRequest(id, action) {
+  var record = leaveHistory.find(function(r) { return r.id === id; });
+  if (!record) return;
+  var typeLabel = record.cancelType === 'change' ? '日程変更' : '取消';
+  var actionLabel = action === 'approve' ? '承認' : '却下（維持）';
+  if (!confirm(typeLabel + 'を' + actionLabel + 'しますか？')) return;
+  showToast('⏳', '処理中...');
+  await gasCall({
+    action: 'leave_cancel_approve',
+    id: id,
+    approveAction: action,
+    newDate: record.newDate || ''
+  });
+  showToast(action === 'approve' ? '✅' : '↩️', typeLabel + 'を' + actionLabel + 'しました');
   await loadLeaveHistory();
 }
 
@@ -2422,6 +2466,11 @@ function initPersonalPage() {
 
   document.getElementById('navEmployees').style.display = 'none';
   document.getElementById('navQr').style.display = 'none';
+  // 従業員側は設定タブ不要
+  var navBtns = document.querySelectorAll('.nav-btn');
+  navBtns.forEach(function(btn) {
+    if (btn.textContent.includes('設定')) btn.style.display = 'none';
+  });
   var gasBox = document.getElementById('gasSetupBox');
   if (gasBox) gasBox.style.display = 'none';
 
@@ -2955,10 +3004,22 @@ function printShiftTable() {
 
 <!-- 有給変更・取消モーダル -->
 <div id="leaveCancelModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center;padding:20px;">
-  <div style="background:#fff;border-radius:20px;padding:24px 20px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(37,99,235,0.2);">
+  <div style="background:var(--surface);border-radius:20px;padding:24px 20px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(37,99,235,0.2);">
     <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px;">🔄 有給の変更・取消申請</div>
-    <div style="font-size:13px;color:var(--text-sub);margin-bottom:16px;">管理者が確認後に対応します</div>
-    <div class="label">申請内容・理由（任意）</div>
+    <div style="font-size:13px;color:var(--text-sub);margin-bottom:16px;">申請種別を選択してください</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+      <label id="leaveCancelRadioCancel" style="display:flex;align-items:center;gap:8px;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text);">
+        <input type="radio" name="leaveCancelType" value="cancel" checked onchange="updateLeaveCancelTypeUI()"> 🗑️ 取消
+      </label>
+      <label id="leaveCancelRadioChange" style="display:flex;align-items:center;gap:8px;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text);">
+        <input type="radio" name="leaveCancelType" value="change" onchange="updateLeaveCancelTypeUI()"> 📅 日程変更
+      </label>
+    </div>
+    <div id="leaveCancelDateSection" style="display:none;margin-bottom:12px;">
+      <div class="label">変更後の取得日</div>
+      <input type="date" id="leaveCancelNewDate" style="width:100%;margin-bottom:0;">
+    </div>
+    <div class="label">理由（任意）</div>
     <textarea id="leaveCancelNote" rows="3" placeholder="例：日程変更のため　など" style="width:100%;padding:12px;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:14px;resize:none;outline:none;margin-bottom:16px;box-sizing:border-box;"></textarea>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
       <button onclick="closeLeaveCancelModal()" style="padding:12px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text-sub);font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">キャンセル</button>
