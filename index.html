@@ -944,6 +944,17 @@ let employees = getData('employees', null);
 if (!employees || employees.length === 0) {
   employees = JSON.parse(JSON.stringify(DEFAULT_EMPLOYEES));
   setData('employees', employees);
+} else {
+  // DEFAULT_EMPLOYEESのiconフィールドを既存データにマージ（上書きしない）
+  let updated = false;
+  employees.forEach(emp => {
+    const def = DEFAULT_EMPLOYEES.find(d => d.id === emp.id);
+    if (def && def.icon && !emp.icon) {
+      emp.icon = def.icon;
+      updated = true;
+    }
+  });
+  if (updated) setData('employees', employees);
 }
 let leaveHistory = getData('leaveHistory', []);
 let shiftHistory = getData('shiftHistory', []);
@@ -2618,7 +2629,7 @@ function setPersonalIcon(name) {
     ['#be185d','#fbcfe8'],
   ];
 
-  const employees_list = ['牛膓','齋藤','南岡','鈴木由加','伊藤','生天目','金森','西岡','鈴木あかね','鈴木美咲','田口','三上'];
+  const employees_list = employees.map(e => e.name);
   const idx = employees_list.indexOf(name);
   const [bg, fg] = colors[(idx >= 0 ? idx : 0) % colors.length];
 
