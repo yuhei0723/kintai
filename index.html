@@ -432,6 +432,7 @@ textarea { resize:vertical; min-height:80px; }
   <button class="nav-btn active" onclick="showPage('punch')">⏱ 打刻</button>
   <button class="nav-btn" id="navLeave" onclick="showPage('leave')">📝 有給申請</button>
   <button class="nav-btn" id="navShift" onclick="showPage('shift')">📆 シフト申請</button>
+  <button class="nav-btn" id="navAdmin" onclick="showPage('admin')">📋 申請管理</button>
   <button class="nav-btn" id="navEmployees" onclick="showPage('employees')">👥 社員管理</button>
   <button class="nav-btn" id="navQr" onclick="showPage('qr')">🔗 QRコード</button>
   <button class="nav-btn" onclick="showPage('settings')">⚙️ 設定</button>
@@ -640,6 +641,80 @@ textarea { resize:vertical; min-height:80px; }
     </div>
   </div>
   <!-- ▲▲▲ 修正ここまで ▲▲▲ -->
+
+</div>
+
+
+<!-- ══════════════════════════════════════
+     PAGE: 申請管理（管理者専用）
+══════════════════════════════════════ -->
+<div class="page" id="page-admin">
+
+  <!-- ── タブバー ── -->
+  <div style="display:flex;gap:0;margin-bottom:16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:var(--shadow);">
+    <button id="adminTab-leave" onclick="switchAdminTab('leave')"
+      style="flex:1;padding:12px 8px;border:none;background:var(--blue);color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:700;cursor:pointer;border-radius:12px 0 0 12px;transition:all 0.2s;">
+      📝 有給申請
+    </button>
+    <button id="adminTab-shift" onclick="switchAdminTab('shift')"
+      style="flex:1;padding:12px 8px;border:none;background:var(--surface2);color:var(--text-sub);font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:700;cursor:pointer;border-radius:0 12px 12px 0;transition:all 0.2s;">
+      📆 シフト申請
+    </button>
+  </div>
+
+  <!-- ── 有給申請管理タブ ── -->
+  <div id="adminPanel-leave">
+    <!-- フィルター -->
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
+      <div class="sel-wrap" style="flex:1;min-width:100px;margin:0;">
+        <select id="adminLeaveFilter" onchange="renderAdminLeaveList()" style="padding:10px 32px 10px 10px;font-size:13px;">
+          <option value="all">全員</option>
+        </select>
+        <span class="sel-arrow" style="font-size:11px;">▼</span>
+      </div>
+      <div class="sel-wrap" style="flex:1;min-width:100px;margin:0;">
+        <select id="adminLeaveStatusFilter" onchange="renderAdminLeaveList()" style="padding:10px 32px 10px 10px;font-size:13px;">
+          <option value="all">全ステータス</option>
+          <option value="pending">🔵 審査中のみ</option>
+          <option value="cancel_requested">🔄 変更・取消のみ</option>
+          <option value="approved">✅ 承認済みのみ</option>
+          <option value="rejected">❌ 却下のみ</option>
+        </select>
+        <span class="sel-arrow" style="font-size:11px;">▼</span>
+      </div>
+    </div>
+    <div id="adminLeaveCount" style="font-size:12px;color:var(--text-sub);margin-bottom:8px;"></div>
+    <div id="adminLeaveList">
+      <div style="color:var(--text-sub);font-size:13px;padding:20px;text-align:center;">読み込み中...</div>
+    </div>
+  </div>
+
+  <!-- ── シフト申請管理タブ ── -->
+  <div id="adminPanel-shift" style="display:none;">
+    <!-- フィルター -->
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
+      <div class="sel-wrap" style="flex:1;min-width:100px;margin:0;">
+        <select id="adminShiftFilter" onchange="renderAdminShiftList()" style="padding:10px 32px 10px 10px;font-size:13px;">
+          <option value="all">全員</option>
+        </select>
+        <span class="sel-arrow" style="font-size:11px;">▼</span>
+      </div>
+      <div class="sel-wrap" style="flex:1;min-width:100px;margin:0;">
+        <select id="adminShiftStatusFilter" onchange="renderAdminShiftList()" style="padding:10px 32px 10px 10px;font-size:13px;">
+          <option value="all">全ステータス</option>
+          <option value="pending">🔵 審査中のみ</option>
+          <option value="cancel_requested">🔄 変更・取消のみ</option>
+          <option value="approved">✅ 承認済みのみ</option>
+          <option value="rejected">❌ 却下のみ</option>
+        </select>
+        <span class="sel-arrow" style="font-size:11px;">▼</span>
+      </div>
+    </div>
+    <div id="adminShiftCount" style="font-size:12px;color:var(--text-sub);margin-bottom:8px;"></div>
+    <div id="adminShiftList">
+      <div style="color:var(--text-sub);font-size:13px;padding:20px;text-align:center;">読み込み中...</div>
+    </div>
+  </div>
 
 </div>
 
@@ -1016,6 +1091,7 @@ function showPage(id) {
   }
   if (id === 'qr') renderQrList();
   if (id === 'settings') { renderTeamList(); loadAnnualHolidayDays(); renderCompanyHolidayList(); }
+  if (id === 'admin') { loadAdminPage(); }
 }
 
 // ══════════════════════════════════
@@ -1664,6 +1740,10 @@ async function updateLeaveStatus(id, status) {
   await gasCall({action:'leave_update', id, status});
   showToast(status==='approved'?'✅':'❌', '有給申請を' + label + 'しました');
   await loadLeaveHistory();
+  // 申請管理ページが表示中なら再描画
+  if (document.getElementById('page-admin').classList.contains('active')) {
+    await loadAdminPage();
+  }
 }
 
 // ══════════════════════════════════
@@ -2059,6 +2139,10 @@ async function updateShiftStatus(id, status) {
   showToast(status==='approved'?'✅':'❌', 'シフト申請を' + label + 'しました');
   await loadShiftHistory();
   renderCalendar();
+  // 申請管理ページが表示中なら再描画
+  if (document.getElementById('page-admin') && document.getElementById('page-admin').classList.contains('active')) {
+    await loadAdminPage();
+  }
 }
 
 // ══════════════════════════════════
@@ -2577,6 +2661,7 @@ function initPersonalPage() {
 
   document.getElementById('navEmployees').style.display = 'none';
   document.getElementById('navQr').style.display = 'none';
+  document.getElementById('navAdmin').style.display = 'none';
   // 従業員側は設定タブ不要
   var navBtns = document.querySelectorAll('.nav-btn');
   navBtns.forEach(function(btn) {
@@ -3018,7 +3103,10 @@ function renderAdminNotificationBanner(notifications) {
       + '</div>';
   }).join('');
 
-  el.innerHTML = '<div style="font-size:13px;font-weight:800;margin-bottom:8px;">📢 お知らせ</div>' + items;
+  el.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">'
+    + '<div style="font-size:13px;font-weight:800;">📢 お知らせ</div>'
+    + '<button onclick="goAdminPage()" style="padding:4px 10px;border:none;border-radius:6px;background:rgba(255,255,255,0.2);color:#fff;font-size:11px;font-weight:700;cursor:pointer;">申請管理へ →</button>'
+    + '</div>' + items;
   el.style.display = 'block';
 }
 async function confirmAdminNote(id, type) {
@@ -3033,6 +3121,203 @@ async function confirmAdminNote(id, type) {
     if (rec) rec.adminNote = '';
     checkAdminNotifications();
   }
+}
+
+
+// ══════════════════════════════════
+// ADMIN PAGE（申請管理）
+// ══════════════════════════════════
+
+let adminCurrentTab = 'leave';
+let adminLeaveData = [];
+let adminShiftData = [];
+
+
+function goAdminPage() {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-admin').classList.add('active');
+  const btn = document.getElementById('navAdmin');
+  if (btn) btn.classList.add('active');
+  loadAdminPage();
+}
+
+function switchAdminTab(tab) {
+  adminCurrentTab = tab;
+  ['leave','shift'].forEach(t => {
+    const panel = document.getElementById('adminPanel-' + t);
+    const btn   = document.getElementById('adminTab-' + t);
+    if (panel) panel.style.display = (t === tab) ? 'block' : 'none';
+    if (btn) {
+      btn.style.background = (t === tab) ? 'var(--blue)' : 'var(--surface2)';
+      btn.style.color      = (t === tab) ? '#fff'        : 'var(--text-sub)';
+    }
+  });
+}
+
+async function loadAdminPage() {
+  // 名前フィルターを初期化
+  ['adminLeaveFilter','adminShiftFilter'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = '<option value="all">全員</option>' +
+      employees.map(e => `<option value="${e.name}">${e.name}</option>`).join('');
+    sel.value = cur;
+  });
+
+  // 有給・シフト両方を並行取得
+  const [leaveData, shiftData] = await Promise.all([
+    gasGet({action:'leave_get'}),
+    gasGet({action:'shift_get'})
+  ]);
+
+  adminLeaveData = leaveData || [];
+  adminShiftData = shiftData || [];
+
+  // leaveHistory / shiftHistory も同期
+  leaveHistory = adminLeaveData;
+  shiftHistory = adminShiftData;
+
+  renderAdminLeaveList();
+  renderAdminShiftList();
+}
+
+function renderAdminLeaveList() {
+  const el = document.getElementById('adminLeaveList');
+  const countEl = document.getElementById('adminLeaveCount');
+  if (!el) return;
+
+  const nameFilter   = document.getElementById('adminLeaveFilter').value;
+  const statusFilter = document.getElementById('adminLeaveStatusFilter').value;
+
+  let list = adminLeaveData.slice();
+  if (nameFilter !== 'all') list = list.filter(r => r.name === nameFilter);
+  if (statusFilter !== 'all') list = list.filter(r => r.status === statusFilter);
+
+  // 審査中・取消申請を先頭に
+  list.sort((a,b) => {
+    const pri = s => s==='pending'?0:s==='cancel_requested'?1:s==='approved'?2:3;
+    return pri(a.status) - pri(b.status);
+  });
+
+  const pendingCount = list.filter(r => r.status==='pending'||r.status==='cancel_requested').length;
+  if (countEl) {
+    countEl.textContent = `${list.length}件表示 ${pendingCount>0?'（要対応：'+pendingCount+'件）':''}`;
+    countEl.style.color = pendingCount>0 ? 'var(--amber)' : 'var(--text-sub)';
+  }
+
+  if (!list.length) {
+    el.innerHTML = '<div style="color:var(--text-sub);font-size:13px;padding:20px;text-align:center;">該当する申請はありません</div>';
+    return;
+  }
+
+  var html = '';
+  list.forEach(function(r) {
+    var statusLabel = r.status==='pending'?'🔵 審査中'
+      :r.status==='approved'?'✅ 承認済み'
+      :r.status==='cancel_requested'?'🔄 変更・取消申請中'
+      :r.status==='rejected'?'❌ 却下':'🗑️ 取消済み';
+    var statusClass = r.status==='pending'?'tag-pending'
+      :r.status==='approved'?'tag-approved'
+      :r.status==='cancel_requested'?'tag-pending':'tag-rejected';
+    var kindLabel = r.kind==='comp'?'代休':'有給休暇';
+
+    html += '<div class="list-item" style="flex-direction:column;align-items:stretch;gap:10px;margin-bottom:10px;">';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;">';
+    html += '<div>';
+    html += '<div class="list-item-name">' + r.name + ' <span style="font-size:11px;font-weight:400;color:var(--text-sub);">(' + kindLabel + ')</span></div>';
+    var dateDisp = r.date ? fmtDate(r.date) : '';
+    html += '<div class="list-item-sub">' + dateDisp + (r.reason ? '　' + r.reason : '') + '</div>';
+    html += '</div>';
+    html += '<span class="tag ' + statusClass + '">' + statusLabel + '</span>';
+    html += '</div>';
+
+    if (r.status === 'pending') {
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
+      html += '<button data-lid="' + r.id + '" data-la="approve" style="padding:8px;border-radius:8px;background:var(--green-bg);color:var(--green);font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--green);">✅ 承認する</button>';
+      html += '<button data-lid="' + r.id + '" data-la="reject" style="padding:8px;border-radius:8px;background:var(--red-bg);color:var(--red);font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--red);">❌ 却下する</button>';
+      html += '</div>';
+    }
+    if (r.status === 'cancel_requested') {
+      html += buildLeaveAdminCancelUI(r);
+    }
+    if (r.status === 'approved') {
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
+      html += '<button onclick="openAdminLeaveEditModal(\''+r.id+'\')" style="padding:8px;border-radius:8px;background:var(--blue-bg,#eff6ff);color:var(--blue,#2563eb);font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--blue,#2563eb);">✏️ 日程変更</button>';
+      html += '<button onclick="adminLeaveDirect(\''+r.id+'\',\'cancel\')" style="padding:8px;border-radius:8px;background:var(--red-bg);color:var(--red);font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--red);">🗑️ 取消</button>';
+      html += '</div>';
+    }
+    html += '</div>';
+  });
+  el.innerHTML = html;
+}
+
+function renderAdminShiftList() {
+  const el = document.getElementById('adminShiftList');
+  const countEl = document.getElementById('adminShiftCount');
+  if (!el) return;
+
+  const nameFilter   = document.getElementById('adminShiftFilter').value;
+  const statusFilter = document.getElementById('adminShiftStatusFilter').value;
+
+  let list = adminShiftData.slice();
+  if (nameFilter !== 'all') list = list.filter(r => r.name === nameFilter);
+  if (statusFilter !== 'all') list = list.filter(r => r.status === statusFilter);
+
+  list.sort((a,b) => {
+    const pri = s => s==='pending'?0:s==='cancel_requested'?1:s==='approved'?2:3;
+    return pri(a.status) - pri(b.status);
+  });
+
+  const pendingCount = list.filter(r => r.status==='pending'||r.status==='cancel_requested').length;
+  if (countEl) {
+    countEl.textContent = `${list.length}件表示 ${pendingCount>0?'（要対応：'+pendingCount+'件）':''}`;
+    countEl.style.color = pendingCount>0 ? 'var(--amber)' : 'var(--text-sub)';
+  }
+
+  if (!list.length) {
+    el.innerHTML = '<div style="color:var(--text-sub);font-size:13px;padding:20px;text-align:center;">該当する申請はありません</div>';
+    return;
+  }
+
+  el.innerHTML = list.map(r => {
+    const statusLabel = r.status==='pending'?'🔵 審査中'
+      :r.status==='approved'?'✅ 承認済み'
+      :r.status==='cancel_requested'?'🔄 変更・取消申請中'
+      :r.status==='cancelled'?'🗑️ 取消済み':'❌ 却下';
+    const statusClass = r.status==='pending'?'tag-pending'
+      :r.status==='approved'?'tag-approved'
+      :r.status==='cancel_requested'?'tag-pending':'tag-rejected';
+    const datesArr = Array.isArray(r.dates) ? r.dates : (r.dates||'').split(',').filter(Boolean);
+    const datesPreview = datesArr.slice(0,3).map(d=>fmtDate(d)).join('、') + (datesArr.length>3?'　他'+(datesArr.length-3)+'日':'');
+    const isValidTime = t => t && !t.includes('1899');
+    const timeInfo = (isValidTime(r.timeStart)&&isValidTime(r.timeEnd))
+      ? r.timeStart.substring(11,16)+'〜'+r.timeEnd.substring(11,16) : '';
+
+    let btns = '';
+    if (r.status==='pending') {
+      btns = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <button onclick="updateShiftStatus('${r.id}','approved');loadAdminPage();" style="padding:8px;border-radius:8px;background:var(--green-bg);color:var(--green);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--green);">✅ 承認する</button>
+        <button onclick="updateShiftStatus('${r.id}','rejected');loadAdminPage();" style="padding:8px;border-radius:8px;background:var(--red-bg);color:var(--red);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--red);">❌ 却下する</button>
+      </div>`;
+    } else if (r.status==='cancel_requested') {
+      btns = buildCancelAdminUI(r);
+    } else if (r.status==='approved') {
+      btns = `<button onclick="openShiftCancelModal('${r.id}')" style="width:100%;padding:8px;border-radius:8px;background:var(--amber-bg);color:var(--amber);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--amber);">🔄 変更・取消を処理</button>`;
+    }
+
+    return `<div class="list-item" style="flex-direction:column;align-items:stretch;gap:10px;margin-bottom:10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div class="list-item-name">${r.name}</div>
+          <div class="list-item-sub">${datesArr.length}日　${datesPreview}${timeInfo?'　⏰'+timeInfo:''}</div>
+        </div>
+        <span class="tag ${statusClass}">${statusLabel}</span>
+      </div>
+      ${btns}
+    </div>`;
+  }).join('');
 }
 
 // ══════════════════════════════════
