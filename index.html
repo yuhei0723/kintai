@@ -2086,25 +2086,33 @@ async function submitCancelRequest() {
     newDate = newDateEl ? newDateEl.value : '';
   }
 
+  // 申請管理ページからの場合は対象シフトの名前を取得
+  const targetShift = shiftHistory.find(r => r.id === cancelTargetId);
+  const submitName = personalUser || (targetShift ? targetShift.name : '');
+
   const submitId = cancelTargetId;
   const submitDates = Array.from(cancelSelectedDates).sort().join(',');
   const submitCount = cancelSelectedDates.size;
   closeCancelModal();
-  showToast('⏳', '申請中...');
+  showToast('⏳', '処理中...');
   await gasGet({
     action: 'shift_cancel_request',
     id: submitId,
-    name: personalUser,
+    name: submitName,
     cancelType: type,
     cancelDates: submitDates,
     newTimeStart: newStart,
     newTimeEnd: newEnd,
     newDate: newDate
   });
-  showToast('🔄', submitCount + '日分の' + (type === 'cancel' ? '取消' : '日程・時間変更') + 'を申請しました');
+  showToast('🔄', submitCount + '日分の' + (type === 'cancel' ? '取消' : '日程・時間変更') + 'を処理しました');
   await new Promise(function(r){ setTimeout(r, 1500); });
   await loadShiftHistory();
   renderCalendar();
+  // 申請管理ページが表示中なら再描画
+  if (document.getElementById('page-admin') && document.getElementById('page-admin').classList.contains('active')) {
+    await loadAdminPage();
+  }
 }
 
 document.addEventListener('click', async function(e) {
@@ -3304,7 +3312,7 @@ function renderAdminShiftList() {
     } else if (r.status==='cancel_requested') {
       btns = buildCancelAdminUI(r);
     } else if (r.status==='approved') {
-      btns = `<button onclick="openShiftCancelModal('${r.id}')" style="width:100%;padding:8px;border-radius:8px;background:var(--amber-bg);color:var(--amber);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--amber);">🔄 変更・取消を処理</button>`;
+      btns = `<button onclick="shiftHistory=adminShiftData;requestShiftCancel('${r.id}')" style="width:100%;padding:8px;border-radius:8px;background:var(--amber-bg);color:var(--amber);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--amber);">🔄 変更・取消を処理</button>`;
     }
 
     return `<div class="list-item" style="flex-direction:column;align-items:stretch;gap:10px;margin-bottom:10px;">
