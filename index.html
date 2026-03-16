@@ -3243,16 +3243,6 @@ function printQr(id, name) {
   </div>
 
 
-<div id="confirmDialog" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:400;align-items:center;justify-content:center;padding:20px;">
-  <div style="background:var(--surface);border-radius:20px;padding:28px 24px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,0.25);">
-    <div id="confirmDialogIcon" style="font-size:32px;text-align:center;margin-bottom:12px;">📝</div>
-    <div id="confirmDialogTitle" style="font-size:16px;font-weight:800;color:var(--text);text-align:center;margin-bottom:16px;"></div>
-    <div id="confirmDialogBody" style="background:var(--surface2);border-radius:12px;padding:14px 16px;margin-bottom:20px;font-size:13px;color:var(--text);line-height:1.9;"></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      <button onclick="closeConfirmDialog()" style="padding:13px;border:1.5px solid var(--border);border-radius:12px;background:var(--surface2);color:var(--text-sub);font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">キャンセル</button>
-      <button id="confirmDialogOk" style="padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,#d97706,#f59e0b);color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;"></button>
-    </div>
-  </div>
 </div>
 
 
@@ -3943,195 +3933,23 @@ function printShiftTable() {
     <script>window.onload=function(){window.print();}<\/script>
     
 <!-- 管理者：有給日程変更モーダル -->
-<div id="adminLeaveEditModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center;padding:20px;">
-  <div style="background:var(--surface);border-radius:20px;padding:24px 20px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(37,99,235,0.2);">
-    <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px;">✏️ 有給日程変更</div>
-    <div style="font-size:13px;color:var(--text-sub);margin-bottom:16px;">変更後の取得日を選択してください</div>
-    <div class="label">取得日</div>
-    <input type="date" id="adminLeaveEditDate" style="width:100%;margin-bottom:16px;">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      <button onclick="closeAdminLeaveEditModal()" style="padding:12px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text-sub);font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">キャンセル</button>
-      <button onclick="submitAdminLeaveEdit()" style="padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,#2563eb,#3b82f6);color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">変更する</button>
-    </div>
-  </div>
 </div>
 
 <!-- 管理者：シフト日程変更モーダル -->
-<div id="adminShiftEditModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center;padding:20px;">
-  <div style="background:var(--surface);border-radius:20px;padding:24px 20px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(37,99,235,0.2);">
-    <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px;">✏️ シフト日程変更</div>
-    <div style="font-size:13px;color:var(--text-sub);margin-bottom:16px;">変更後の日程・時間を入力してください</div>
-    <div class="label">日付</div>
-    <input type="date" id="adminShiftEditDate" style="width:100%;margin-bottom:12px;">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
-      <div>
-        <div class="label">開始時間</div>
-        <input type="time" id="adminShiftEditTimeStart" style="width:100%;">
-      </div>
-      <div>
-        <div class="label">終了時間</div>
-        <input type="time" id="adminShiftEditTimeEnd" style="width:100%;">
-      </div>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      <button onclick="closeAdminShiftEditModal()" style="padding:12px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text-sub);font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">キャンセル</button>
-      <button onclick="submitAdminShiftEdit()" style="padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,#2563eb,#3b82f6);color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">変更する</button>
-    </div>
-  </div>
 </div>
 
 
 
-<div id="adminLeaveEditModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center;padding:20px;">
-  <div style="background:var(--surface);border-radius:20px;padding:24px 20px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(37,99,235,0.2);">
-    <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px;">✏️ 有給日程変更</div>
-    <div style="font-size:13px;color:var(--text-sub);margin-bottom:16px;">変更後の取得日を選択してください</div>
-    <div class="label">取得日</div>
-    <input type="date" id="adminLeaveEditDate" style="width:100%;margin-bottom:16px;">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      <button onclick="closeAdminLeaveEditModal()" style="padding:12px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text-sub);font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">キャンセル</button>
-      <button onclick="submitAdminLeaveEdit()" style="padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,#2563eb,#3b82f6);color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">変更する</button>
-    </div>
-  </div>
 
 
-<div id="adminShiftEditModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center;padding:20px;">
-  <div style="background:var(--surface);border-radius:20px;padding:24px 20px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(37,99,235,0.2);">
-    <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px;">✏️ シフト日程変更</div>
-    <div style="font-size:13px;color:var(--text-sub);margin-bottom:16px;">変更後の日程・時間を入力してください</div>
-    <div class="label">日付</div>
-    <input type="date" id="adminShiftEditDate" style="width:100%;margin-bottom:12px;">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
-      <div>
-        <div class="label">開始時間</div>
-        <input type="time" id="adminShiftEditTimeStart" style="width:100%;">
-      </div>
-      <div>
-        <div class="label">終了時間</div>
-        <input type="time" id="adminShiftEditTimeEnd" style="width:100%;">
-      </div>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      <button onclick="closeAdminShiftEditModal()" style="padding:12px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text-sub);font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">キャンセル</button>
-      <button onclick="submitAdminShiftEdit()" style="padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,#2563eb,#3b82f6);color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">変更する</button>
-    </div>
-  </div>
 
 
-<div id="leaveCancelModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center;padding:20px;">
-  <div style="background:var(--surface);border-radius:20px;padding:24px 20px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(37,99,235,0.2);">
-    <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px;">🔄 有給の変更・取消申請</div>
-    <div style="font-size:13px;color:var(--text-sub);margin-bottom:16px;">申請種別を選択してください</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
-      <label id="leaveCancelRadioCancel" style="display:flex;align-items:center;gap:8px;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text);">
-        <input type="radio" name="leaveCancelType" value="cancel" checked onchange="updateLeaveCancelTypeUI()"> 🗑️ 取消
-      </label>
-      <label id="leaveCancelRadioChange" style="display:flex;align-items:center;gap:8px;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text);">
-        <input type="radio" name="leaveCancelType" value="change" onchange="updateLeaveCancelTypeUI()"> 📅 日程変更
-      </label>
-    </div>
-    <div id="leaveCancelDateSection" style="display:none;margin-bottom:12px;">
-      <div class="label">変更後の取得日</div>
-      <input type="date" id="leaveCancelNewDate" style="width:100%;margin-bottom:0;">
-    </div>
-    <div class="label">理由（任意）</div>
-    <textarea id="leaveCancelNote" rows="3" placeholder="例：日程変更のため　など" style="width:100%;padding:12px;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:14px;resize:none;outline:none;margin-bottom:16px;box-sizing:border-box;"></textarea>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      <button onclick="closeLeaveCancelModal()" style="padding:12px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text-sub);font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">キャンセル</button>
-      <button onclick="submitLeaveCancelRequest()" style="padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,#dc2626,#ef4444);color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">申請する</button>
-    </div>
-  </div>
 
 
-<div id="punchEditModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:400;align-items:center;justify-content:center;padding:20px;">
-  <div style="background:var(--surface);border-radius:20px;padding:24px 20px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,0.25);">
-    <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px;">🖊️ 打刻修正</div>
-    <div id="punchEditSubtitle" style="font-size:13px;color:var(--text-sub);margin-bottom:18px;"></div>
-
-    <!-- タブ: 修正 / 削除 / 追加 -->
-    <div style="display:flex;gap:0;margin-bottom:18px;border-radius:10px;overflow:hidden;border:1px solid var(--border);">
-      <button id="punchEditTabEdit"   onclick="switchPunchEditTab('edit')"   style="flex:1;padding:9px 4px;border:none;font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;background:var(--blue);color:#fff;transition:all .15s;">✏️ 時刻修正</button>
-      <button id="punchEditTabDelete" onclick="switchPunchEditTab('delete')" style="flex:1;padding:9px 4px;border:none;font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;background:var(--surface2);color:var(--text-sub);transition:all .15s;">🗑️ 削除</button>
-      <button id="punchEditTabAdd"    onclick="switchPunchEditTab('add')"    style="flex:1;padding:9px 4px;border:none;font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;background:var(--surface2);color:var(--text-sub);transition:all .15s;">➕ 追加</button>
-    </div>
-
-    <!-- 修正パネル -->
-    <div id="punchEditPanelEdit">
-      <div style="font-size:12px;color:var(--text-sub);margin-bottom:6px;">対象の打刻を選択</div>
-      <div id="punchEditSelectList" style="display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto;margin-bottom:14px;"></div>
-      <div style="font-size:12px;color:var(--text-sub);margin-bottom:6px;">修正後の時刻</div>
-      <input type="time" id="punchEditNewTime" style="width:100%;margin-bottom:0;">
-    </div>
-
-    <!-- 削除パネル -->
-    <div id="punchEditPanelDelete" style="display:none;">
-      <div style="font-size:12px;color:var(--text-sub);margin-bottom:6px;">削除する打刻を選択</div>
-      <div id="punchDeleteSelectList" style="display:flex;flex-direction:column;gap:6px;max-height:240px;overflow-y:auto;"></div>
-    </div>
-
-    <!-- 追加パネル -->
-    <div id="punchEditPanelAdd" style="display:none;">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
-        <div>
-          <div style="font-size:12px;color:var(--text-sub);margin-bottom:4px;">氏名</div>
-          <div class="sel-wrap" style="margin:0;">
-            <select id="punchAddName" style="padding:10px 28px 10px 10px;font-size:13px;"></select>
-            <span class="sel-arrow" style="font-size:11px;">▼</span>
-          </div>
-        </div>
-        <div>
-          <div style="font-size:12px;color:var(--text-sub);margin-bottom:4px;">種別</div>
-          <div class="sel-wrap" style="margin:0;">
-            <select id="punchAddType" style="padding:10px 28px 10px 10px;font-size:13px;">
-              <option value="出勤">出勤</option>
-              <option value="退勤">退勤</option>
-            </select>
-            <span class="sel-arrow" style="font-size:11px;">▼</span>
-          </div>
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        <div>
-          <div style="font-size:12px;color:var(--text-sub);margin-bottom:4px;">日付</div>
-          <input type="date" id="punchAddDate" style="margin:0;">
-        </div>
-        <div>
-          <div style="font-size:12px;color:var(--text-sub);margin-bottom:4px;">時刻</div>
-          <input type="time" id="punchAddTime" style="margin:0;">
-        </div>
-      </div>
-    </div>
-
-    <!-- ボタン -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px;">
-      <button onclick="closePunchEditModal()" style="padding:12px;border:1.5px solid var(--border);border-radius:12px;background:var(--surface2);color:var(--text-sub);font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">キャンセル</button>
-      <button id="punchEditOkBtn" onclick="executePunchEdit()" style="padding:12px;border:none;border-radius:12px;background:var(--blue);color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">修正する</button>
-    </div>
-  </div>
 
 
-<div id="confirmDialog" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:400;align-items:center;justify-content:center;padding:20px;">
-  <div style="background:var(--surface);border-radius:20px;padding:28px 24px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,0.25);">
-    <div id="confirmDialogIcon" style="font-size:32px;text-align:center;margin-bottom:12px;">📝</div>
-    <div id="confirmDialogTitle" style="font-size:16px;font-weight:800;color:var(--text);text-align:center;margin-bottom:16px;"></div>
-    <div id="confirmDialogBody" style="background:var(--surface2);border-radius:12px;padding:14px 16px;margin-bottom:20px;font-size:13px;color:var(--text);line-height:1.9;"></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      <button onclick="closeConfirmDialog()" style="padding:13px;border:1.5px solid var(--border);border-radius:12px;background:var(--surface2);color:var(--text-sub);font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">キャンセル</button>
-      <button id="confirmDialogOk" style="padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,#d97706,#f59e0b);color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;"></button>
-    </div>
-  </div>
 
 
-<div id="confirmDialog" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:400;align-items:center;justify-content:center;padding:20px;">
-  <div style="background:var(--surface);border-radius:20px;padding:28px 24px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,0.25);">
-    <div id="confirmDialogIcon" style="font-size:32px;text-align:center;margin-bottom:12px;">📝</div>
-    <div id="confirmDialogTitle" style="font-size:16px;font-weight:800;color:var(--text);text-align:center;margin-bottom:16px;"></div>
-    <div id="confirmDialogBody" style="background:var(--surface2);border-radius:12px;padding:14px 16px;margin-bottom:20px;font-size:13px;color:var(--text);line-height:1.9;"></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      <button onclick="closeConfirmDialog()" style="padding:13px;border:1.5px solid var(--border);border-radius:12px;background:var(--surface2);color:var(--text-sub);font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">キャンセル</button>
-      <button id="confirmDialogOk" style="padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,#d97706,#f59e0b);color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;"></button>
-    </div>
-  </div>
 </div>
 
 
@@ -4152,181 +3970,20 @@ function printShiftTable() {
 <!-- ── MODAL: 打刻修正（管理者用）── -->
 </div>
 
-<!-- ── MODAL: 申請確認ダイアログ ── -->div id="adminShiftEditModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center;padding:20px;">
-  <div style="background:var(--surface);border-radius:20px;padding:24px 20px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(37,99,235,0.2);">
-    <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px;">✏️ シフト日程変更</div>
-    <div style="font-size:13px;color:var(--text-sub);margin-bottom:16px;">変更後の日程・時間を入力してください</div>
-    <div class="label">日付</div>
-    <input type="date" id="adminShiftEditDate" style="width:100%;margin-bottom:12px;">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
-      <div>
-        <div class="label">開始時間</div>
-        <input type="time" id="adminShiftEditTimeStart" style="width:100%;">
-      </div>
-      <div>
-        <div class="label">終了時間</div>
-        <input type="time" id="adminShiftEditTimeEnd" style="width:100%;">
-      </div>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      <button onclick="closeAdminShiftEditModal()" style="padding:12px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text-sub);font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">キャンセル</button>
-      <button onclick="submitAdminShiftEdit()" style="padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,#2563eb,#3b82f6);color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">変更する</button>
-    </div>
-  </div>
 </div>
 
 
 
-<div id="adminLeaveEditModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center;padding:20px;">
-  <div style="background:var(--surface);border-radius:20px;padding:24px 20px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(37,99,235,0.2);">
-    <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px;">✏️ 有給日程変更</div>
-    <div style="font-size:13px;color:var(--text-sub);margin-bottom:16px;">変更後の取得日を選択してください</div>
-    <div class="label">取得日</div>
-    <input type="date" id="adminLeaveEditDate" style="width:100%;margin-bottom:16px;">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      <button onclick="closeAdminLeaveEditModal()" style="padding:12px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text-sub);font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">キャンセル</button>
-      <button onclick="submitAdminLeaveEdit()" style="padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,#2563eb,#3b82f6);color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">変更する</button>
-    </div>
-  </div>
 
 
-<div id="adminShiftEditModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center;padding:20px;">
-  <div style="background:var(--surface);border-radius:20px;padding:24px 20px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(37,99,235,0.2);">
-    <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px;">✏️ シフト日程変更</div>
-    <div style="font-size:13px;color:var(--text-sub);margin-bottom:16px;">変更後の日程・時間を入力してください</div>
-    <div class="label">日付</div>
-    <input type="date" id="adminShiftEditDate" style="width:100%;margin-bottom:12px;">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
-      <div>
-        <div class="label">開始時間</div>
-        <input type="time" id="adminShiftEditTimeStart" style="width:100%;">
-      </div>
-      <div>
-        <div class="label">終了時間</div>
-        <input type="time" id="adminShiftEditTimeEnd" style="width:100%;">
-      </div>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      <button onclick="closeAdminShiftEditModal()" style="padding:12px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text-sub);font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">キャンセル</button>
-      <button onclick="submitAdminShiftEdit()" style="padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,#2563eb,#3b82f6);color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">変更する</button>
-    </div>
-  </div>
 
 
-<div id="leaveCancelModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center;padding:20px;">
-  <div style="background:var(--surface);border-radius:20px;padding:24px 20px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(37,99,235,0.2);">
-    <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px;">🔄 有給の変更・取消申請</div>
-    <div style="font-size:13px;color:var(--text-sub);margin-bottom:16px;">申請種別を選択してください</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
-      <label id="leaveCancelRadioCancel" style="display:flex;align-items:center;gap:8px;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text);">
-        <input type="radio" name="leaveCancelType" value="cancel" checked onchange="updateLeaveCancelTypeUI()"> 🗑️ 取消
-      </label>
-      <label id="leaveCancelRadioChange" style="display:flex;align-items:center;gap:8px;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text);">
-        <input type="radio" name="leaveCancelType" value="change" onchange="updateLeaveCancelTypeUI()"> 📅 日程変更
-      </label>
-    </div>
-    <div id="leaveCancelDateSection" style="display:none;margin-bottom:12px;">
-      <div class="label">変更後の取得日</div>
-      <input type="date" id="leaveCancelNewDate" style="width:100%;margin-bottom:0;">
-    </div>
-    <div class="label">理由（任意）</div>
-    <textarea id="leaveCancelNote" rows="3" placeholder="例：日程変更のため　など" style="width:100%;padding:12px;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:14px;resize:none;outline:none;margin-bottom:16px;box-sizing:border-box;"></textarea>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      <button onclick="closeLeaveCancelModal()" style="padding:12px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text-sub);font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">キャンセル</button>
-      <button onclick="submitLeaveCancelRequest()" style="padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,#dc2626,#ef4444);color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">申請する</button>
-    </div>
-  </div>
 
 
-<div id="punchEditModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:400;align-items:center;justify-content:center;padding:20px;">
-  <div style="background:var(--surface);border-radius:20px;padding:24px 20px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,0.25);">
-    <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px;">🖊️ 打刻修正</div>
-    <div id="punchEditSubtitle" style="font-size:13px;color:var(--text-sub);margin-bottom:18px;"></div>
-
-    <!-- タブ: 修正 / 削除 / 追加 -->
-    <div style="display:flex;gap:0;margin-bottom:18px;border-radius:10px;overflow:hidden;border:1px solid var(--border);">
-      <button id="punchEditTabEdit"   onclick="switchPunchEditTab('edit')"   style="flex:1;padding:9px 4px;border:none;font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;background:var(--blue);color:#fff;transition:all .15s;">✏️ 時刻修正</button>
-      <button id="punchEditTabDelete" onclick="switchPunchEditTab('delete')" style="flex:1;padding:9px 4px;border:none;font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;background:var(--surface2);color:var(--text-sub);transition:all .15s;">🗑️ 削除</button>
-      <button id="punchEditTabAdd"    onclick="switchPunchEditTab('add')"    style="flex:1;padding:9px 4px;border:none;font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;background:var(--surface2);color:var(--text-sub);transition:all .15s;">➕ 追加</button>
-    </div>
-
-    <!-- 修正パネル -->
-    <div id="punchEditPanelEdit">
-      <div style="font-size:12px;color:var(--text-sub);margin-bottom:6px;">対象の打刻を選択</div>
-      <div id="punchEditSelectList" style="display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto;margin-bottom:14px;"></div>
-      <div style="font-size:12px;color:var(--text-sub);margin-bottom:6px;">修正後の時刻</div>
-      <input type="time" id="punchEditNewTime" style="width:100%;margin-bottom:0;">
-    </div>
-
-    <!-- 削除パネル -->
-    <div id="punchEditPanelDelete" style="display:none;">
-      <div style="font-size:12px;color:var(--text-sub);margin-bottom:6px;">削除する打刻を選択</div>
-      <div id="punchDeleteSelectList" style="display:flex;flex-direction:column;gap:6px;max-height:240px;overflow-y:auto;"></div>
-    </div>
-
-    <!-- 追加パネル -->
-    <div id="punchEditPanelAdd" style="display:none;">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
-        <div>
-          <div style="font-size:12px;color:var(--text-sub);margin-bottom:4px;">氏名</div>
-          <div class="sel-wrap" style="margin:0;">
-            <select id="punchAddName" style="padding:10px 28px 10px 10px;font-size:13px;"></select>
-            <span class="sel-arrow" style="font-size:11px;">▼</span>
-          </div>
-        </div>
-        <div>
-          <div style="font-size:12px;color:var(--text-sub);margin-bottom:4px;">種別</div>
-          <div class="sel-wrap" style="margin:0;">
-            <select id="punchAddType" style="padding:10px 28px 10px 10px;font-size:13px;">
-              <option value="出勤">出勤</option>
-              <option value="退勤">退勤</option>
-            </select>
-            <span class="sel-arrow" style="font-size:11px;">▼</span>
-          </div>
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        <div>
-          <div style="font-size:12px;color:var(--text-sub);margin-bottom:4px;">日付</div>
-          <input type="date" id="punchAddDate" style="margin:0;">
-        </div>
-        <div>
-          <div style="font-size:12px;color:var(--text-sub);margin-bottom:4px;">時刻</div>
-          <input type="time" id="punchAddTime" style="margin:0;">
-        </div>
-      </div>
-    </div>
-
-    <!-- ボタン -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px;">
-      <button onclick="closePunchEditModal()" style="padding:12px;border:1.5px solid var(--border);border-radius:12px;background:var(--surface2);color:var(--text-sub);font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">キャンセル</button>
-      <button id="punchEditOkBtn" onclick="executePunchEdit()" style="padding:12px;border:none;border-radius:12px;background:var(--blue);color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">修正する</button>
-    </div>
-  </div>
 
 
-<div id="confirmDialog" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:400;align-items:center;justify-content:center;padding:20px;">
-  <div style="background:var(--surface);border-radius:20px;padding:28px 24px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,0.25);">
-    <div id="confirmDialogIcon" style="font-size:32px;text-align:center;margin-bottom:12px;">📝</div>
-    <div id="confirmDialogTitle" style="font-size:16px;font-weight:800;color:var(--text);text-align:center;margin-bottom:16px;"></div>
-    <div id="confirmDialogBody" style="background:var(--surface2);border-radius:12px;padding:14px 16px;margin-bottom:20px;font-size:13px;color:var(--text);line-height:1.9;"></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      <button onclick="closeConfirmDialog()" style="padding:13px;border:1.5px solid var(--border);border-radius:12px;background:var(--surface2);color:var(--text-sub);font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">キャンセル</button>
-      <button id="confirmDialogOk" style="padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,#d97706,#f59e0b);color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;"></button>
-    </div>
-  </div>
 
 
-<div id="confirmDialog" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:400;align-items:center;justify-content:center;padding:20px;">
-  <div style="background:var(--surface);border-radius:20px;padding:28px 24px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,0.25);">
-    <div id="confirmDialogIcon" style="font-size:32px;text-align:center;margin-bottom:12px;">📝</div>
-    <div id="confirmDialogTitle" style="font-size:16px;font-weight:800;color:var(--text);text-align:center;margin-bottom:16px;"></div>
-    <div id="confirmDialogBody" style="background:var(--surface2);border-radius:12px;padding:14px 16px;margin-bottom:20px;font-size:13px;color:var(--text);line-height:1.9;"></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      <button onclick="closeConfirmDialog()" style="padding:13px;border:1.5px solid var(--border);border-radius:12px;background:var(--surface2);color:var(--text-sub);font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">キャンセル</button>
-      <button id="confirmDialogOk" style="padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,#d97706,#f59e0b);color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;"></button>
-    </div>
-  </div>
 </div>
 
 <div id="cancelModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center;padding:20px;">
