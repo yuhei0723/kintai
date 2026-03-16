@@ -496,7 +496,10 @@ textarea { resize:vertical; min-height:80px; }
   <div class="card" id="todayLogCard">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
       <div class="section-title" style="margin:0;">📋 本日の打刻状況</div>
-      <div id="punchLogUpdated" style="font-size:11px;color:var(--text-sub);font-family:'DM Mono',ui-monospace,monospace;"></div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div id="punchLogUpdated" style="font-size:11px;color:var(--text-sub);font-family:'DM Mono',ui-monospace,monospace;"></div>
+        <button id="punchEditOpenBtn" onclick="openPunchEditModal()" style="display:none;padding:5px 10px;border:1px solid var(--blue,#2563eb);border-radius:8px;background:var(--blue-bg,#eff6ff);color:var(--blue,#2563eb);font-family:'Noto Sans JP',sans-serif;font-size:11px;font-weight:700;cursor:pointer;">🖊️ 修正</button>
+      </div>
     </div>
     <div id="todayPunchLog"><div style="color:var(--text-sub);font-size:13px;padding:8px 0;">読み込み中...</div></div>
   </div>
@@ -1279,6 +1282,144 @@ function saveEdit() {
   showToast('✅','更新しました');
 }
 
+
+// ══════════════════════════════════
+// 打刻修正（管理者）
+// ══════════════════════════════════
+var _punchEditTab = 'edit';
+var _todayPunchRaw = [];   // 本日の打刻ログ（rowIndex付き）
+var _punchEditTargetRow = null;
+
+function openPunchEditModal() {
+  // 氏名セレクト初期化
+  const nameSelect = document.getElementById('punchAddName');
+  if (nameSelect) {
+    nameSelect.innerHTML = employees.map(e => `<option value="${e.name}">${e.name}</option>`).join('');
+  }
+  // 日付のデフォルトを今日に
+  const today = new Date();
+  const todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+  const addDate = document.getElementById('punchAddDate');
+  if (addDate) addDate.value = todayStr;
+
+  switchPunchEditTab('edit');
+  document.getElementById('punchEditModal').style.display = 'flex';
+}
+
+function closePunchEditModal() {
+  document.getElementById('punchEditModal').style.display = 'none';
+  _punchEditTargetRow = null;
+}
+
+function switchPunchEditTab(tab) {
+  _punchEditTab = tab;
+  ['edit','delete','add'].forEach(t => {
+    const panel = document.getElementById('punchEditPanel' + t.charAt(0).toUpperCase() + t.slice(1));
+    const btn   = document.getElementById('punchEditTab' + t.charAt(0).toUpperCase() + t.slice(1));
+    if (panel) panel.style.display = (t === tab) ? 'block' : 'none';
+    if (btn) {
+      btn.style.background = (t === tab) ? 'var(--blue)' : 'var(--surface2)';
+      btn.style.color      = (t === tab) ? '#fff' : 'var(--text-sub)';
+    }
+  });
+  const okBtn = document.getElementById('punchEditOkBtn');
+  if (okBtn) {
+    if (tab === 'delete') {
+      okBtn.textContent = '削除する';
+      okBtn.style.background = '#dc2626';
+    } else if (tab === 'add') {
+      okBtn.textContent = '追加する';
+      okBtn.style.background = 'var(--green,#16a34a)';
+    } else {
+      okBtn.textContent = '修正する';
+      okBtn.style.background = 'var(--blue)';
+    }
+  }
+  if (tab === 'edit' || tab === 'delete') {
+    renderPunchEditList(tab);
+  }
+}
+
+function renderPunchEditList(tab) {
+  const listId = tab === 'edit' ? 'punchEditSelectList' : 'punchDeleteSelectList';
+  const el = document.getElementById(listId);
+  if (!el) return;
+
+  if (!_todayPunchRaw.length) {
+    el.innerHTML = '<div style="color:var(--text-sub);font-size:12px;padding:8px;">本日の打刻データがありません</div>';
+    return;
+  }
+
+  el.innerHTML = _todayPunchRaw.map(r => {
+    const typeColor = r.type === '出勤' ? 'var(--green)' : 'var(--red)';
+    const typeBg    = r.type === '出勤' ? 'var(--green-bg)' : 'var(--red-bg)';
+    const selected  = tab === 'edit' && _punchEditTargetRow && _punchEditTargetRow.rowIndex === r.rowIndex;
+    return `<div onclick="selectPunchRow(${r.rowIndex}, '${r.time}', this, '${tab}')"
+      style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:10px;border:1.5px solid ${selected ? 'var(--blue)' : 'var(--border)'};background:${selected ? 'var(--blue-bg,#eff6ff)' : 'var(--surface2)'};cursor:pointer;transition:all .15s;">
+      <div style="font-weight:700;font-size:13px;">${r.name}</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;background:${typeBg};color:${typeColor};">${r.type}</span>
+        <span style="font-size:13px;font-family:'DM Mono',monospace;color:var(--text);">${r.time}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function selectPunchRow(rowIndex, time, el, tab) {
+  if (tab === 'edit') {
+    _punchEditTargetRow = _todayPunchRaw.find(r => r.rowIndex === rowIndex);
+    // 時刻入力欄に現在値をセット
+    const timeInput = document.getElementById('punchEditNewTime');
+    if (timeInput && time) timeInput.value = time;
+    // 選択状態を再描画
+    renderPunchEditList('edit');
+  } else if (tab === 'delete') {
+    // トグル選択
+    el.dataset.selected = el.dataset.selected === '1' ? '0' : '1';
+    el.style.border = el.dataset.selected === '1' ? '1.5px solid #dc2626' : '1.5px solid var(--border)';
+    el.style.background = el.dataset.selected === '1' ? '#fff5f5' : 'var(--surface2)';
+    el.dataset.rowIndex = rowIndex;
+  }
+}
+
+async function executePunchEdit() {
+  if (_punchEditTab === 'edit') {
+    if (!_punchEditTargetRow) { showToast('⚠️','修正する打刻を選択してください'); return; }
+    const newTime = document.getElementById('punchEditNewTime').value;
+    if (!newTime) { showToast('⚠️','修正後の時刻を入力してください'); return; }
+    showToast('⏳','修正中...');
+    await gasGet({action:'punch_edit', rowIndex: _punchEditTargetRow.rowIndex, newTime});
+    showToast('✅', _punchEditTargetRow.name + 'さんの打刻を' + newTime + 'に修正しました');
+
+  } else if (_punchEditTab === 'delete') {
+    const selected = [...document.querySelectorAll('#punchDeleteSelectList [data-selected="1"]')];
+    if (!selected.length) { showToast('⚠️','削除する打刻を選択してください'); return; }
+    if (!confirm(selected.length + '件の打刻を削除します。元に戻せません。よろしいですか？')) return;
+    showToast('⏳','削除中...');
+    // 行番号の大きい順に削除（行ずれ防止）
+    const rowIndexes = selected.map(el => parseInt(el.dataset.rowIndex)).sort((a,b) => b-a);
+    for (const rowIndex of rowIndexes) {
+      await gasGet({action:'punch_delete', rowIndex});
+    }
+    showToast('🗑️', selected.length + '件の打刻を削除しました');
+
+  } else if (_punchEditTab === 'add') {
+    const name = document.getElementById('punchAddName').value;
+    const type = document.getElementById('punchAddType').value;
+    const date = document.getElementById('punchAddDate').value;
+    const time = document.getElementById('punchAddTime').value;
+    if (!name || !date || !time) { showToast('⚠️','すべての項目を入力してください'); return; }
+    showToast('⏳','追加中...');
+    await gasGet({action:'punch_add', name, type, date, time});
+    showToast('✅', name + 'さんの' + type + '（' + time + '）を追加しました');
+  }
+
+  closePunchEditModal();
+  punchedTodayIn.clear();
+  punchedTodayOut.clear();
+  await loadTodayPunchLog();
+}
+
 // ══════════════════════════════════
 // PUNCH
 // ══════════════════════════════════
@@ -1363,21 +1504,55 @@ async function gasGet(params) {
 // ══════════════════════════════════
 // LEAVE
 // ══════════════════════════════════
-async function submitLeave() {
+async 
+// ══════════════════════════════════
+// 確認ダイアログ共通
+// ══════════════════════════════════
+let _confirmCallback = null;
+
+function showConfirmDialog({icon, title, body, okLabel, okColor, onOk}) {
+  document.getElementById('confirmDialogIcon').textContent = icon || '📝';
+  document.getElementById('confirmDialogTitle').textContent = title || '確認';
+  document.getElementById('confirmDialogBody').innerHTML = body || '';
+  const okBtn = document.getElementById('confirmDialogOk');
+  okBtn.textContent = okLabel || '送信する';
+  okBtn.style.background = okColor || 'linear-gradient(135deg,#d97706,#f59e0b)';
+  _confirmCallback = onOk;
+  okBtn.onclick = () => { closeConfirmDialog(); if (_confirmCallback) _confirmCallback(); };
+  document.getElementById('confirmDialog').style.display = 'flex';
+}
+
+function closeConfirmDialog() {
+  document.getElementById('confirmDialog').style.display = 'none';
+  _confirmCallback = null;
+}
+
+function submitLeave() {
   const name = document.getElementById('leaveName').value;
   const date = document.getElementById('leaveDate').value;
   const reason = document.getElementById('leaveReason').value.trim();
   if (!name) { showToast('⚠️','申請者を選択してください'); return; }
   if (!date) { showToast('⚠️','取得日を選択してください'); return; }
-
   const kind = document.getElementById('leaveKind') ? document.getElementById('leaveKind').value : 'paid';
-  showToast('⏳','送信中...');
-  await gasCall({action:'leave_submit', name, date, reason: reason||'', kind: kind});
-  document.getElementById('leaveDate').value = '';
-  document.getElementById('leaveReason').value = '';
-  document.getElementById('leaveKind').value = 'paid';
-  showToast('📝', kind === 'comp' ? '代休申請を送信しました' : '有給申請を送信しました');
-  await loadLeaveHistory();
+  const kindLabel = kind === 'comp' ? '代休' : '有給休暇';
+  const dateDisp = fmtDate(date);
+
+  showConfirmDialog({
+    icon: '📝',
+    title: kindLabel + 'の申請確認',
+    body: `<b>申請者：</b>${name}<br><b>取得日：</b>${dateDisp}<br><b>種別：</b>${kindLabel}${reason ? '<br><b>理由：</b>' + reason : ''}`,
+    okLabel: '申請する',
+    okColor: 'linear-gradient(135deg,#d97706,#f59e0b)',
+    onOk: async () => {
+      showToast('⏳','送信中...');
+      await gasCall({action:'leave_submit', name, date, reason: reason||'', kind: kind});
+      document.getElementById('leaveDate').value = '';
+      document.getElementById('leaveReason').value = '';
+      document.getElementById('leaveKind').value = 'paid';
+      showToast('📝', kind === 'comp' ? '代休申請を送信しました' : '有給申請を送信しました');
+      await loadLeaveHistory();
+    }
+  });
 }
 
 // ── 今年の打刻ログ全件取得（法定休日計算用）──
@@ -1417,6 +1592,11 @@ async function loadTodayPunchLog() {
 function renderTodayPunchLog(logs) {
   const el = document.getElementById('todayPunchLog');
   if (!el) return;
+
+  // 打刻修正用に生データ保存＆修正ボタン表示制御
+  _todayPunchRaw = logs;
+  const editBtn = document.getElementById('punchEditOpenBtn');
+  if (editBtn) editBtn.style.display = (!personalUser && logs.length > 0) ? 'inline-block' : 'none';
 
   const map = {};
   logs.forEach(r => {
@@ -1900,13 +2080,24 @@ async function submitShift() {
   if (timeStart >= timeEnd) { showToast('⚠️','終了時刻は開始時刻より後にしてください'); return; }
 
   const dates = Array.from(selectedDates).sort();
-  showToast('⏳','送信中...');
-  await gasCall({action:'shift_submit', name, dates: dates.join(','), timeStart, timeEnd});
-  selectedDates.clear();
-  document.getElementById('timePickerSection').style.display = 'none';
-  showToast('📆', dates.length+'日分のシフト希望を送信しました');
-  await loadShiftHistory();
-  renderCalendar();
+  const datesPreview = dates.slice(0,3).map(d => fmtDate(d)).join('、') + (dates.length > 3 ? ' 他' + (dates.length-3) + '日' : '');
+
+  showConfirmDialog({
+    icon: '📆',
+    title: 'シフト希望の申請確認',
+    body: `<b>申請者：</b>${name}<br><b>日数：</b>${dates.length}日<br><b>日程：</b>${datesPreview}<br><b>時間：</b>${timeStart}〜${timeEnd}`,
+    okLabel: '申請する',
+    okColor: 'linear-gradient(135deg,#d97706,#f59e0b)',
+    onOk: async () => {
+      showToast('⏳','送信中...');
+      await gasCall({action:'shift_submit', name, dates: dates.join(','), timeStart, timeEnd});
+      selectedDates.clear();
+      document.getElementById('timePickerSection').style.display = 'none';
+      showToast('📆', dates.length+'日分のシフト希望を送信しました');
+      await loadShiftHistory();
+      renderCalendar();
+    }
+  });
 }
 
 function checkShiftAccess() {
@@ -2086,33 +2277,51 @@ async function submitCancelRequest() {
     newDate = newDateEl ? newDateEl.value : '';
   }
 
-  // 申請管理ページからの場合は対象シフトの名前を取得
   const targetShift = shiftHistory.find(r => r.id === cancelTargetId);
   const submitName = personalUser || (targetShift ? targetShift.name : '');
-
   const submitId = cancelTargetId;
   const submitDates = Array.from(cancelSelectedDates).sort().join(',');
   const submitCount = cancelSelectedDates.size;
-  closeCancelModal();
-  showToast('⏳', '処理中...');
-  await gasGet({
-    action: 'shift_cancel_request',
-    id: submitId,
-    name: submitName,
-    cancelType: type,
-    cancelDates: submitDates,
-    newTimeStart: newStart,
-    newTimeEnd: newEnd,
-    newDate: newDate
-  });
-  showToast('🔄', submitCount + '日分の' + (type === 'cancel' ? '取消' : '日程・時間変更') + 'を処理しました');
-  await new Promise(function(r){ setTimeout(r, 1500); });
-  await loadShiftHistory();
-  renderCalendar();
-  // 申請管理ページが表示中なら再描画
-  if (document.getElementById('page-admin') && document.getElementById('page-admin').classList.contains('active')) {
-    await loadAdminPage();
+  const typeLabel = type === 'cancel' ? '取消' : '日程・時間変更';
+  const datesPreview = submitDates.split(',').map(d => fmtDate(d)).join('、');
+
+  let bodyHtml = `<b>申請者：</b>${submitName}<br><b>種別：</b>${typeLabel}<br><b>対象日：</b>${datesPreview}`;
+  if (type === 'change') {
+    if (newDate) bodyHtml += `<br><b>変更後日付：</b>${fmtDate(newDate)}`;
+    bodyHtml += `<br><b>変更後時間：</b>${newStart}〜${newEnd}`;
   }
+
+  closeCancelModal();
+
+  showConfirmDialog({
+    icon: type === 'cancel' ? '🗑️' : '🔄',
+    title: 'シフト' + typeLabel + 'の確認',
+    body: bodyHtml,
+    okLabel: typeLabel + 'を申請する',
+    okColor: type === 'cancel'
+      ? 'linear-gradient(135deg,#dc2626,#ef4444)'
+      : 'linear-gradient(135deg,#d97706,#f59e0b)',
+    onOk: async () => {
+      showToast('⏳', '処理中...');
+      await gasGet({
+        action: 'shift_cancel_request',
+        id: submitId,
+        name: submitName,
+        cancelType: type,
+        cancelDates: submitDates,
+        newTimeStart: newStart,
+        newTimeEnd: newEnd,
+        newDate: newDate
+      });
+      showToast('🔄', submitCount + '日分の' + typeLabel + 'を処理しました');
+      await new Promise(function(r){ setTimeout(r, 1500); });
+      await loadShiftHistory();
+      renderCalendar();
+      if (document.getElementById('page-admin') && document.getElementById('page-admin').classList.contains('active')) {
+        await loadAdminPage();
+      }
+    }
+  });
 }
 
 document.addEventListener('click', async function(e) {
@@ -3662,7 +3871,90 @@ function printShiftTable() {
 </div>
 
 <!-- シフト変更・取消モーダル -->
-<div id="cancelModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center;padding:20px;">
+<div 
+
+<!-- ── MODAL: 打刻修正（管理者用）── -->
+<div id="punchEditModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:400;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--surface);border-radius:20px;padding:24px 20px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,0.25);">
+    <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px;">🖊️ 打刻修正</div>
+    <div id="punchEditSubtitle" style="font-size:13px;color:var(--text-sub);margin-bottom:18px;"></div>
+
+    <!-- タブ: 修正 / 削除 / 追加 -->
+    <div style="display:flex;gap:0;margin-bottom:18px;border-radius:10px;overflow:hidden;border:1px solid var(--border);">
+      <button id="punchEditTabEdit"   onclick="switchPunchEditTab('edit')"   style="flex:1;padding:9px 4px;border:none;font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;background:var(--blue);color:#fff;transition:all .15s;">✏️ 時刻修正</button>
+      <button id="punchEditTabDelete" onclick="switchPunchEditTab('delete')" style="flex:1;padding:9px 4px;border:none;font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;background:var(--surface2);color:var(--text-sub);transition:all .15s;">🗑️ 削除</button>
+      <button id="punchEditTabAdd"    onclick="switchPunchEditTab('add')"    style="flex:1;padding:9px 4px;border:none;font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;background:var(--surface2);color:var(--text-sub);transition:all .15s;">➕ 追加</button>
+    </div>
+
+    <!-- 修正パネル -->
+    <div id="punchEditPanelEdit">
+      <div style="font-size:12px;color:var(--text-sub);margin-bottom:6px;">対象の打刻を選択</div>
+      <div id="punchEditSelectList" style="display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto;margin-bottom:14px;"></div>
+      <div style="font-size:12px;color:var(--text-sub);margin-bottom:6px;">修正後の時刻</div>
+      <input type="time" id="punchEditNewTime" style="width:100%;margin-bottom:0;">
+    </div>
+
+    <!-- 削除パネル -->
+    <div id="punchEditPanelDelete" style="display:none;">
+      <div style="font-size:12px;color:var(--text-sub);margin-bottom:6px;">削除する打刻を選択</div>
+      <div id="punchDeleteSelectList" style="display:flex;flex-direction:column;gap:6px;max-height:240px;overflow-y:auto;"></div>
+    </div>
+
+    <!-- 追加パネル -->
+    <div id="punchEditPanelAdd" style="display:none;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+        <div>
+          <div style="font-size:12px;color:var(--text-sub);margin-bottom:4px;">氏名</div>
+          <div class="sel-wrap" style="margin:0;">
+            <select id="punchAddName" style="padding:10px 28px 10px 10px;font-size:13px;"></select>
+            <span class="sel-arrow" style="font-size:11px;">▼</span>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:12px;color:var(--text-sub);margin-bottom:4px;">種別</div>
+          <div class="sel-wrap" style="margin:0;">
+            <select id="punchAddType" style="padding:10px 28px 10px 10px;font-size:13px;">
+              <option value="出勤">出勤</option>
+              <option value="退勤">退勤</option>
+            </select>
+            <span class="sel-arrow" style="font-size:11px;">▼</span>
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div>
+          <div style="font-size:12px;color:var(--text-sub);margin-bottom:4px;">日付</div>
+          <input type="date" id="punchAddDate" style="margin:0;">
+        </div>
+        <div>
+          <div style="font-size:12px;color:var(--text-sub);margin-bottom:4px;">時刻</div>
+          <input type="time" id="punchAddTime" style="margin:0;">
+        </div>
+      </div>
+    </div>
+
+    <!-- ボタン -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px;">
+      <button onclick="closePunchEditModal()" style="padding:12px;border:1.5px solid var(--border);border-radius:12px;background:var(--surface2);color:var(--text-sub);font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">キャンセル</button>
+      <button id="punchEditOkBtn" onclick="executePunchEdit()" style="padding:12px;border:none;border-radius:12px;background:var(--blue);color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">修正する</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: 申請確認ダイアログ ── -->
+<div id="confirmDialog" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:400;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--surface);border-radius:20px;padding:28px 24px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,0.25);">
+    <div id="confirmDialogIcon" style="font-size:32px;text-align:center;margin-bottom:12px;">📝</div>
+    <div id="confirmDialogTitle" style="font-size:16px;font-weight:800;color:var(--text);text-align:center;margin-bottom:16px;"></div>
+    <div id="confirmDialogBody" style="background:var(--surface2);border-radius:12px;padding:14px 16px;margin-bottom:20px;font-size:13px;color:var(--text);line-height:1.9;"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <button onclick="closeConfirmDialog()" style="padding:13px;border:1.5px solid var(--border);border-radius:12px;background:var(--surface2);color:var(--text-sub);font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">キャンセル</button>
+      <button id="confirmDialogOk" style="padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,#d97706,#f59e0b);color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;"></button>
+    </div>
+  </div>
+</div>
+
+id="cancelModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center;padding:20px;">
   <div style="background:#fff;border-radius:20px;padding:24px 20px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(37,99,235,0.2);">
     <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px;">🔄 変更・取消の申請</div>
     <div style="font-size:13px;color:var(--text-sub);margin-bottom:16px;">対象の日付を選択してください（複数可）</div>
