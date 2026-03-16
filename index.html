@@ -1504,11 +1504,11 @@ async function gasGet(params) {
 // ══════════════════════════════════
 // LEAVE
 // ══════════════════════════════════
-async 
+
 // ══════════════════════════════════
 // 確認ダイアログ共通
 // ══════════════════════════════════
-let _confirmCallback = null;
+var _confirmCallback = null;
 
 function showConfirmDialog({icon, title, body, okLabel, okColor, onOk}) {
   document.getElementById('confirmDialogIcon').textContent = icon || '📝';
@@ -3345,9 +3345,9 @@ async function confirmAdminNote(id, type) {
 // ADMIN PAGE（申請管理）
 // ══════════════════════════════════
 
-let adminCurrentTab = 'leave';
-let adminLeaveData = [];
-let adminShiftData = [];
+var adminCurrentTab = 'leave';
+var adminLeaveData = [];
+var adminShiftData = [];
 
 
 function goAdminPage() {
