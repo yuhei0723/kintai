@@ -1838,9 +1838,6 @@ function renderLeaveHistory() {
     if ((r.status === 'approved' || r.status === 'pending') && personalUser) {
       html += '<button data-lid="' + r.id + '" data-la="open-cancel" style="width:100%;padding:8px;border-radius:8px;background:#fff8f8;color:#dc2626;font-size:12px;font-weight:700;cursor:pointer;border:1px solid rgba(220,38,38,0.3);">🔄 変更・取消を申請する</button>';
     }
-    if (r.status === 'approved' && personalUser) {
-      html += '<button onclick="generateYukyuPdf(\''+r.name+'\',\''+r.date.slice(0,10)+'\',\'private\')" style="width:100%;padding:8px;border-radius:8px;background:#f0fdf4;color:#15803d;font-size:12px;font-weight:700;cursor:pointer;border:1px solid #15803d;">📄 有給休暇願 PDFを出力</button>';
-    }
     if (r.status === 'approved' && !personalUser) {
       html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
       html += '<button onclick="openAdminLeaveEditModal(&quot;' + r.id + '&quot;)" style="padding:8px;border-radius:8px;background:var(--blue-bg,#eff6ff);color:var(--blue,#2563eb);font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--blue,#2563eb);">✏️ 日程変更</button>';
