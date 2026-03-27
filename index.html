@@ -1970,26 +1970,13 @@ function getWeekdayJp(dateStr) {
 
 async function generateYukyuPdf(applicantName, leaveDate, reason) {
   try {
-    const { PDFDocument, rgb } = PDFLib;
+    const { PDFDocument, rgb, StandardFonts } = PDFLib;
     const today = new Date();
     const applyDate = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
     const pdfBytes = Uint8Array.from(atob(YUKYU_TEMPLATE_B64), c => c.charCodeAt(0));
     const pdfDoc  = await PDFDocument.load(pdfBytes);
     const page    = pdfDoc.getPages()[0];
-
-    // 日本語フォントをCDNから取得して埋め込む
-    const fontUrl = 'https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp@5.0.2/files/noto-sans-jp-japanese-400-normal.woff2';
-    let font;
-    try {
-      const fontResp = await fetch(fontUrl);
-      if (!fontResp.ok) throw new Error('font fetch failed');
-      const fontBytes = await fontResp.arrayBuffer();
-      font = await pdfDoc.embedFont(fontBytes, { subset: true });
-    } catch(fe) {
-      // フォント取得失敗時はHelveticaで数字/英字のみ書き込む（フォールバック）
-      const { StandardFonts } = PDFLib;
-      font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    }
+    const font    = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
     const leaveD  = new Date(leaveDate + 'T00:00:00+09:00');
     const applyD  = new Date(applyDate + 'T00:00:00+09:00');
@@ -2003,27 +1990,59 @@ async function generateYukyuPdf(applicantName, leaveDate, reason) {
     const applyMonth = String(applyD.getMonth()+1);
     const applyDay   = String(applyD.getDate());
 
+    // Canvas で日本語文字列をPNG画像に変換してPDFに埋め込むヘルパー
+    async function embedJpText(text, fontSize) {
+      const canvas = document.createElement('canvas');
+      const scale = 2; // 高解像度
+      canvas.width  = Math.ceil(fontSize * text.length * 1.1) * scale;
+      canvas.height = Math.ceil(fontSize * 1.4) * scale;
+      const ctx = canvas.getContext('2d');
+      ctx.scale(scale, scale);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#000000';
+      ctx.font = fontSize + 'px "Hiragino Kaku Gothic Pro", "Yu Gothic", "Meiryo", sans-serif';
+      ctx.textBaseline = 'top';
+      ctx.fillText(text, 0, 0);
+      const dataUrl = canvas.toDataURL('image/png');
+      const b64 = dataUrl.split(',')[1];
+      const imgBytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+      const img = await pdfDoc.embedPng(imgBytes);
+      return { img, w: canvas.width / scale, h: canvas.height / scale };
+    }
+
+    // 白塗り（年号数字・月・日・既存チェック・氏名エリア）
     const rects = [
       [57,557.52,15,18],[242,557.52,15,18],[57,341.52,15,18],
       [102,557.52,14,18],[289,557.52,14,18],[102,341.52,14,18],
       [137,557.52,18,18],[324,557.52,18,18],[137,341.52,18,18],
       [172,557.52,20,18],[359,557.52,20,18],
-      [278,285.52,68,20],[70,432.52,24,25],
+      [70,432.52,24,25],[278,285.52,68,20],
     ];
     for (const [x,y,w,h] of rects) page.drawRectangle({x,y,width:w,height:h,color:white});
 
+    // 数字（ASCII）をHelveticaで書き込み
     const fs = 10.5;
-    const texts = [
-      [leaveYear,60,563.52],[leaveMonth,105,563.52],[leaveDay,140,563.52],[leaveWday,174,563.52],
-      [leaveYear,245,563.52],[leaveMonth,291,563.52],[leaveDay,327,563.52],[leaveWday,361,563.52],
+    const numTexts = [
+      [leaveYear,60,563.52],[leaveMonth,105,563.52],[leaveDay,140,563.52],
+      [leaveYear,245,563.52],[leaveMonth,291,563.52],[leaveDay,327,563.52],
       [applyYear,60,347.52],[applyMonth,105,347.52],[applyDay,140,347.52],
-      [applicantName,247,291.52],
     ];
-    for (const [text,x,y] of texts) page.drawText(String(text),{x,y,size:fs,font,color:black});
+    for (const [text,x,y] of numTexts) page.drawText(String(text),{x,y,size:fs,font,color:black});
 
+    // 曜日をCanvas画像として埋め込み
+    const wdayInfo = await embedJpText(leaveWday, 10);
+    page.drawImage(wdayInfo.img, {x:174, y:557.52, width:wdayInfo.w, height:wdayInfo.h});
+    page.drawImage(wdayInfo.img, {x:361, y:557.52, width:wdayInfo.w, height:wdayInfo.h});
+
+    // 氏名をCanvas画像として埋め込み
+    const nameInfo = await embedJpText(applicantName, 10);
+    page.drawImage(nameInfo.img, {x:247, y:285.52, width:nameInfo.w, height:nameInfo.h});
+
+    // チェックマーク（Canvas画像）
     const checkPos = {refresh:[75,470.52],private:[75,444.52],other:[75,417.52]};
     const [cx,cy] = checkPos[reason] || checkPos.private;
-    page.drawText('レ',{x:cx,y:cy,size:12,font,color:black});
+    const checkInfo = await embedJpText('レ', 12);
+    page.drawImage(checkInfo.img, {x:cx, y:cy, width:checkInfo.w, height:checkInfo.h});
 
     const outBytes = await pdfDoc.save();
     const blob = new Blob([outBytes],{type:'application/pdf'});
@@ -2035,7 +2054,7 @@ async function generateYukyuPdf(applicantName, leaveDate, reason) {
     showToast('📄','有給休暇願PDFをダウンロードしました');
   } catch(e) {
     console.error('PDF生成エラー:',e);
-    showToast('⚠️','PDF生成に失敗しました');
+    showToast('⚠️','PDF生成に失敗しました: ' + e.message);
   }
 }
 
