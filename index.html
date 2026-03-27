@@ -1541,7 +1541,7 @@ function showConfirmDialog({icon, title, body, okLabel, okColor, onOk}) {
   okBtn.textContent = okLabel || '送信する';
   okBtn.style.background = okColor || 'linear-gradient(135deg,#d97706,#f59e0b)';
   _confirmCallback = onOk;
-  okBtn.onclick = () => { const cb = _confirmCallback; closeConfirmDialog(); if (cb) cb(); };
+  okBtn.onclick = async () => { const cb = _confirmCallback; closeConfirmDialog(); if (cb) await cb(); };
   document.getElementById('confirmDialog').style.display = 'flex';
 }
 
@@ -1970,13 +1970,27 @@ function getWeekdayJp(dateStr) {
 
 async function generateYukyuPdf(applicantName, leaveDate, reason) {
   try {
-    const { PDFDocument, rgb, StandardFonts } = PDFLib;
+    const { PDFDocument, rgb } = PDFLib;
     const today = new Date();
     const applyDate = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
     const pdfBytes = Uint8Array.from(atob(YUKYU_TEMPLATE_B64), c => c.charCodeAt(0));
     const pdfDoc  = await PDFDocument.load(pdfBytes);
     const page    = pdfDoc.getPages()[0];
-    const font    = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+    // 日本語フォントをCDNから取得して埋め込む
+    const fontUrl = 'https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp@5.0.2/files/noto-sans-jp-japanese-400-normal.woff2';
+    let font;
+    try {
+      const fontResp = await fetch(fontUrl);
+      if (!fontResp.ok) throw new Error('font fetch failed');
+      const fontBytes = await fontResp.arrayBuffer();
+      font = await pdfDoc.embedFont(fontBytes, { subset: true });
+    } catch(fe) {
+      // フォント取得失敗時はHelveticaで数字/英字のみ書き込む（フォールバック）
+      const { StandardFonts } = PDFLib;
+      font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    }
+
     const leaveD  = new Date(leaveDate + 'T00:00:00+09:00');
     const applyD  = new Date(applyDate + 'T00:00:00+09:00');
     const white   = rgb(1,1,1);
@@ -1988,6 +2002,7 @@ async function generateYukyuPdf(applicantName, leaveDate, reason) {
     const leaveWday  = getWeekdayJp(leaveDate);
     const applyMonth = String(applyD.getMonth()+1);
     const applyDay   = String(applyD.getDate());
+
     const rects = [
       [57,557.52,15,18],[242,557.52,15,18],[57,341.52,15,18],
       [102,557.52,14,18],[289,557.52,14,18],[102,341.52,14,18],
@@ -1996,6 +2011,7 @@ async function generateYukyuPdf(applicantName, leaveDate, reason) {
       [278,285.52,68,20],[70,432.52,24,25],
     ];
     for (const [x,y,w,h] of rects) page.drawRectangle({x,y,width:w,height:h,color:white});
+
     const fs = 10.5;
     const texts = [
       [leaveYear,60,563.52],[leaveMonth,105,563.52],[leaveDay,140,563.52],[leaveWday,174,563.52],
@@ -2003,10 +2019,12 @@ async function generateYukyuPdf(applicantName, leaveDate, reason) {
       [applyYear,60,347.52],[applyMonth,105,347.52],[applyDay,140,347.52],
       [applicantName,247,291.52],
     ];
-    for (const [text,x,y] of texts) page.drawText(text,{x,y,size:fs,font,color:black});
+    for (const [text,x,y] of texts) page.drawText(String(text),{x,y,size:fs,font,color:black});
+
     const checkPos = {refresh:[75,470.52],private:[75,444.52],other:[75,417.52]};
     const [cx,cy] = checkPos[reason] || checkPos.private;
-    page.drawText('L',{x:cx,y:cy,size:12,font,color:black});
+    page.drawText('レ',{x:cx,y:cy,size:12,font,color:black});
+
     const outBytes = await pdfDoc.save();
     const blob = new Blob([outBytes],{type:'application/pdf'});
     const url  = URL.createObjectURL(blob);
