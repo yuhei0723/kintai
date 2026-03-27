@@ -1541,7 +1541,7 @@ function showConfirmDialog({icon, title, body, okLabel, okColor, onOk}) {
   okBtn.textContent = okLabel || '送信する';
   okBtn.style.background = okColor || 'linear-gradient(135deg,#d97706,#f59e0b)';
   _confirmCallback = onOk;
-  okBtn.onclick = () => { closeConfirmDialog(); if (_confirmCallback) _confirmCallback(); };
+  okBtn.onclick = () => { const cb = _confirmCallback; closeConfirmDialog(); if (cb) cb(); };
   document.getElementById('confirmDialog').style.display = 'flex';
 }
 
@@ -2386,8 +2386,6 @@ async function submitCancelRequest() {
     bodyHtml += `<br><b>変更後時間：</b>${newStart}〜${newEnd}`;
   }
 
-  closeCancelModal();
-
   showConfirmDialog({
     icon: type === 'cancel' ? '🗑️' : '🔄',
     title: 'シフト' + typeLabel + 'の確認',
@@ -2397,6 +2395,7 @@ async function submitCancelRequest() {
       ? 'linear-gradient(135deg,#dc2626,#ef4444)'
       : 'linear-gradient(135deg,#d97706,#f59e0b)',
     onOk: async () => {
+      closeCancelModal();
       showToast('⏳', '処理中...');
       await gasGet({
         action: 'shift_cancel_request',
