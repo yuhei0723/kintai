@@ -2044,22 +2044,32 @@ async function generateYukyuPdf(applicantName, leaveDate, reason) {
       [75.9, 462.2, 12.7, 13.6],  // リフレッシュ□内側
       [75.9, 434.9, 12.7, 13.7],  // 私用の為□内側
       [75.9, 409.0, 12.7, 13.7],  // その他□内側
+      // 西暦4桁スペース確保（元の1桁年号部分）
+      [55, 558, 25, 12],  [240, 558, 25, 12],  [55, 342, 25, 12],
+      // 日数スペース
+      [58, 539, 16, 11],
     ];
     for (const [x,y,w,h] of rects) page.drawRectangle({x,y,width:w,height:h,color:white});
 
     // ── 数字（Helvetica）──
     const fs = 10.5;
+    const fsYear = 9.0; // 西暦4桁は小さめフォントで
+
+    // 数字書き込み（西暦表示）
     [
-      [toWarekiNum(leaveD.getFullYear()), 60,  563.52],
-      [String(leaveD.getMonth()+1),       105, 563.52],
-      [String(leaveD.getDate()),           140, 563.52],
-      [toWarekiNum(leaveD.getFullYear()), 245, 563.52],
-      [String(leaveD.getMonth()+1),       291, 563.52],
-      [String(leaveD.getDate()),           327, 563.52],
-      [toWarekiNum(applyD.getFullYear()), 60,  347.52],
-      [String(applyD.getMonth()+1),       105, 347.52],
-      [String(applyD.getDate()),           140, 347.52],
-    ].forEach(([t,x,y]) => page.drawText(String(t),{x,y,size:fs,font,color:black}));
+      [String(leaveD.getFullYear()), 55,  563.52, fsYear],
+      [String(leaveD.getMonth()+1), 105, 563.52, fs],
+      [String(leaveD.getDate()),    140, 563.52, fs],
+      [String(leaveD.getFullYear()), 240, 563.52, fsYear],
+      [String(leaveD.getMonth()+1), 291, 563.52, fs],
+      [String(leaveD.getDate()),    327, 563.52, fs],
+      [String(applyD.getFullYear()), 55,  347.52, fsYear],
+      [String(applyD.getMonth()+1), 105, 347.52, fs],
+      [String(applyD.getDate()),    140, 347.52, fs],
+    ].forEach(([t,x,y,s]) => page.drawText(String(t),{x,y,size:s||fs,font,color:black}));
+
+    // 日数（1日単位申請 → 1）
+    page.drawText('1',{x:61,y:542,size:fs,font,color:black});
 
     // ── 曜日（Canvas）──
     const wd = await embedJpText(getWeekdayJp(leaveDate), 10);
