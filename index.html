@@ -1007,18 +1007,18 @@ if (!teams || teams.length === 0) {
 function saveTeams() { setData('teams', teams); }
 
 const DEFAULT_EMPLOYEES = [
-  {id:1,  name:'牛膓',      type:'正社員', team:'営業',    device:'smartphone'},
-  {id:2,  name:'齋藤',      type:'正社員', team:'営業',    device:'smartphone'},
-  {id:3,  name:'南岡',      type:'正社員', team:'営業',    device:'smartphone'},
+  {id:1,  name:'牛膓', fullName:'牛膓 健司',      type:'正社員', team:'営業',    device:'smartphone'},
+  {id:2,  name:'齋藤', fullName:'齋藤 祐平',      type:'正社員', team:'営業',    device:'smartphone'},
+  {id:3,  name:'南岡', fullName:'南岡 恭介',      type:'正社員', team:'営業',    device:'smartphone'},
   {id:4,  name:'鈴木由加',  type:'パート', team:'営業',    device:'smartphone'},
-  {id:5,  name:'伊藤',      type:'正社員', team:'オフィス', device:'tablet'},
-  {id:6,  name:'生天目',    type:'正社員', team:'オフィス', device:'tablet'},
-  {id:7,  name:'金森',      type:'正社員', team:'オフィス', device:'tablet'},
+  {id:5,  name:'伊藤', fullName:'伊藤 博和',      type:'正社員', team:'オフィス', device:'tablet'},
+  {id:6,  name:'生天目', fullName:'生天目 知弘',    type:'正社員', team:'オフィス', device:'tablet'},
+  {id:7,  name:'金森', fullName:'金森 宣明',      type:'正社員', team:'オフィス', device:'tablet'},
   {id:8,  name:'西岡',      type:'正社員', team:'オフィス', device:'tablet'},
   {id:9,  name:'鈴木あかね',type:'パート', team:'オフィス', device:'tablet', icon:'あ'},
   {id:10, name:'鈴木美咲',  type:'パート', team:'オフィス', device:'tablet', icon:'美'},
-  {id:11, name:'田口',      type:'正社員', team:'営業',    device:'smartphone'},
-  {id:12, name:'三上',      type:'正社員', team:'加工室',  device:'tablet'},
+  {id:11, name:'田口', fullName:'田口 広河',      type:'正社員', team:'営業',    device:'smartphone'},
+  {id:12, name:'三上', fullName:'三上 小雪',      type:'正社員', team:'加工室',  device:'tablet'},
 ];
 let employees = getData('employees', null);
 if (!employees || employees.length === 0) {
@@ -1969,8 +1969,8 @@ async function generateYukyuPdf(applicantName, leaveDate, reason) {
   try {
     const { PDFDocument, rgb, StandardFonts } = PDFLib;
     const today = new Date();
-    const applyDate = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
-    const pdfBytes = Uint8Array.from(atob(YUKYU_TEMPLATE_B64), c => c.charCodeAt(0));
+    const applyDate = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+    const pdfBytes = Uint8Array.from(atob(YUKYU_TEMPLATE_B64), c=>c.charCodeAt(0));
     const pdfDoc  = await PDFDocument.load(pdfBytes);
     const page    = pdfDoc.getPages()[0];
     const font    = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -1978,145 +1978,117 @@ async function generateYukyuPdf(applicantName, leaveDate, reason) {
     // フルネームをemployeesマスタから取得
     const emp = employees.find(e => e.name === applicantName);
     const fullName = (emp && emp.fullName) ? emp.fullName : applicantName;
+    const lastName = fullName.split(/[\s\u3000]+/)[0] || fullName;
 
-    // 苗字を取得（スペースで区切った最初の部分）
-    const lastName = fullName.split(/\s+/)[0] || fullName;
+    const leaveD = new Date(leaveDate+'T00:00:00+09:00');
+    const applyD = new Date(applyDate+'T00:00:00+09:00');
+    const white = rgb(1,1,1), black = rgb(0,0,0);
 
-    const leaveD  = new Date(leaveDate + 'T00:00:00+09:00');
-    const applyD  = new Date(applyDate + 'T00:00:00+09:00');
-    const white   = rgb(1,1,1);
-    const black   = rgb(0,0,0);
-    const leaveYear  = toWarekiNum(leaveD.getFullYear());
-    const applyYear  = toWarekiNum(applyD.getFullYear());
-    const leaveMonth = String(leaveD.getMonth()+1);
-    const leaveDay   = String(leaveD.getDate());
-    const leaveWday  = getWeekdayJp(leaveDate);
-    const applyMonth = String(applyD.getMonth()+1);
-    const applyDay   = String(applyD.getDate());
-
-    // Canvas で日本語テキストをPNG画像に変換してPDFに埋め込む
-    async function embedJpText(text, fontSize, bold) {
+    // Canvas で日本語テキストをPNG画像に変換
+    async function embedJpText(text, fontSize) {
       const scale = 3;
-      const canvas = document.createElement('canvas');
       const w = Math.ceil(fontSize * text.length * 1.3);
       const h = Math.ceil(fontSize * 1.6);
-      canvas.width  = w * scale;
-      canvas.height = h * scale;
+      const canvas = document.createElement('canvas');
+      canvas.width = w * scale; canvas.height = h * scale;
       const ctx = canvas.getContext('2d');
       ctx.scale(scale, scale);
-      ctx.clearRect(0, 0, w, h);
-      ctx.fillStyle = '#000000';
-      const weight = bold ? 'bold ' : '';
-      ctx.font = weight + fontSize + 'px "Hiragino Kaku Gothic Pro","Yu Gothic","Meiryo","MS Gothic",sans-serif';
+      ctx.fillStyle = '#000';
+      ctx.font = fontSize + 'px "Hiragino Kaku Gothic Pro","Yu Gothic","Meiryo","MS Gothic",sans-serif';
       ctx.textBaseline = 'middle';
       ctx.fillText(text, 0, h / 2);
       const b64 = canvas.toDataURL('image/png').split(',')[1];
-      const imgBytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+      const imgBytes = Uint8Array.from(atob(b64), c=>c.charCodeAt(0));
       const img = await pdfDoc.embedPng(imgBytes);
       return { img, w, h };
     }
 
-    // 電子印鑑をCanvasで生成
+    // 電子印鑑をCanvasで生成（朱色・縦書き苗字）
     async function embedHanko(lastName) {
-      const size = 36;
-      const scale = 3;
+      const size = 36, scale = 3;
       const canvas = document.createElement('canvas');
-      canvas.width  = size * scale;
-      canvas.height = size * scale;
+      canvas.width = size * scale; canvas.height = size * scale;
       const ctx = canvas.getContext('2d');
       ctx.scale(scale, scale);
-      const cx = size / 2, cy = size / 2, r = size / 2 - 2;
-      // 外円
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, 2 * Math.PI);
-      ctx.strokeStyle = '#cc0000';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-      // 苗字テキスト（縦書き対応：1文字ずつ縦に並べる）
+      const cx = size/2, cy = size/2, r = size/2 - 2;
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, 2*Math.PI);
+      ctx.strokeStyle = '#cc0000'; ctx.lineWidth = 1.5; ctx.stroke();
       ctx.fillStyle = '#cc0000';
-      const chars = lastName.split('');
-      const n = chars.length;
+      const chars = lastName.split(''), n = chars.length;
       const charSize = n <= 2 ? 13 : n <= 3 ? 10 : 8;
-      ctx.font = `bold ${charSize}px "Hiragino Mincho Pro","Yu Mincho","MS Mincho",serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
+      ctx.font = 'bold ' + charSize + 'px "Hiragino Mincho Pro","Yu Mincho","MS Mincho",serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       if (n === 1) {
         ctx.fillText(chars[0], cx, cy);
       } else {
         const totalH = charSize * n * 1.1;
-        const startY = cy - totalH / 2 + charSize * 0.55;
+        const startY = cy - totalH/2 + charSize*0.55;
         chars.forEach((ch, i) => ctx.fillText(ch, cx, startY + i * charSize * 1.1));
       }
       const b64 = canvas.toDataURL('image/png').split(',')[1];
-      const imgBytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+      const imgBytes = Uint8Array.from(atob(b64), c=>c.charCodeAt(0));
       const img = await pdfDoc.embedPng(imgBytes);
       return { img, size };
     }
 
-    // ── 白塗り（既存テキストを消去）──
+    // ── 白塗り（チェックボックスの□は残す・内側のみ消去）──
     const rects = [
-      [57, 557.52, 15, 18],  // 始期 年号数字
-      [242,557.52, 15, 18],  // 終期 年号数字
-      [57, 341.52, 15, 18],  // 申請日 年号数字
-      [102,557.52, 14, 18],  // 始期 月
-      [289,557.52, 14, 18],  // 終期 月
-      [102,341.52, 14, 18],  // 申請月
-      [137,557.52, 18, 18],  // 始期 日
-      [324,557.52, 18, 18],  // 終期 日
-      [137,341.52, 18, 18],  // 申請日
-      [172,557.52, 20, 18],  // 始期 曜日
-      [359,557.52, 20, 18],  // 終期 曜日
-      [70, 432.52, 24, 25],  // 既存チェック「レ」
-      [278,285.52, 68, 20],  // 氏名
-      [378,285.52, 60, 52],  // ハンコ（「印」+既存印）
+      // 年号数字・月・日・曜日
+      [57, 557.52, 15, 18],  [242,557.52, 15, 18],  [57, 341.52, 15, 18],
+      [102,557.52, 14, 18],  [289,557.52, 14, 18],  [102,341.52, 14, 18],
+      [137,557.52, 18, 18],  [324,557.52, 18, 18],  [137,341.52, 18, 18],
+      [172,557.52, 20, 18],  [359,557.52, 20, 18],
+      // 氏名・ハンコ
+      [278,285.52, 68, 20],  [378,285.52, 60, 52],
+      // 既存の「レ」チェックのみ消す（□の内側だけ白塗り・枠線は残す）
+      [75.9, 462.2, 12.7, 13.6],  // リフレッシュ□内側
+      [75.9, 434.9, 12.7, 13.7],  // 私用の為□内側
+      [75.9, 409.0, 12.7, 13.7],  // その他□内側
     ];
     for (const [x,y,w,h] of rects) page.drawRectangle({x,y,width:w,height:h,color:white});
 
-    // ── 数字（ASCII）をHelveticaで書き込み ──
+    // ── 数字（Helvetica）──
     const fs = 10.5;
-    const numTexts = [
-      [leaveYear,  60,  563.52],
-      [leaveMonth, 105, 563.52],
-      [leaveDay,   140, 563.52],
-      [leaveYear,  245, 563.52],
-      [leaveMonth, 291, 563.52],
-      [leaveDay,   327, 563.52],
-      [applyYear,  60,  347.52],
-      [applyMonth, 105, 347.52],
-      [applyDay,   140, 347.52],
-    ];
-    for (const [text,x,y] of numTexts) page.drawText(String(text),{x,y,size:fs,font,color:black});
+    [
+      [toWarekiNum(leaveD.getFullYear()), 60,  563.52],
+      [String(leaveD.getMonth()+1),       105, 563.52],
+      [String(leaveD.getDate()),           140, 563.52],
+      [toWarekiNum(leaveD.getFullYear()), 245, 563.52],
+      [String(leaveD.getMonth()+1),       291, 563.52],
+      [String(leaveD.getDate()),           327, 563.52],
+      [toWarekiNum(applyD.getFullYear()), 60,  347.52],
+      [String(applyD.getMonth()+1),       105, 347.52],
+      [String(applyD.getDate()),           140, 347.52],
+    ].forEach(([t,x,y]) => page.drawText(String(t),{x,y,size:fs,font,color:black}));
 
-    // ── 曜日（Canvas画像）──
-    const wdayInfo = await embedJpText(leaveWday, 10);
-    page.drawImage(wdayInfo.img, {x:174, y:558, width:wdayInfo.w, height:wdayInfo.h});
-    page.drawImage(wdayInfo.img, {x:361, y:558, width:wdayInfo.w, height:wdayInfo.h});
+    // ── 曜日（Canvas）──
+    const wd = await embedJpText(getWeekdayJp(leaveDate), 10);
+    page.drawImage(wd.img, {x:174, y:558, width:wd.w, height:wd.h});
+    page.drawImage(wd.img, {x:361, y:558, width:wd.w, height:wd.h});
 
-    // ── フルネーム（Canvas画像）──
-    const nameInfo = await embedJpText(fullName, 10);
-    page.drawImage(nameInfo.img, {x:247, y:288, width:nameInfo.w, height:nameInfo.h});
+    // ── フルネーム（Canvas）──
+    const nm = await embedJpText(fullName, 10);
+    page.drawImage(nm.img, {x:247, y:288, width:nm.w, height:nm.h});
 
-    // ── チェックマーク（正確な座標）──
-    // ボックス座標（pdf-lib y）: refresh=460.2-477.8, private=432.9-450.6, other=407.0-424.7
-    const checkPos = {
-      refresh: {x:75.4, y:462.2},
-      private: {x:75.4, y:434.9},
-      other:   {x:75.4, y:409.0},
+    // ── チェックマーク（□の内側に「レ」を描画）──
+    const checkMap = {
+      refresh: {x:75.9, y:462.2},
+      private: {x:75.9, y:434.9},
+      other:   {x:75.9, y:409.0},
     };
-    const cp = checkPos[reason] || checkPos.private;
-    const ckInfo = await embedJpText('レ', 13);
-    page.drawImage(ckInfo.img, {x:cp.x, y:cp.y, width:ckInfo.w, height:ckInfo.h});
+    const cp = checkMap[reason] || checkMap.private;
+    const ck = await embedJpText('レ', 11);
+    page.drawImage(ck.img, {x:cp.x, y:cp.y+1, width:ck.w, height:ck.h});
 
-    // ── 電子印鑑（苗字） ──
-    const hanko = await embedHanko(lastName);
-    // 「印」テキストの右 x≈410, 氏名行のy中心 pdflib≈288
-    page.drawImage(hanko.img, {x:395, y:272, width:hanko.size, height:hanko.size});
+    // ── 電子印鑑（苗字）──
+    const hk = await embedHanko(lastName);
+    page.drawImage(hk.img, {x:395, y:272, width:hk.size, height:hk.size});
 
     const outBytes = await pdfDoc.save();
     const blob = new Blob([outBytes],{type:'application/pdf'});
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href=url;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
     a.download = '有給休暇願_' + fullName + '_' + leaveDate + '.pdf';
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
