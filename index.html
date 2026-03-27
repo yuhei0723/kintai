@@ -1025,13 +1025,13 @@ if (!employees || employees.length === 0) {
   employees = JSON.parse(JSON.stringify(DEFAULT_EMPLOYEES));
   setData('employees', employees);
 } else {
-  // DEFAULT_EMPLOYEESのiconフィールドを既存データにマージ（上書きしない）
+  // DEFAULT_EMPLOYEESのicon・fullNameフィールドを既存データにマージ
   let updated = false;
   employees.forEach(emp => {
     const def = DEFAULT_EMPLOYEES.find(d => d.id === emp.id);
-    if (def && def.icon && !emp.icon) {
-      emp.icon = def.icon;
-      updated = true;
+    if (def) {
+      if (def.icon && !emp.icon) { emp.icon = def.icon; updated = true; }
+      if (def.fullName && !emp.fullName) { emp.fullName = def.fullName; updated = true; }
     }
   });
   if (updated) setData('employees', employees);
@@ -2039,7 +2039,7 @@ async function generateYukyuPdf(applicantName, leaveDate, reason) {
       [137,557.52, 18, 18],  [324,557.52, 18, 18],  [137,341.52, 18, 18],
       [172,557.52, 20, 18],  [359,557.52, 20, 18],
       // 氏名・ハンコ
-      [278,285.52, 68, 20],  [378,285.52, 60, 52],
+      [278,285.52, 68, 20],  [348,268,100,80],
       // 既存の「レ」チェックのみ消す（□の内側だけ白塗り・枠線は残す）
       [75.9, 462.2, 12.7, 13.6],  // リフレッシュ□内側
       [75.9, 434.9, 12.7, 13.7],  // 私用の為□内側
@@ -3607,7 +3607,7 @@ function renderAdminLeaveList() {
     if (r.status === 'approved') {
       html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">';
       html += '<button onclick="openAdminLeaveEditModal(\''+r.id+'\')" style="padding:8px;border-radius:8px;background:var(--blue-bg,#eff6ff);color:var(--blue,#2563eb);font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--blue,#2563eb);">✏️ 日程変更</button>';
-      html += '<button onclick="generateYukyuPdf(\''+r.name+'\',\''+r.date.slice(0,10)+'\',\'private\')" style="padding:8px;border-radius:8px;background:#f0fdf4;color:#15803d;font-size:12px;font-weight:700;cursor:pointer;border:1px solid #15803d;">📄 願書PDF</button>';
+      html += '<button onclick="generateYukyuPdf(\''+r.name+'\',\''+(()=>{const d=new Date(r.date);d.setHours(d.getHours()+9);return d.toISOString().slice(0,10)})()+'\',\'private\')" style="padding:8px;border-radius:8px;background:#f0fdf4;color:#15803d;font-size:12px;font-weight:700;cursor:pointer;border:1px solid #15803d;">📄 願書PDF</button>';
       html += '<button onclick="adminLeaveDirect(\''+r.id+'\',\'cancel\')" style="padding:8px;border-radius:8px;background:var(--red-bg);color:var(--red);font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--red);">🗑️ 取消</button>';
       html += '</div>';
     }
