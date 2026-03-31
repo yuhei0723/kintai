@@ -3477,7 +3477,7 @@ function renderAdminNotificationBanner(notifications) {
 
   el.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">'
     + '<div style="font-size:13px;font-weight:800;">📢 お知らせ</div>'
-    + '<button onclick="goAdminPage()" style="padding:4px 10px;border:none;border-radius:6px;background:rgba(255,255,255,0.2);color:#fff;font-size:11px;font-weight:700;cursor:pointer;">申請管理へ →</button>'
+    + (personalUser === '齋藤' ? '<button onclick="goAdminPage()" style="padding:4px 10px;border:none;border-radius:6px;background:rgba(255,255,255,0.2);color:#fff;font-size:11px;font-weight:700;cursor:pointer;">申請管理へ →</button>' : '')
     + '</div>' + items;
   el.style.display = 'block';
 }
