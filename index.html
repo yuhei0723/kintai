@@ -1,163 +1,2489 @@
-===================================================================
-index.html 修正差分ガイド
-===================================================================
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" id="appTitle" content="勤怠管理">
+<link id="appleTouchIcon" rel="apple-touch-icon" href="">
+<title id="pageTitle">勤怠管理</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"></noscript>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+:root {
+  --bg:#f0f7ff;
+  --surface:#ffffff;
+  --surface2:#f5f9ff;
+  --surface3:#eaf2ff;
+  --border:#d0e4f7;
+  --border2:#b8d4f0;
+  --text:#1a3050;
+  --text-sub:#6b8cad;
+  --text-dim:#a0b8cc;
+  --green:#16a34a;
+  --green-bg:#dcfce7;
+  --red:#dc2626;
+  --red-bg:#fee2e2;
+  --amber:#d97706;
+  --amber-bg:#fef3c7;
+  --blue:#2563eb;
+  --blue-bg:#dbeafe;
+  --radius:16px;
+  --shadow:0 4px 24px rgba(37,99,235,0.10);
+  --shadow-sm:0 2px 8px rgba(37,99,235,0.08);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:#0f172a;
+    --surface:#1e293b;
+    --surface2:#263348;
+    --surface3:#2d3f58;
+    --border:#334e68;
+    --border2:#4a6280;
+    --text:#e2eaf4;
+    --text-sub:#8baabf;
+    --text-dim:#4a6280;
+    --green:#22c55e;
+    --green-bg:#14332a;
+    --red:#f87171;
+    --red-bg:#3b1a1a;
+    --amber:#fbbf24;
+    --amber-bg:#3d2e0a;
+    --blue:#60a5fa;
+    --blue-bg:#1a2d4a;
+    --shadow:0 4px 24px rgba(0,0,0,0.4);
+    --shadow-sm:0 2px 8px rgba(0,0,0,0.3);
+  }
+  body { background: linear-gradient(135deg, #0f172a 0%, #1a2540 40%, #1e1a2e 100%); }
+  body::before {
+    background:
+      radial-gradient(ellipse at 10% 20%, rgba(30,60,100,0.4) 0%, transparent 50%),
+      radial-gradient(ellipse at 90% 80%, rgba(80,50,20,0.2) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 50%, rgba(20,40,80,0.2) 0%, transparent 70%);
+  }
+  .nav { background:rgba(15,23,42,0.92); }
+  select { background:var(--surface2); color:var(--text); }
+  input[type=text], input[type=date], input[type=number], textarea { background:var(--surface2); color:var(--text); border-color:var(--border); }
+  input[type=date]::-webkit-calendar-picker-indicator { filter:invert(0.8); }
+  .cal-day { background:var(--surface2); color:var(--text); }
+  .cal-day.today { border-color:var(--blue); color:var(--blue); }
+  .pin-key { background:var(--surface2); color:var(--text); border-color:var(--border); }
+  .modal { background:var(--surface); }
+  .qr-item { background:var(--surface2); }
+  .emp-item { background:var(--surface2); }
+  .list-item { background:var(--surface); }
+  #shiftTableContent td:first-child { background:var(--surface) !important; }
+  .clock { background: linear-gradient(135deg, #60a5fa, #38bdf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .toast { background:var(--surface); border-color:var(--border); color:var(--text); }
+}
+body {
+  font-family:'Noto Sans JP',sans-serif;
+  background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 40%, #fef9ee 100%);
+  background-attachment: fixed;
+  color:var(--text);
+  min-height:100vh;
+  padding-bottom:40px;
+}
+body::before {
+  content:'';
+  position:fixed;
+  inset:0;
+  background:
+    radial-gradient(ellipse at 10% 20%, rgba(147,210,255,0.3) 0%, transparent 50%),
+    radial-gradient(ellipse at 90% 80%, rgba(255,213,128,0.2) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(200,240,255,0.15) 0%, transparent 70%);
+  pointer-events:none;
+  z-index:0;
+}
+.nav {
+  position:sticky; top:0; z-index:50;
+  background:rgba(255,255,255,0.85);
+  backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);
+  padding:0 16px;
+  display:flex; gap:4px;
+  overflow-x:auto;
+  box-shadow:0 2px 12px rgba(37,99,235,0.08);
+}
+.nav::-webkit-scrollbar { display:none; }
+.nav-btn {
+  padding:14px 16px;
+  background:none; border:none;
+  color:var(--text-sub);
+  font-family:'Noto Sans JP',sans-serif;
+  font-size:13px; font-weight:500;
+  cursor:pointer; white-space:nowrap;
+  border-bottom:2px solid transparent;
+  transition:all 0.2s;
+}
+.nav-btn.active { color:var(--blue); border-bottom-color:var(--blue); }
+.page { display:none; padding:20px 16px; max-width:480px; margin:0 auto; }
+.page.active { display:block; }
+.card {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:24px 20px;
+  margin-bottom:16px;
+  box-shadow:var(--shadow);
+  position:relative;
+  z-index:1;
+}
+.clock-wrap { text-align:center; margin-bottom:24px; }
+.clock {
+  font-family:'DM Mono',ui-monospace,monospace;
+  font-size:52px; font-weight:500;
+  letter-spacing:-0.02em; line-height:1;
+  margin-bottom:6px;
+  background: linear-gradient(135deg, #1d4ed8, #0ea5e9);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.clock-date { font-size:13px; color:var(--text-sub); }
+.greeting { font-size:15px; font-weight:700; color:var(--text); margin-bottom:4px; }
+.label { font-size:11px; letter-spacing:0.15em; text-transform:uppercase; color:var(--text-sub); font-family:'DM Mono',ui-monospace,monospace; margin-bottom:8px; }
+.sel-wrap { position:relative; margin-bottom:20px; }
+select {
+  width:100%; padding:14px 40px 14px 14px;
+  background:var(--surface2); border:1.5px solid var(--border);
+  border-radius:12px; color:var(--text);
+  font-family:'Noto Sans JP',sans-serif; font-size:15px;
+  appearance:none; cursor:pointer; outline:none;
+  transition:all 0.2s;
+  box-shadow:var(--shadow-sm);
+}
+select:focus { border-color:var(--blue); box-shadow:0 0 0 3px rgba(37,99,235,0.1); }
+.sel-arrow { position:absolute; right:14px; top:50%; transform:translateY(-50%); color:var(--text-sub); pointer-events:none; }
+.btn-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px; }
+.btn {
+  padding:20px 12px; border:none; border-radius:14px;
+  font-family:'Noto Sans JP',sans-serif;
+  font-size:16px; font-weight:700;
+  cursor:pointer; transition:all 0.15s;
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+}
+.btn:active { transform:scale(0.96); }
+.btn:disabled { opacity:0.35; cursor:not-allowed; transform:none; }
+.btn-icon { font-size:24px; display:flex; align-items:center; justify-content:center; }
+.btn { gap:8px; padding:22px 12px; }
+.btn-green { background:linear-gradient(135deg,#16a34a,#22c55e); color:#fff; border:none; box-shadow:0 4px 16px rgba(22,163,74,0.3); }
+.btn-green:hover:not(:disabled) { box-shadow:0 6px 24px rgba(22,163,74,0.45); transform:translateY(-1px); }
+.btn-red { background:linear-gradient(135deg,#dc2626,#ef4444); color:#fff; border:none; box-shadow:0 4px 16px rgba(220,38,38,0.3); }
+.btn-red:hover:not(:disabled) { box-shadow:0 6px 24px rgba(220,38,38,0.45); transform:translateY(-1px); }
+.btn-amber { background:var(--amber-bg); color:var(--amber); border:1px solid var(--amber); }
+.btn-blue { background:var(--blue-bg); color:var(--blue); border:1px solid var(--blue); }
+.btn-full {
+  width:100%; padding:14px; border:none; border-radius:12px;
+  font-family:'Noto Sans JP',sans-serif; font-size:15px; font-weight:700;
+  cursor:pointer; transition:all 0.15s; margin-top:8px;
+}
+.btn-full:active { transform:scale(0.98); }
+.btn-full-amber { background:linear-gradient(135deg,#d97706,#f59e0b); color:#fff; box-shadow:0 3px 12px rgba(217,119,6,0.3); }
+.btn-full-amber:hover { opacity:0.9; transform:translateY(-1px); }
+.btn-full-blue { background:linear-gradient(135deg,#1d4ed8,#3b82f6); color:#fff; box-shadow:0 3px 12px rgba(29,78,216,0.3); }
+.btn-full-blue:hover { opacity:0.9; transform:translateY(-1px); }
+.btn-full-red { background:var(--red-bg); color:var(--red); border:1px solid rgba(220,38,38,0.3); }
+input[type=text], input[type=date], input[type=number], textarea {
+  width:100%; padding:12px 14px;
+  background:var(--surface2); border:1.5px solid var(--border);
+  border-radius:10px; color:var(--text);
+  font-family:'Noto Sans JP',sans-serif; font-size:14px;
+  outline:none; transition:all 0.2s;
+  margin-bottom:12px;
+  box-shadow:var(--shadow-sm);
+}
+input[type=text]:focus, input[type=date]:focus, input[type=number]:focus, textarea:focus { border-color:var(--blue); box-shadow:0 0 0 3px rgba(37,99,235,0.1); }
+input[type=date]::-webkit-calendar-picker-indicator { filter:invert(0.5); }
+textarea { resize:vertical; min-height:80px; }
+.tag { display:inline-block; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; }
+.tag-pending { background:var(--amber-bg); color:var(--amber); border:1px solid var(--amber); }
+.tag-approved { background:var(--green-bg); color:var(--green); border:1px solid var(--green); }
+.tag-rejected { background:var(--red-bg); color:var(--red); border:1px solid var(--red); }
+.list-item {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:12px; padding:14px 16px;
+  margin-bottom:10px; display:flex; align-items:center; justify-content:space-between;
+  box-shadow:var(--shadow-sm);
+  transition:box-shadow 0.2s;
+}
+.list-item:hover { box-shadow:var(--shadow); }
+.list-item-left { display:flex; align-items:center; gap:12px; }
+.list-item-name { font-size:14px; font-weight:500; }
+.list-item-sub { font-size:12px; color:var(--text-sub); margin-top:2px; }
+.emp-item {
+  background:var(--surface2); border:1px solid var(--border);
+  border-radius:12px; padding:12px 16px;
+  margin-bottom:8px; display:flex; align-items:center; justify-content:space-between;
+}
+.emp-name { font-size:14px; font-weight:500; }
+.emp-type { font-size:11px; color:var(--text-sub); margin-top:2px; }
+.emp-actions { display:flex; gap:8px; }
+.icon-btn {
+  width:32px; height:32px; border:none; border-radius:8px;
+  background:var(--surface3); color:var(--text-sub);
+  cursor:pointer; font-size:14px; display:flex; align-items:center; justify-content:center;
+  transition:all 0.15s;
+}
+.icon-btn:hover { background:var(--border2); color:var(--text); }
+.icon-btn.danger:hover { background:var(--red-bg); color:var(--red); }
+.cal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+.cal-title { font-size:16px; font-weight:700; }
+.cal-nav { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:6px 12px; color:var(--text); cursor:pointer; font-size:14px; }
+.cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+.cal-day-label { text-align:center; font-size:11px; color:var(--text-sub); padding:6px 0; font-family:'DM Mono',ui-monospace,monospace; }
+.cal-day {
+  aspect-ratio:1; border-radius:8px; border:1px solid transparent;
+  display:flex; align-items:center; justify-content:center;
+  font-size:13px; cursor:pointer; transition:all 0.15s;
+  background:var(--surface2);
+}
+.cal-day:hover:not(.cal-day-empty):not(.cal-day-past) { border-color:var(--amber); color:var(--amber); }
+.cal-day.selected { background:var(--amber); color:#000; font-weight:700; border-color:var(--amber); }
+.cal-day.today { border-color:var(--blue); color:var(--blue); }
+.cal-day.cal-day-empty { background:transparent; border-color:transparent; cursor:default; }
+.cal-day.cal-day-past { opacity:0.35; cursor:not-allowed; }
+.cal-day.cal-approved { background:var(--green-bg); color:var(--green); border-color:var(--green); cursor:default; font-weight:700; }
+.cal-day.cal-approved::after { content:'✓'; position:absolute; top:2px; right:3px; font-size:8px; }
+.cal-day.cal-approved { position:relative; }
+.cal-day.cal-pending { background:var(--blue-bg); color:var(--blue); border-color:var(--blue); cursor:default; }
+.cal-day.cal-rejected { background:var(--red-bg); color:var(--red); border-color:var(--red); opacity:0.6; cursor:default; text-decoration:line-through; }
+.cal-day.cal-cancel-req { background:#fff8e1; color:#f59e0b; border-color:#f59e0b; cursor:default; font-weight:700; }
+.cal-day.cal-cancel-req::after { content:'↩'; position:absolute; top:2px; right:3px; font-size:8px; }
+.cal-day.cal-approved-past { opacity:0.6; background:var(--green-bg); color:var(--green); }
+.cancel-date-chip {
+  padding:8px 14px; border:1.5px solid var(--border); border-radius:20px;
+  font-size:13px; font-weight:600; color:var(--text-sub); cursor:pointer;
+  transition:all 0.15s; background:var(--surface2); user-select:none;
+}
+.cancel-date-chip:hover { border-color:var(--blue); color:var(--blue); }
+.cancel-date-chip.chip-selected { background:var(--red-bg); border-color:var(--red); color:var(--red); }
+.section-title { font-size:14px; font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+.setup-box {
+  background:var(--amber-bg); border:1.5px dashed rgba(217,119,6,0.3);
+  border-radius:12px; padding:16px; margin-top:16px; position:relative; z-index:1;
+}
+.setup-title-row { font-size:11px; letter-spacing:0.15em; text-transform:uppercase; color:var(--amber); font-family:'DM Mono',ui-monospace,monospace; margin-bottom:10px; }
+.setup-note { font-size:11px; color:var(--text-sub); line-height:1.7; margin-top:8px; }
+.status-dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--red); margin-right:5px; vertical-align:middle; }
+.status-dot.on { background:var(--green); }
+#shiftTableContent table { border-collapse:collapse; font-size:11px; min-width:100%; }
+#shiftTableContent th, #shiftTableContent td { padding:5px 7px; border:1px solid var(--border); white-space:nowrap; text-align:center; }
+#shiftTableContent th { background:var(--surface2); font-weight:700; font-size:11px; }
+#shiftTableContent td:first-child { text-align:left; font-weight:600; position:sticky; left:0; z-index:1; }
+#shiftTableContent th:first-child { position:sticky; left:0; z-index:2; }
+.pin-dot { width:14px; height:14px; border-radius:50%; border:2px solid var(--border2); background:transparent; transition:all 0.15s; }
+.pin-dot.filled { background:var(--amber); border-color:var(--amber); }
+.pin-dot.error { background:var(--red); border-color:var(--red); }
+.pin-key {
+  padding:16px; border:1px solid var(--border2);
+  border-radius:12px; background:var(--surface2); color:var(--text);
+  font-family:'DM Mono',ui-monospace,monospace; font-size:20px; font-weight:500;
+  cursor:pointer; transition:all 0.1s;
+}
+.pin-key:active { background:var(--surface3); transform:scale(0.95); }
+.pin-key-clear { color:var(--red); border-color:var(--red-bg); }
+.pin-key-del { color:var(--text-sub); }
+.qr-item { background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:12px; }
+.qr-item-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+.qr-item-name { font-size:15px; font-weight:700; }
+.qr-item-type { font-size:11px; color:var(--text-sub); margin-top:2px; }
+.qr-canvas-wrap { display:flex; justify-content:center; margin-bottom:12px; }
+.qr-canvas-wrap canvas { border-radius:8px; }
+.qr-url { font-size:10px; color:var(--text-dim); word-break:break-all; margin-bottom:10px; font-family:'DM Mono',ui-monospace,monospace; }
+.qr-btns { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.qr-btn { padding:10px; border:none; border-radius:8px; font-family:'Noto Sans JP',sans-serif; font-size:12px; font-weight:700; cursor:pointer; transition:all 0.15s; }
+.qr-btn-print { background:var(--surface3); color:var(--text); border:1px solid var(--border2); }
+.qr-btn-copy { background:var(--amber-bg); color:var(--amber); border:1px solid var(--amber); }
+.qr-btn:hover { opacity:0.85; }
+.divider { height:1px; background:var(--border); margin:20px 0; }
+.toast {
+  position:fixed; bottom:28px; left:50%;
+  transform:translateX(-50%) translateY(80px);
+  background:#fff; border:1.5px solid var(--border);
+  border-radius:14px; padding:13px 18px;
+  display:flex; align-items:center; gap:10px;
+  min-width:260px; max-width:340px;
+  box-shadow:0 8px 32px rgba(37,99,235,0.15);
+  transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  z-index:200; white-space:nowrap; color:var(--text);
+}
+.toast.show { transform:translateX(-50%) translateY(0); }
+.overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:100; display:none; align-items:center; justify-content:center; padding:20px; }
+.overlay.open { display:flex; }
+.modal { background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:24px 20px; width:100%; max-width:360px; box-shadow:0 20px 60px rgba(37,99,235,0.15); }
+.modal-title { font-size:16px; font-weight:700; margin-bottom:16px; }
+.modal-actions { display:flex; gap:10px; margin-top:16px; }
+.modal-actions .btn-full { margin-top:0; flex:1; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+</head>
+<body>
 
-【修正理由】
-annualHolidayDays（年間法定休日数）が localStorage に保存されているため、
-管理者デバイスには設定済みでも従業員のスマホには同期されず
-「未設定」と表示される問題を修正する。
+<nav class="nav" id="mainNav">
+  <button class="nav-btn active" onclick="showPage('punch')">⏱ 打刻</button>
+  <button class="nav-btn" id="navLeave" onclick="showPage('leave')">📝 有給申請</button>
+  <button class="nav-btn" id="navShift" onclick="showPage('shift')">📆 シフト申請</button>
+  <button class="nav-btn" id="navAdmin" onclick="showPage('admin')">📋 申請管理</button>
+  <button class="nav-btn" id="navEmployees" onclick="showPage('employees')">👥 社員管理</button>
+  <button class="nav-btn" id="navQr" onclick="showPage('qr')">🔗 QRコード</button>
+  <button class="nav-btn" onclick="showPage('settings')">⚙️ 設定</button>
+</nav>
 
-解決策: GASのスプレッドシート「設定」シートに保存して全デバイスで共有。
+<div id="personalBanner" style="display:none;background:linear-gradient(90deg,#fffbeb,#fef3c7);border-bottom:2px solid #f59e0b;padding:10px 20px;text-align:center;font-size:13px;color:#92400e;font-weight:600;">
+  👤 <span id="bannerName"></span>さんの専用ページ
+</div>
+<div id="adminNotificationBanner" style="display:none;margin:0 16px 16px;padding:14px 16px;background:linear-gradient(135deg,#f59e0b,#d97706);border-radius:14px;color:#fff;box-shadow:0 4px 16px rgba(245,158,11,0.3);"></div>
 
-===================================================================
-【修正1】loadAnnualHolidayDays() 関数を置き換え
-===================================================================
+<!-- PAGE: 打刻 -->
+<div class="page active" id="page-punch">
+  <div class="card">
+    <div class="clock-wrap">
+      <div class="greeting" id="greeting">おはようございます☀️</div>
+      <div class="clock" id="clock">--:--</div>
+      <div class="clock-date" id="date">読み込み中...</div>
+    </div>
+    <div class="label">氏名を選択</div>
+    <div class="sel-wrap">
+      <select id="punchName" onchange="loadTodayPunchLog()"><option value="">-- 選択してください --</option></select>
+      <span class="sel-arrow">▼</span>
+    </div>
+    <div class="label">打刻</div>
+    <div class="btn-grid">
+      <button class="btn btn-green" id="btnIn" onclick="handlePunch('出勤')">
+        <span class="btn-icon">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 8 12 12 14 14"/>
+            <line x1="16.5" y1="3.5" x2="19.5" y2="6.5" stroke-width="1.5"/>
+            <line x1="7.5" y1="3.5" x2="4.5" y2="6.5" stroke-width="1.5"/>
+          </svg>
+        </span>
+        <span style="font-size:18px;font-weight:800;letter-spacing:0.05em;">出勤</span>
+        <span style="font-size:11px;font-weight:400;opacity:0.8;">CLOCK IN</span>
+      </button>
+      <button class="btn btn-red" id="btnOut" onclick="handlePunch('退勤')">
+        <span class="btn-icon">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+        </span>
+        <span style="font-size:18px;font-weight:800;letter-spacing:0.05em;">退勤</span>
+        <span style="font-size:11px;font-weight:400;opacity:0.8;">CLOCK OUT</span>
+      </button>
+    </div>
+  </div>
+  <div class="setup-box" id="gasSetupBox" style="display:none;">
+    <div class="setup-title-row">⚙️ GAS連携設定　<span id="statusDot" class="status-dot status-ok"></span><span id="statusText">接続済み</span></div>
+    <input type="text" id="gasUrl" value="https://script.google.com/macros/s/AKfycbwYs7SpsnnXYgCdotURcO2BCfYlD0AtYw0jMSC7h07kRmhYM8kZf7VDXveXixPsvjt8bw/exec" style="margin-bottom:8px;">
+    <div class="setup-note">※ GAS URLは設定済みです。</div>
+  </div>
+  <div class="card" id="todayLogCard">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <div class="section-title" style="margin:0;">📋 本日の打刻状況</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div id="punchLogUpdated" style="font-size:11px;color:var(--text-sub);font-family:'DM Mono',ui-monospace,monospace;"></div>
+        <button id="punchEditOpenBtn" onclick="openPunchEditModal()" style="display:none;padding:5px 10px;border:1px solid var(--blue,#2563eb);border-radius:8px;background:var(--blue-bg,#eff6ff);color:var(--blue,#2563eb);font-family:'Noto Sans JP',sans-serif;font-size:11px;font-weight:700;cursor:pointer;">🖊️ 修正</button>
+      </div>
+    </div>
+    <div id="todayPunchLog"><div style="color:var(--text-sub);font-size:13px;padding:8px 0;">読み込み中...</div></div>
+  </div>
+</div>
 
-▼ 修正前（この関数全体を置き換え）:
-function loadAnnualHolidayDays() {
-  var days = parseInt(localStorage.getItem('annualHolidayDays') || '0') || 0;
-  var el = document.getElementById('annualHolidayDays');
-  if (el) el.value = days || '';
-  return days;
+<!-- PAGE: 有給申請 -->
+<div class="page" id="page-leave">
+  <div class="card" id="leaveBalanceCard" style="display:none;">
+    <div class="section-title">📊 休暇残日数</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px;">
+      <div style="text-align:center;padding:12px;background:var(--green-bg);border-radius:10px;border:1px solid var(--green);">
+        <div style="font-size:11px;color:var(--green);font-weight:700;margin-bottom:4px;">有給休暇</div>
+        <div id="paidLeaveBalance" style="font-size:24px;font-weight:800;color:var(--green);">-</div>
+        <div style="font-size:11px;color:var(--text-sub);">日</div>
+      </div>
+      <div style="text-align:center;padding:12px;background:var(--blue-bg);border-radius:10px;border:1px solid var(--blue);">
+        <div style="font-size:11px;color:var(--blue);font-weight:700;margin-bottom:4px;">代休</div>
+        <div id="compLeaveBalance" style="font-size:24px;font-weight:800;color:var(--blue);">-</div>
+        <div style="font-size:11px;color:var(--text-sub);">日</div>
+      </div>
+      <div id="legalHolidayCard" style="text-align:center;padding:12px;background:var(--amber-bg);border-radius:10px;border:1px solid var(--amber);">
+        <div style="font-size:11px;color:var(--amber);font-weight:700;margin-bottom:4px;">法定休日</div>
+        <div id="legalHolidayBalance" style="font-size:24px;font-weight:800;color:var(--amber);">-</div>
+        <div style="font-size:11px;color:var(--text-sub);">日残</div>
+        <div id="legalHolidayDetail" style="font-size:10px;color:var(--text-dim);margin-top:2px;">-/-日</div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="section-title">📝 有給申請</div>
+    <div class="label">申請者</div>
+    <div class="sel-wrap" style="margin-bottom:16px;">
+      <select id="leaveName" onchange="updateLeaveBalance()"><option value="">-- 選択してください --</option></select>
+      <span class="sel-arrow">▼</span>
+    </div>
+    <div class="label">取得日</div>
+    <input type="date" id="leaveDate">
+    <div class="label">休暇種別</div>
+    <div class="sel-wrap" style="margin-bottom:16px;">
+      <select id="leaveKind">
+        <option value="paid">有給休暇</option>
+        <option value="comp">代休</option>
+      </select>
+      <span class="sel-arrow">▼</span>
+    </div>
+    <div class="label">理由（任意）</div>
+    <textarea id="leaveReason" placeholder="私用のため　など"></textarea>
+    <button class="btn-full btn-full-amber" onclick="submitLeave()">申請する</button>
+  </div>
+  <div class="card">
+    <div class="section-title">📋 申請履歴</div>
+    <div id="leaveHistory"><div style="color:var(--text-sub);font-size:13px;">申請はまだありません</div></div>
+  </div>
+</div>
+
+<!-- PAGE: シフト申請 -->
+<div class="page" id="page-shift">
+  <div class="card">
+    <div class="section-title">📆 シフト希望申請</div>
+    <div class="label" id="shiftNameLabel">申請者</div>
+    <div class="sel-wrap" style="margin-bottom:16px;" id="shiftNameWrap">
+      <select id="shiftName" onchange="renderCalendar()"><option value="">-- 選択してください --</option></select>
+      <span class="sel-arrow">▼</span>
+    </div>
+    <div class="cal-header">
+      <button class="cal-nav" onclick="changeMonth(-1)">◀</button>
+      <div class="cal-title" id="calTitle"></div>
+      <button class="cal-nav" onclick="changeMonth(1)">▶</button>
+    </div>
+    <div class="cal-grid" id="calDayLabels"></div>
+    <div class="cal-grid" id="calGrid" style="margin-top:4px;"></div>
+    <div style="margin-top:14px;font-size:12px;color:var(--text-sub);display:flex;gap:12px;flex-wrap:wrap;">
+      <span>🟡 選択中</span><span>🔵 申請中</span><span>🟢 承認済み</span><span>❌ 却下</span>
+    </div>
+    <div id="timePickerSection" style="display:none;margin-top:16px;">
+      <div class="label">⏰ 勤務時間を選択</div>
+      <div id="selectedDatesList" style="margin-bottom:12px;font-size:13px;color:var(--text-sub);"></div>
+      <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;margin-bottom:8px;">
+        <div>
+          <div style="font-size:11px;color:var(--text-sub);margin-bottom:4px;">開始時刻</div>
+          <div style="position:relative;">
+            <select id="timeStart" style="width:100%;padding:12px 36px 12px 14px;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:15px;appearance:none;cursor:pointer;outline:none;"></select>
+            <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--text-sub);">▼</span>
+          </div>
+        </div>
+        <div style="font-size:18px;color:var(--text-sub);margin-top:16px;">〜</div>
+        <div>
+          <div style="font-size:11px;color:var(--text-sub);margin-bottom:4px;">終了時刻</div>
+          <div style="position:relative;">
+            <select id="timeEnd" style="width:100%;padding:12px 36px 12px 14px;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:15px;appearance:none;cursor:pointer;outline:none;"></select>
+            <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--text-sub);">▼</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <button class="btn-full btn-full-blue" style="margin-top:16px;" onclick="submitShift()">希望を送信する</button>
+  </div>
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+      <div class="section-title" style="margin:0;">📋 申請履歴</div>
+      <button id="shiftTableBtn" onclick="toggleShiftTable()" style="display:none;padding:6px 12px;border-radius:8px;background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue);font-size:12px;font-weight:700;cursor:pointer;">📊 シフト表を見る</button>
+    </div>
+    <div id="shiftHistory"><div style="color:var(--text-sub);font-size:13px;">申請はまだありません</div></div>
+  </div>
+  <div class="card" id="shiftTableCard" style="display:none;">
+    <div style="margin-bottom:16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div class="section-title" style="margin:0;">📊 シフト表</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button class="cal-nav" onclick="changeShiftTableMonth(-1)">◀</button>
+          <span id="shiftTableTitle" style="font-size:14px;font-weight:700;min-width:90px;text-align:center;"></span>
+          <button class="cal-nav" onclick="changeShiftTableMonth(1)">▶</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="exportShiftTableExcel()" style="flex:1;padding:9px;border:none;border-radius:10px;background:linear-gradient(135deg,#16a34a,#22c55e);color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(22,163,74,0.3);">📥 Excelで保存</button>
+        <button onclick="exportShiftTableCSV()" style="flex:1;padding:9px;border:1px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">📄 CSVで保存</button>
+        <button onclick="printShiftTable()" style="flex:1;padding:9px;border:1px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">🖨 印刷</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--border);border-radius:10px;">
+      <div id="shiftTableContent" style="min-width:320px;"><div style="color:var(--text-sub);font-size:13px;padding:16px;">読み込み中...</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE: 申請管理 -->
+<div class="page" id="page-admin">
+  <div style="display:flex;gap:0;margin-bottom:16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:var(--shadow);">
+    <button id="adminTab-leave" onclick="switchAdminTab('leave')" style="flex:1;padding:12px 8px;border:none;background:var(--blue);color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:700;cursor:pointer;border-radius:12px 0 0 12px;transition:all 0.2s;">📝 有給申請</button>
+    <button id="adminTab-shift" onclick="switchAdminTab('shift')" style="flex:1;padding:12px 8px;border:none;background:var(--surface2);color:var(--text-sub);font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:700;cursor:pointer;border-radius:0 12px 12px 0;transition:all 0.2s;">📆 シフト申請</button>
+  </div>
+  <div id="adminPanel-leave">
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
+      <div class="sel-wrap" style="flex:1;min-width:100px;margin:0;"><select id="adminLeaveFilter" onchange="renderAdminLeaveList()" style="padding:10px 32px 10px 10px;font-size:13px;"><option value="all">全員</option></select><span class="sel-arrow" style="font-size:11px;">▼</span></div>
+      <div class="sel-wrap" style="flex:1;min-width:100px;margin:0;"><select id="adminLeaveStatusFilter" onchange="renderAdminLeaveList()" style="padding:10px 32px 10px 10px;font-size:13px;"><option value="all">全ステータス</option><option value="pending">🔵 審査中のみ</option><option value="cancel_requested">🔄 変更・取消のみ</option><option value="approved">✅ 承認済みのみ</option><option value="rejected">❌ 却下のみ</option></select><span class="sel-arrow" style="font-size:11px;">▼</span></div>
+    </div>
+    <div id="adminLeaveCount" style="font-size:12px;color:var(--text-sub);margin-bottom:8px;"></div>
+    <div id="adminLeaveList"><div style="color:var(--text-sub);font-size:13px;padding:20px;text-align:center;">読み込み中...</div></div>
+  </div>
+  <div id="adminPanel-shift" style="display:none;">
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
+      <div class="sel-wrap" style="flex:1;min-width:100px;margin:0;"><select id="adminShiftFilter" onchange="renderAdminShiftList()" style="padding:10px 32px 10px 10px;font-size:13px;"><option value="all">全員</option></select><span class="sel-arrow" style="font-size:11px;">▼</span></div>
+      <div class="sel-wrap" style="flex:1;min-width:100px;margin:0;"><select id="adminShiftStatusFilter" onchange="renderAdminShiftList()" style="padding:10px 32px 10px 10px;font-size:13px;"><option value="all">全ステータス</option><option value="pending">🔵 審査中のみ</option><option value="cancel_requested">🔄 変更・取消のみ</option><option value="approved">✅ 承認済みのみ</option><option value="rejected">❌ 却下のみ</option></select><span class="sel-arrow" style="font-size:11px;">▼</span></div>
+    </div>
+    <div id="adminShiftCount" style="font-size:12px;color:var(--text-sub);margin-bottom:8px;"></div>
+    <div id="adminShiftList"><div style="color:var(--text-sub);font-size:13px;padding:20px;text-align:center;">読み込み中...</div></div>
+  </div>
+</div>
+
+<!-- PAGE: 社員管理 -->
+<div class="page" id="page-employees">
+  <div class="card">
+    <div class="section-title">➕ 社員を追加</div>
+    <div class="label">氏名</div>
+    <input type="text" id="newEmpName" placeholder="例：田中 太郎">
+    <div class="label">雇用区分</div>
+    <div class="sel-wrap" style="margin-bottom:12px;"><select id="newEmpType"><option value="正社員">正社員</option><option value="パート">パート</option></select><span class="sel-arrow">▼</span></div>
+    <div class="label">チーム</div>
+    <div class="sel-wrap" style="margin-bottom:12px;"><select id="newEmpTeam"></select><span class="sel-arrow">▼</span></div>
+    <button class="btn-full btn-full-amber" onclick="addEmployee()">追加する</button>
+  </div>
+  <div class="card">
+    <div class="section-title">👥 社員一覧</div>
+    <div id="employeeList"></div>
+  </div>
+  <div class="card" id="pinSettingsCard">
+    <div class="section-title">🔐 PINコード管理（iPadチーム用）</div>
+    <div style="font-size:13px;color:var(--text-sub);margin-bottom:14px;line-height:1.7;">iPadチームの社員にPINコードを設定します。打刻時にPINの入力が必要になります。</div>
+    <div id="pinSettingsList"></div>
+  </div>
+</div>
+
+<!-- PAGE: QRコード -->
+<div class="page" id="page-qr">
+  <div class="card">
+    <div class="section-title">🔗 個人専用URLとQRコード</div>
+    <div style="font-size:13px;color:var(--text-sub);margin-bottom:16px;line-height:1.7;">各社員の専用URLを発行します。このURLを開くと自動的に本人の名前が設定され、他の人を選択できなくなります。</div>
+    <div id="qrList"></div>
+  </div>
+  <div class="card">
+    <div class="section-title">📋 配布方法</div>
+    <div style="font-size:13px;color:var(--text-sub);line-height:1.8;">
+      <b style="color:var(--text);">① QRコードを印刷</b><br>各社員のQRコードを印刷して渡すか、デスクに貼る。<br><br>
+      <b style="color:var(--text);">② SlackでURLを送る</b><br>「URLをコピー」してSlackのDMで送り、スマホのホーム画面に追加してもらう。<br><br>
+      <b style="color:var(--text);">③ ホーム画面への追加方法（社員に案内）</b><br>
+      iPhoneの場合：Safariで開く→共有ボタン→「ホーム画面に追加」<br>
+      Androidの場合：Chromeで開く→メニュー→「ホーム画面に追加」
+    </div>
+  </div>
+</div>
+
+<!-- PAGE: 設定 -->
+<div class="page" id="page-settings">
+  <div class="card">
+    <div class="section-title">⚙️ GAS URL設定</div>
+    <div class="label">WebアプリURL</div>
+    <input type="text" id="gasUrlSettings" value="https://script.google.com/macros/s/AKfycbwYs7SpsnnXYgCdotURcO2BCfYlD0AtYw0jMSC7h07kRmhYM8kZf7VDXveXixPsvjt8bw/exec">
+    <button class="btn-full btn-full-amber" onclick="saveGasUrlSettings()">保存する</button>
+  </div>
+  <div class="card">
+    <div class="section-title">📅 年間法定休日設定</div>
+    <div style="font-size:13px;color:var(--text-sub);margin-bottom:14px;line-height:1.7;">会社が定める年間の法定休日数を設定します。従業員の休日消化状況の計算に使用します。</div>
+    <div class="label">年間法定休日数</div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+      <input type="number" id="annualHolidayDays" min="0" max="366" step="1" placeholder="例：97" style="flex:1;margin-bottom:0;">
+      <span style="font-size:14px;color:var(--text-sub);white-space:nowrap;">日 / 年</span>
+    </div>
+    <button class="btn-full btn-full-amber" onclick="saveAnnualHolidayDays()">保存する</button>
+  </div>
+  <div class="card">
+    <div class="section-title">📅 会社指定休日・有給奨励日</div>
+    <div style="font-size:13px;color:var(--text-sub);margin-bottom:14px;line-height:1.7;">
+      <b>指定休日</b>：法定休日としてカウントされます。<br>
+      <b>有給奨励日</b>：全社員の有給日数から自動差し引きされます（法定休日カウントなし）。
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+      <input type="date" id="newCompanyHoliday" style="flex:1;min-width:120px;margin-bottom:0;">
+      <input type="text" id="newCompanyHolidayLabel" placeholder="例：夏季休暇" style="flex:1;min-width:100px;margin-bottom:0;">
+      <div class="sel-wrap" style="margin:0;min-width:120px;">
+        <select id="newCompanyHolidayType" style="padding:12px 32px 12px 10px;font-size:13px;"><option value="designated">🗓 指定休日</option><option value="encourage">🌸 有給奨励日</option></select>
+        <span class="sel-arrow" style="font-size:11px;">▼</span>
+      </div>
+      <button onclick="addCompanyHoliday()" style="padding:12px 16px;border:none;border-radius:10px;background:linear-gradient(135deg,#d97706,#f59e0b);color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">追加</button>
+    </div>
+    <div id="companyHolidayList" style="margin-bottom:12px;"></div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="bulkAddCompanyHolidays()" style="flex:1;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">📋 まとめて入力</button>
+      <button onclick="clearCompanyHolidays()" style="flex:1;padding:10px;border:1px solid var(--red);border-radius:10px;background:var(--red-bg);color:var(--red);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">🗑 全削除</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="section-title">🏢 チーム・部署管理</div>
+    <div style="font-size:13px;color:var(--text-sub);margin-bottom:14px;line-height:1.7;">チームを追加・削除できます。社員追加時のチーム選択に反映されます。</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <input type="text" id="newTeamName" placeholder="例：製造" style="flex:1;margin-bottom:0;">
+      <div class="sel-wrap" style="margin:0;width:110px;">
+        <select id="newTeamDevice" style="padding:12px 32px 12px 10px;font-size:13px;"><option value="smartphone">📱スマホ</option><option value="tablet">📲iPad</option></select>
+        <span class="sel-arrow" style="font-size:11px;">▼</span>
+      </div>
+      <button onclick="addTeam()" style="padding:12px 16px;border:none;border-radius:10px;background:linear-gradient(135deg,#d97706,#f59e0b);color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">追加</button>
+    </div>
+    <div id="teamList"></div>
+  </div>
+  <div class="card">
+    <div class="section-title" style="color:var(--red);">🗑 データ管理</div>
+    <div style="font-size:13px;color:var(--text-sub);margin-bottom:12px;">申請履歴・社員データをリセットします。打刻ログはスプレッドシートに残ります。</div>
+    <button class="btn-full btn-full-red" onclick="confirmReset()" style="margin-bottom:8px;">データをリセット</button>
+    <button class="btn-full" style="background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber);" onclick="resetTeams()">🏢 チームをデフォルトに戻す</button>
+  </div>
+</div>
+
+<!-- MODAL: 会社指定休日まとめて入力 -->
+<div class="overlay" id="bulkHolidayOverlay">
+  <div class="modal">
+    <div class="modal-title">📋 会社指定休日まとめて入力</div>
+    <div style="font-size:12px;color:var(--text-sub);margin-bottom:10px;line-height:1.7;">1行に1日ずつ入力してください。<br>形式: <b>YYYY-MM-DD</b> または <b>YYYY-MM-DD 名称</b></div>
+    <textarea id="bulkHolidayText" style="width:100%;height:160px;padding:10px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-family:'DM Mono',monospace;font-size:13px;resize:vertical;box-sizing:border-box;" placeholder="2025-08-13 夏季休暇&#10;2025-08-14&#10;2025-12-30 年末休暇"></textarea>
+    <div class="modal-actions" style="margin-top:12px;">
+      <button class="btn-full" style="background:var(--surface3);color:var(--text);border:1px solid var(--border);" onclick="document.getElementById('bulkHolidayOverlay').classList.remove('open')">キャンセル</button>
+      <button class="btn-full btn-full-amber" onclick="saveBulkHolidays()">登録する</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: 社員編集 -->
+<div class="overlay" id="editOverlay">
+  <div class="modal">
+    <div class="modal-title">社員情報を編集</div>
+    <div class="label">氏名</div><input type="text" id="editEmpName">
+    <div class="label">雇用区分</div>
+    <div class="sel-wrap"><select id="editEmpType"><option value="正社員">正社員</option><option value="パート">パート</option></select><span class="sel-arrow">▼</span></div>
+    <div class="label" style="margin-top:8px;">チーム</div>
+    <div class="sel-wrap" style="margin-bottom:8px;"><select id="editEmpTeam"></select><span class="sel-arrow">▼</span></div>
+    <div class="label" style="margin-top:8px;">アイコン文字 <span style="font-size:11px;color:var(--text-sub);">（省略時は名前の先頭1文字）</span></div>
+    <input type="text" id="editEmpIcon" maxlength="2" placeholder="例：美　あ" style="width:80px;">
+    <div class="label" style="margin-top:12px;">有給付与日数</div><input type="number" id="editPaidLeave" min="0" max="40" step="0.5" placeholder="0">
+    <div class="label" style="margin-top:8px;">代休付与日数</div><input type="number" id="editCompLeave" min="0" max="40" step="0.5" placeholder="0">
+    <div class="modal-actions">
+      <button class="btn-full" style="background:var(--surface3);color:var(--text);border:1px solid var(--border);" onclick="closeModal()">キャンセル</button>
+      <button class="btn-full btn-full-amber" onclick="saveEdit()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: PIN認証 -->
+<div class="overlay" id="pinOverlay">
+  <div class="modal" style="max-width:300px;text-align:center;">
+    <div style="font-size:32px;margin-bottom:8px;">🔐</div>
+    <div class="modal-title" style="text-align:center;" id="pinModalName">PINを入力</div>
+    <div style="font-size:13px;color:var(--text-sub);margin-bottom:20px;">4桁のPINコードを入力してください</div>
+    <div id="pinDots" style="display:flex;justify-content:center;gap:12px;margin-bottom:20px;">
+      <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;">
+      <button class="pin-key" onclick="pinInput('1')">1</button><button class="pin-key" onclick="pinInput('2')">2</button><button class="pin-key" onclick="pinInput('3')">3</button>
+      <button class="pin-key" onclick="pinInput('4')">4</button><button class="pin-key" onclick="pinInput('5')">5</button><button class="pin-key" onclick="pinInput('6')">6</button>
+      <button class="pin-key" onclick="pinInput('7')">7</button><button class="pin-key" onclick="pinInput('8')">8</button><button class="pin-key" onclick="pinInput('9')">9</button>
+      <button class="pin-key pin-key-clear" onclick="pinClear()">✕</button><button class="pin-key" onclick="pinInput('0')">0</button><button class="pin-key pin-key-del" onclick="pinDelete()">⌫</button>
+    </div>
+    <button class="btn-full" style="background:var(--surface3);color:var(--text);border:1px solid var(--border);margin-top:4px;" onclick="closePinModal()">キャンセル</button>
+  </div>
+</div>
+
+<!-- MODAL: セルフィー撮影 -->
+<div class="overlay" id="selfieOverlay">
+  <div class="modal" style="max-width:340px;">
+    <div class="modal-title" style="text-align:center;" id="selfieModalTitle">📸 セルフィー撮影</div>
+    <div style="font-size:13px;color:var(--text-sub);text-align:center;margin-bottom:14px;" id="selfieModalSub">カメラに顔を向けて撮影してください</div>
+    <div style="position:relative;border-radius:12px;overflow:hidden;background:#000;margin-bottom:12px;aspect-ratio:4/3;">
+      <video id="selfieVideo" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1);"></video>
+      <canvas id="selfieCanvas" style="display:none;"></canvas>
+      <img id="selfiePreview" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:12px;" />
+      <div id="selfieGuide" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;">
+        <div style="width:120px;height:150px;border:2px dashed rgba(245,158,11,0.6);border-radius:60px;"></div>
+      </div>
+    </div>
+    <div id="selfieBtns">
+      <button class="btn-full btn-full-amber" onclick="takeSelfie()" id="btnShoot">📸 撮影する</button>
+      <button class="btn-full" style="background:var(--surface3);color:var(--text);border:1px solid var(--border);margin-top:8px;" onclick="closeSelfieModal()">キャンセル</button>
+    </div>
+    <div id="selfieConfirmBtns" style="display:none;">
+      <button class="btn-full btn-full-blue" onclick="confirmSelfie()">✅ この写真で打刻する</button>
+      <button class="btn-full" style="background:var(--surface3);color:var(--text);border:1px solid var(--border);margin-top:8px;" onclick="retakeSelfie()">🔄 撮り直す</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <span id="toastIcon">✅</span>
+  <span id="toastText" style="font-size:13px;"></span>
+</div>
+
+<!-- MODAL: シフト変更・取消 -->
+<div id="cancelModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--surface);border-radius:20px;padding:24px 20px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(37,99,235,0.2);">
+    <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px;">🔄 変更・取消の申請</div>
+    <div style="font-size:13px;color:var(--text-sub);margin-bottom:16px;">対象の日付を選択してください（複数可）</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+      <label style="display:flex;align-items:center;gap:8px;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;" id="radioLabelCancel"><input type="radio" name="cancelType" value="cancel" checked onchange="updateCancelTypeUI()"> 🗑️ 取消</label>
+      <label style="display:flex;align-items:center;gap:8px;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;" id="radioLabelChange"><input type="radio" name="cancelType" value="change" onchange="updateCancelTypeUI()"> ✏️ 日程・時間変更</label>
+    </div>
+    <div style="font-size:12px;color:var(--text-sub);margin-bottom:8px;">対象日</div>
+    <div id="cancelDateList" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;max-height:180px;overflow-y:auto;padding:4px 0;"></div>
+    <div id="cancelTimeSection" style="display:none;margin-bottom:16px;">
+      <div style="font-size:12px;color:var(--text-sub);margin-bottom:8px;">変更後の日付（任意）</div>
+      <input type="date" id="cancelNewDate" style="width:100%;margin-bottom:12px;">
+      <div style="font-size:12px;color:var(--text-sub);margin-bottom:8px;">新しい勤務時間</div>
+      <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;">
+        <div style="position:relative;"><select id="cancelTimeStart" style="width:100%;padding:10px 32px 10px 12px;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:14px;appearance:none;cursor:pointer;outline:none;"></select><span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--text-sub);font-size:12px;">▼</span></div>
+        <span style="color:var(--text-sub);">〜</span>
+        <div style="position:relative;"><select id="cancelTimeEnd" style="width:100%;padding:10px 32px 10px 12px;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:14px;appearance:none;cursor:pointer;outline:none;"></select><span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--text-sub);font-size:12px;">▼</span></div>
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--text-sub);margin-bottom:16px;">管理者が確認後に対応します</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <button onclick="closeCancelModal()" style="padding:12px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text-sub);font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">キャンセル</button>
+      <button onclick="submitCancelRequest()" style="padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,#dc2626,#ef4444);color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">申請する</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: 有給変更・取消 -->
+<div id="leaveCancelModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--surface);border-radius:20px;padding:24px 20px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(37,99,235,0.2);">
+    <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px;">🔄 有給の変更・取消申請</div>
+    <div style="font-size:13px;color:var(--text-sub);margin-bottom:16px;">申請種別を選択してください</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+      <label id="leaveCancelRadioCancel" style="display:flex;align-items:center;gap:8px;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text);"><input type="radio" name="leaveCancelType" value="cancel" checked onchange="updateLeaveCancelTypeUI()"> 🗑️ 取消</label>
+      <label id="leaveCancelRadioChange" style="display:flex;align-items:center;gap:8px;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text);"><input type="radio" name="leaveCancelType" value="change" onchange="updateLeaveCancelTypeUI()"> 📅 日程変更</label>
+    </div>
+    <div id="leaveCancelDateSection" style="display:none;margin-bottom:12px;">
+      <div class="label">変更後の取得日</div>
+      <input type="date" id="leaveCancelNewDate" style="width:100%;margin-bottom:0;">
+    </div>
+    <div class="label">理由（任意）</div>
+    <textarea id="leaveCancelNote" rows="3" placeholder="例：日程変更のため　など" style="width:100%;padding:12px;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:14px;resize:none;outline:none;margin-bottom:16px;box-sizing:border-box;"></textarea>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <button onclick="closeLeaveCancelModal()" style="padding:12px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text-sub);font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">キャンセル</button>
+      <button onclick="submitLeaveCancelRequest()" style="padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,#dc2626,#ef4444);color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">申請する</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: 申請確認ダイアログ -->
+<div id="confirmDialog" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:400;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--surface);border-radius:20px;padding:28px 24px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,0.25);">
+    <div id="confirmDialogIcon" style="font-size:32px;text-align:center;margin-bottom:12px;">📝</div>
+    <div id="confirmDialogTitle" style="font-size:16px;font-weight:800;color:var(--text);text-align:center;margin-bottom:16px;"></div>
+    <div id="confirmDialogBody" style="background:var(--surface2);border-radius:12px;padding:14px 16px;margin-bottom:20px;font-size:13px;color:var(--text);line-height:1.9;"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <button onclick="closeConfirmDialog()" style="padding:13px;border:1.5px solid var(--border);border-radius:12px;background:var(--surface2);color:var(--text-sub);font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">キャンセル</button>
+      <button id="confirmDialogOk" style="padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,#d97706,#f59e0b);color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;"></button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: 打刻修正（管理者用）-->
+<div id="punchEditModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:400;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--surface);border-radius:20px;padding:24px 20px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,0.25);">
+    <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px;">🖊️ 打刻修正</div>
+    <div style="display:flex;gap:0;margin-bottom:18px;border-radius:10px;overflow:hidden;border:1px solid var(--border);">
+      <button id="punchEditTabEdit" onclick="switchPunchEditTab('edit')" style="flex:1;padding:9px 4px;border:none;font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;background:var(--blue);color:#fff;transition:all .15s;">✏️ 時刻修正</button>
+      <button id="punchEditTabDelete" onclick="switchPunchEditTab('delete')" style="flex:1;padding:9px 4px;border:none;font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;background:var(--surface2);color:var(--text-sub);transition:all .15s;">🗑️ 削除</button>
+      <button id="punchEditTabAdd" onclick="switchPunchEditTab('add')" style="flex:1;padding:9px 4px;border:none;font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;background:var(--surface2);color:var(--text-sub);transition:all .15s;">➕ 追加</button>
+    </div>
+    <div id="punchEditPanelEdit">
+      <div style="font-size:12px;color:var(--text-sub);margin-bottom:6px;">対象の打刻を選択</div>
+      <div id="punchEditSelectList" style="display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto;margin-bottom:14px;"></div>
+      <div style="font-size:12px;color:var(--text-sub);margin-bottom:6px;">修正後の時刻</div>
+      <input type="time" id="punchEditNewTime" style="width:100%;margin-bottom:0;">
+    </div>
+    <div id="punchEditPanelDelete" style="display:none;">
+      <div style="font-size:12px;color:var(--text-sub);margin-bottom:6px;">削除する打刻を選択</div>
+      <div id="punchDeleteSelectList" style="display:flex;flex-direction:column;gap:6px;max-height:240px;overflow-y:auto;"></div>
+    </div>
+    <div id="punchEditPanelAdd" style="display:none;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+        <div><div style="font-size:12px;color:var(--text-sub);margin-bottom:4px;">氏名</div><div class="sel-wrap" style="margin:0;"><select id="punchAddName" style="padding:10px 28px 10px 10px;font-size:13px;"></select><span class="sel-arrow" style="font-size:11px;">▼</span></div></div>
+        <div><div style="font-size:12px;color:var(--text-sub);margin-bottom:4px;">種別</div><div class="sel-wrap" style="margin:0;"><select id="punchAddType" style="padding:10px 28px 10px 10px;font-size:13px;"><option value="出勤">出勤</option><option value="退勤">退勤</option></select><span class="sel-arrow" style="font-size:11px;">▼</span></div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div><div style="font-size:12px;color:var(--text-sub);margin-bottom:4px;">日付</div><input type="date" id="punchAddDate" style="margin:0;"></div>
+        <div><div style="font-size:12px;color:var(--text-sub);margin-bottom:4px;">時刻</div><input type="time" id="punchAddTime" style="margin:0;"></div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px;">
+      <button onclick="closePunchEditModal()" style="padding:12px;border:1.5px solid var(--border);border-radius:12px;background:var(--surface2);color:var(--text-sub);font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">キャンセル</button>
+      <button id="punchEditOkBtn" onclick="executePunchEdit()" style="padding:12px;border:none;border-radius:12px;background:var(--blue);color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">修正する</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: 管理者：有給日程変更 -->
+<div id="adminLeaveEditModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--surface);border-radius:20px;padding:24px 20px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(37,99,235,0.2);">
+    <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px;">✏️ 有給日程変更</div>
+    <div style="font-size:13px;color:var(--text-sub);margin-bottom:16px;">変更後の取得日を選択してください</div>
+    <div class="label">取得日</div><input type="date" id="adminLeaveEditDate" style="width:100%;margin-bottom:16px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <button onclick="closeAdminLeaveEditModal()" style="padding:12px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text-sub);font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">キャンセル</button>
+      <button onclick="submitAdminLeaveEdit()" style="padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,#2563eb,#3b82f6);color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">変更する</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: 管理者：シフト日程変更 -->
+<div id="adminShiftEditModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--surface);border-radius:20px;padding:24px 20px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(37,99,235,0.2);">
+    <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px;">✏️ シフト日程変更</div>
+    <div style="font-size:13px;color:var(--text-sub);margin-bottom:16px;">変更後の日程・時間を入力してください</div>
+    <div class="label">日付</div><input type="date" id="adminShiftEditDate" style="width:100%;margin-bottom:12px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+      <div><div class="label">開始時間</div><input type="time" id="adminShiftEditTimeStart" style="width:100%;"></div>
+      <div><div class="label">終了時間</div><input type="time" id="adminShiftEditTimeEnd" style="width:100%;"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <button onclick="closeAdminShiftEditModal()" style="padding:12px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text-sub);font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">キャンセル</button>
+      <button onclick="submitAdminShiftEdit()" style="padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,#2563eb,#3b82f6);color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">変更する</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var employeeMaster = {};
+var compConfirmedToday = new Set();
+var punchedTodayIn = new Set();
+var punchedTodayOut = new Set();
+
+function getData(key, def) {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : def; } catch(e) { return def; }
+}
+function setData(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+
+const DEFAULT_TEAMS = [
+  {id:'t1', name:'営業',    device:'smartphone'},
+  {id:'t2', name:'オフィス', device:'tablet'},
+  {id:'t3', name:'加工室',  device:'tablet'},
+];
+let teams = getData('teams', null);
+if (!teams || teams.length === 0) { teams = JSON.parse(JSON.stringify(DEFAULT_TEAMS)); setData('teams', teams); }
+function saveTeams() { setData('teams', teams); }
+
+const DEFAULT_EMPLOYEES = [
+  {id:1,  name:'牛膓',     fullName:'牛膓 健司',    type:'正社員', team:'営業',    device:'smartphone'},
+  {id:2,  name:'齋藤',     fullName:'齋藤 祐平',    type:'正社員', team:'営業',    device:'smartphone'},
+  {id:3,  name:'南岡',     fullName:'南岡 恭介',    type:'正社員', team:'営業',    device:'smartphone'},
+  {id:4,  name:'鈴木由加',                          type:'パート', team:'営業',    device:'smartphone'},
+  {id:5,  name:'伊藤',     fullName:'伊藤 博和',    type:'正社員', team:'オフィス', device:'tablet'},
+  {id:6,  name:'生天目',   fullName:'生天目 知弘',  type:'正社員', team:'オフィス', device:'tablet'},
+  {id:7,  name:'金森',     fullName:'金森 宣明',    type:'正社員', team:'オフィス', device:'tablet'},
+  {id:8,  name:'西岡',                              type:'正社員', team:'オフィス', device:'tablet'},
+  {id:9,  name:'鈴木あかね',                        type:'パート', team:'オフィス', device:'tablet', icon:'あ'},
+  {id:10, name:'鈴木美咲',                          type:'パート', team:'オフィス', device:'tablet', icon:'美'},
+  {id:11, name:'田口',     fullName:'田口 広河',    type:'正社員', team:'営業',    device:'smartphone'},
+  {id:12, name:'三上',     fullName:'三上 小雪',    type:'正社員', team:'加工室',  device:'tablet'},
+];
+let employees = getData('employees', null);
+if (!employees || employees.length === 0) {
+  employees = JSON.parse(JSON.stringify(DEFAULT_EMPLOYEES));
+  setData('employees', employees);
+} else {
+  let updated = false;
+  employees.forEach(emp => {
+    const def = DEFAULT_EMPLOYEES.find(d => d.id === emp.id);
+    if (def) {
+      if (def.icon && !emp.icon) { emp.icon = def.icon; updated = true; }
+      if (def.fullName && !emp.fullName) { emp.fullName = def.fullName; updated = true; }
+    }
+  });
+  if (updated) setData('employees', employees);
+}
+let leaveHistory = getData('leaveHistory', []);
+let shiftHistory = getData('shiftHistory', []);
+let personalUser = null;
+let pins = getData('pins', {});
+let pinBuffer = '';
+let pinPendingAction = null;
+let editingId = null;
+
+// ── CLOCK ──
+function updateClock() {
+  const now = new Date();
+  const days = ['日','月','火','水','木','金','土'];
+  const h = now.getHours();
+  document.getElementById('clock').textContent = now.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  document.getElementById('date').textContent = now.getFullYear()+'年'+(now.getMonth()+1)+'月'+now.getDate()+'日（'+days[now.getDay()]+'）';
+  const greetEl = document.getElementById('greeting');
+  if (greetEl) {
+    if (h < 10) greetEl.textContent = 'おはようございます ☀️';
+    else if (h < 14) greetEl.textContent = 'お疲れ様です 🌤️';
+    else if (h < 18) greetEl.textContent = 'もうひと踏ん張り！ 💪';
+    else greetEl.textContent = 'お疲れ様でした 🌙';
+  }
+}
+try { setInterval(updateClock, 1000); updateClock(); } catch(e) {}
+
+setInterval(async () => {
+  const activePage = document.querySelector('.page.active');
+  if (!activePage) return;
+  const id = activePage.id;
+  if (id === 'page-punch') await loadTodayPunchLog();
+  if (id === 'page-leave') await loadLeaveHistory();
+  if (id === 'page-shift') { await loadShiftHistory(); renderCalendar(); }
+}, 60000);
+
+// ── PAGE NAV ──
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  event.target.classList.add('active');
+  if (id === 'employees') { refreshTeamSelects(); renderEmployees(); renderPinSettingsList(); }
+  if (id === 'leave') { loadLeaveHistory(); loadYearPunchLogs(); }
+  if (id === 'shift') { checkShiftAccess(); loadShiftHistory().then(() => renderCalendar()); }
+  if (id === 'qr') renderQrList();
+  if (id === 'settings') { renderTeamList(); loadAnnualHolidayDays(); renderCompanyHolidayList(); }
+  if (id === 'admin') { loadAdminPage(); }
 }
 
-▼ 修正後（この関数全体に置き換え）:
+// ── GAS通信 ──
+var GAS_URL = 'https://script.google.com/macros/s/AKfycbwYs7SpsnnXYgCdotURcO2BCfYlD0AtYw0jMSC7h07kRmhYM8kZf7VDXveXixPsvjt8bw/exec';
+
+function gasCall(params) { return gasGet(params).catch(function() { return null; }); }
+
+async function gasGet(params) {
+  const qs = Object.entries(params).map(([k,v]) => encodeURIComponent(k)+'='+encodeURIComponent(String(v))).join('&');
+  const fullUrl = GAS_URL + '?' + qs;
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 20000);
+    const res = await fetch(fullUrl, { signal: controller.signal, redirect: 'follow' });
+    clearTimeout(timer);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return await res.json();
+  } catch(e) {
+    console.error('gasGet error:', params.action, e.message);
+    return null;
+  }
+}
+
+// ── EMPLOYEE ──
+function refreshTeamSelects() {
+  const addSel = document.getElementById('newEmpTeam');
+  if (addSel) {
+    const cur = addSel.value;
+    addSel.innerHTML = teams.map(t => `<option value="${t.name}">${t.name}（${t.device==='smartphone'?'📱スマホ':'📲iPad'}）</option>`).join('');
+    if (cur) addSel.value = cur;
+  }
+  const editSel = document.getElementById('editEmpTeam');
+  if (editSel) {
+    const cur2 = editSel.value;
+    editSel.innerHTML = teams.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
+    if (cur2) editSel.value = cur2;
+  }
+}
+
+function refreshSelects() {
+  ['punchName','leaveName','shiftName'].forEach(id => {
+    const sel = document.getElementById(id);
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">-- 選択してください --</option>';
+    employees.forEach(e => { const o = document.createElement('option'); o.value = e.name; o.textContent = e.name+'（'+e.type+'）'; sel.appendChild(o); });
+    sel.value = cur;
+  });
+}
+
+function renderTeamList() {
+  const el = document.getElementById('teamList');
+  if (!el) return;
+  if (!teams.length) { el.innerHTML = '<div style="color:var(--text-sub);font-size:13px;">チームが登録されていません</div>'; return; }
+  el.innerHTML = teams.map(t => {
+    const empCount = employees.filter(e => e.team === t.name).length;
+    const deviceLabel = t.device === 'smartphone' ? '📱スマホ' : '📲iPad';
+    const deviceColor = t.device === 'smartphone' ? 'var(--green)' : 'var(--blue)';
+    return `<div class="emp-item" style="margin-bottom:8px;"><div><div class="emp-name">${t.name}<span style="font-size:10px;color:${deviceColor};border:1px solid ${deviceColor};border-radius:4px;padding:2px 6px;margin-left:6px;">${deviceLabel}</span></div><div class="emp-type">社員 ${empCount}名</div></div><div class="emp-actions"><button class="icon-btn danger" onclick="deleteTeam('${t.id}')" ${empCount>0?'disabled':''}>🗑</button></div></div>`;
+  }).join('');
+}
+
+function addTeam() {
+  const name = document.getElementById('newTeamName').value.trim();
+  const device = document.getElementById('newTeamDevice').value;
+  if (!name) { showToast('⚠️','チーム名を入力してください'); return; }
+  if (teams.find(t => t.name === name)) { showToast('⚠️','同じ名前のチームが既に存在します'); return; }
+  teams.push({id:'t'+Date.now(), name, device});
+  saveTeams();
+  document.getElementById('newTeamName').value = '';
+  renderTeamList(); refreshTeamSelects();
+  showToast('✅',`「${name}」チームを追加しました`);
+}
+
+function deleteTeam(id) {
+  const t = teams.find(t => t.id === id);
+  if (!t) return;
+  if (employees.filter(e => e.team === t.name).length > 0) { showToast('⚠️','社員が所属しているチームは削除できません'); return; }
+  if (!confirm(`「${t.name}」チームを削除しますか？`)) return;
+  teams = teams.filter(x => x.id !== id);
+  saveTeams(); renderTeamList(); refreshTeamSelects();
+  showToast('🗑','削除しました');
+}
+
+function renderEmployees() {
+  const el = document.getElementById('employeeList');
+  if (!employees.length) { el.innerHTML = '<div style="color:var(--text-sub);font-size:13px;">社員が登録されていません</div>'; return; }
+  el.innerHTML = employees.map(e => {
+    const isPhone = e.device === 'smartphone';
+    const teamBadge = isPhone
+      ? `<span style="font-size:10px;background:#0d2818;color:#22c55e;border:1px solid #22c55e;border-radius:4px;padding:2px 6px;margin-left:6px;">📱${e.team||'未設定'}</span>`
+      : `<span style="font-size:10px;background:#0d1a2e;color:#3b82f6;border:1px solid #3b82f6;border-radius:4px;padding:2px 6px;margin-left:6px;">📲${e.team||'未設定'}</span>`;
+    return `<div class="emp-item"><div><div class="emp-name">${e.name} ${teamBadge}</div><div class="emp-type">${e.type}</div></div><div class="emp-actions"><button class="icon-btn" onclick="openEdit(${e.id})">✏️</button><button class="icon-btn danger" onclick="deleteEmployee(${e.id})">🗑</button></div></div>`;
+  }).join('');
+}
+
+function addEmployee() {
+  const name = document.getElementById('newEmpName').value.trim();
+  const type = document.getElementById('newEmpType').value;
+  const team = document.getElementById('newEmpTeam').value;
+  const teamObj = teams.find(t => t.name === team);
+  const device = teamObj ? teamObj.device : 'smartphone';
+  if (!name) { showToast('⚠️','氏名を入力してください'); return; }
+  if (employees.find(e => e.name === name)) { showToast('⚠️','同じ名前の社員が既に存在します'); return; }
+  employees.push({id:Date.now(), name, type, team, device});
+  setData('employees', employees);
+  document.getElementById('newEmpName').value = '';
+  renderEmployees(); refreshSelects();
+  showToast('✅', name+'さんを追加しました');
+}
+
+function deleteEmployee(id) {
+  const emp = employees.find(e => e.id === id);
+  if (!confirm(emp.name+'さんを削除しますか？')) return;
+  employees = employees.filter(e => e.id !== id);
+  setData('employees', employees);
+  renderEmployees(); refreshSelects();
+  showToast('🗑','削除しました');
+}
+
+function openEdit(id) {
+  editingId = id;
+  const emp = employees.find(e => e.id === id);
+  document.getElementById('editEmpName').value = emp.name;
+  document.getElementById('editEmpType').value = emp.type;
+  refreshTeamSelects();
+  document.getElementById('editEmpTeam').value = emp.team || '';
+  document.getElementById('editPaidLeave').value = emp.paidLeave !== undefined ? emp.paidLeave : '';
+  document.getElementById('editCompLeave').value = emp.compLeave !== undefined ? emp.compLeave : '';
+  document.getElementById('editEmpIcon').value = emp.icon || '';
+  document.getElementById('editOverlay').classList.add('open');
+}
+
+function closeModal() { document.getElementById('editOverlay').classList.remove('open'); editingId = null; }
+
+function saveEdit() {
+  const name = document.getElementById('editEmpName').value.trim();
+  const type = document.getElementById('editEmpType').value;
+  if (!name) { showToast('⚠️','氏名を入力してください'); return; }
+  const emp = employees.find(e => e.id === editingId);
+  emp.name = name; emp.type = type;
+  const newTeam = document.getElementById('editEmpTeam').value;
+  if (newTeam) { emp.team = newTeam; const teamObj = teams.find(t => t.name === newTeam); if (teamObj) emp.device = teamObj.device; }
+  var pl = parseFloat(document.getElementById('editPaidLeave').value);
+  var cl = parseFloat(document.getElementById('editCompLeave').value);
+  emp.paidLeave = isNaN(pl) ? (emp.paidLeave||0) : pl;
+  emp.compLeave = isNaN(cl) ? (emp.compLeave||0) : cl;
+  const iconVal = document.getElementById('editEmpIcon').value.trim();
+  emp.icon = iconVal || undefined;
+  setData('employees', employees);
+  gasCall({action:'employee_set', name, paidLeave:emp.paidLeave, compLeave:emp.compLeave, empType:emp.type});
+  closeModal(); renderEmployees(); refreshSelects();
+  showToast('✅','更新しました');
+}
+
+// ── 打刻修正 ──
+var _punchEditTab = 'edit';
+var _todayPunchRaw = [];
+var _punchEditTargetRow = null;
+
+function openPunchEditModal() {
+  const nameSelect = document.getElementById('punchAddName');
+  if (nameSelect) nameSelect.innerHTML = employees.map(e => `<option value="${e.name}">${e.name}</option>`).join('');
+  const today = new Date();
+  const todayStr = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+  const addDate = document.getElementById('punchAddDate');
+  if (addDate) addDate.value = todayStr;
+  switchPunchEditTab('edit');
+  document.getElementById('punchEditModal').style.display = 'flex';
+}
+
+function closePunchEditModal() { document.getElementById('punchEditModal').style.display = 'none'; _punchEditTargetRow = null; }
+
+function switchPunchEditTab(tab) {
+  _punchEditTab = tab;
+  ['edit','delete','add'].forEach(t => {
+    const panel = document.getElementById('punchEditPanel'+t.charAt(0).toUpperCase()+t.slice(1));
+    const btn = document.getElementById('punchEditTab'+t.charAt(0).toUpperCase()+t.slice(1));
+    if (panel) panel.style.display = (t===tab)?'block':'none';
+    if (btn) { btn.style.background=(t===tab)?'var(--blue)':'var(--surface2)'; btn.style.color=(t===tab)?'#fff':'var(--text-sub)'; }
+  });
+  const okBtn = document.getElementById('punchEditOkBtn');
+  if (okBtn) {
+    if (tab==='delete') { okBtn.textContent='削除する'; okBtn.style.background='#dc2626'; }
+    else if (tab==='add') { okBtn.textContent='追加する'; okBtn.style.background='var(--green,#16a34a)'; }
+    else { okBtn.textContent='修正する'; okBtn.style.background='var(--blue)'; }
+  }
+  if (tab==='edit'||tab==='delete') renderPunchEditList(tab);
+}
+
+function renderPunchEditList(tab) {
+  const listId = tab==='edit'?'punchEditSelectList':'punchDeleteSelectList';
+  const el = document.getElementById(listId);
+  if (!el) return;
+  if (!_todayPunchRaw.length) { el.innerHTML='<div style="color:var(--text-sub);font-size:12px;padding:8px;">本日の打刻データがありません</div>'; return; }
+  el.innerHTML = _todayPunchRaw.map(r => {
+    const typeColor = r.type==='出勤'?'var(--green)':'var(--red)';
+    const typeBg = r.type==='出勤'?'var(--green-bg)':'var(--red-bg)';
+    const selected = tab==='edit'&&_punchEditTargetRow&&_punchEditTargetRow.rowIndex===r.rowIndex;
+    return `<div data-punch-row="${tab}" data-row-index="${r.rowIndex}" data-row-time="${r.time}" data-selected="0" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:10px;border:1.5px solid ${selected?'var(--blue)':'var(--border)'};background:${selected?'var(--blue-bg,#eff6ff)':'var(--surface2)'};cursor:pointer;transition:all .15s;">
+      <div style="font-weight:700;font-size:13px;pointer-events:none;">${r.name}</div>
+      <div style="display:flex;align-items:center;gap:8px;pointer-events:none;"><span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;background:${typeBg};color:${typeColor};">${r.type}</span><span style="font-size:13px;font-family:'DM Mono',monospace;">${r.time}</span></div>
+    </div>`;
+  }).join('');
+  const handler = function(e) {
+    e.preventDefault();
+    const row = e.target.closest('[data-punch-row]');
+    if (!row) return;
+    selectPunchRow(parseInt(row.dataset.rowIndex), row.dataset.rowTime, row, tab);
+  };
+  el.addEventListener('click', handler);
+  el.addEventListener('touchend', handler, {passive:false});
+}
+
+function selectPunchRow(rowIndex, time, el, tab) {
+  if (tab==='edit') {
+    _punchEditTargetRow = _todayPunchRaw.find(r => r.rowIndex===rowIndex);
+    const timeInput = document.getElementById('punchEditNewTime');
+    if (timeInput && time) timeInput.value = time;
+    renderPunchEditList('edit');
+  } else {
+    el.dataset.selected = el.dataset.selected==='1'?'0':'1';
+    el.style.border = el.dataset.selected==='1'?'1.5px solid #dc2626':'1.5px solid var(--border)';
+    el.style.background = el.dataset.selected==='1'?'#fff5f5':'var(--surface2)';
+  }
+}
+
+async function executePunchEdit() {
+  if (_punchEditTab==='edit') {
+    if (!_punchEditTargetRow) { showToast('⚠️','修正する打刻を選択してください'); return; }
+    const newTime = document.getElementById('punchEditNewTime').value;
+    if (!newTime) { showToast('⚠️','修正後の時刻を入力してください'); return; }
+    showToast('⏳','修正中...');
+    await gasGet({action:'punch_edit', rowIndex:_punchEditTargetRow.rowIndex, newTime});
+    showToast('✅',_punchEditTargetRow.name+'さんの打刻を'+newTime+'に修正しました');
+  } else if (_punchEditTab==='delete') {
+    const selected = [...document.querySelectorAll('#punchDeleteSelectList [data-selected="1"]')];
+    if (!selected.length) { showToast('⚠️','削除する打刻を選択してください'); return; }
+    if (!confirm(selected.length+'件の打刻を削除します。元に戻せません。よろしいですか？')) return;
+    showToast('⏳','削除中...');
+    const rowIndexes = selected.map(el => parseInt(el.dataset.rowIndex)).sort((a,b) => b-a);
+    for (const rowIndex of rowIndexes) { await gasGet({action:'punch_delete', rowIndex}); }
+    showToast('🗑️',selected.length+'件の打刻を削除しました');
+  } else if (_punchEditTab==='add') {
+    const name = document.getElementById('punchAddName').value;
+    const type = document.getElementById('punchAddType').value;
+    const date = document.getElementById('punchAddDate').value;
+    const time = document.getElementById('punchAddTime').value;
+    if (!name||!date||!time) { showToast('⚠️','すべての項目を入力してください'); return; }
+    showToast('⏳','追加中...');
+    await gasGet({action:'punch_add', name, type, date, time});
+    showToast('✅',name+'さんの'+type+'（'+time+'）を追加しました');
+  }
+  closePunchEditModal();
+  punchedTodayIn.clear(); punchedTodayOut.clear();
+  await loadTodayPunchLog();
+}
+
+// ── PUNCH ──
+async function handlePunch(type) {
+  const name = document.getElementById('punchName').value;
+  if (!name) { showToast('⚠️','氏名を選択してください'); return; }
+  const emp = employees.find(e => e.name===name);
+  if (emp && emp.device==='tablet' && !personalUser) { openSelfieModal(name, type); return; }
+  executePunch(name, type);
+}
+
+async function executePunch(name, type) {
+  if (type==='出勤'&&punchedTodayIn.has(name)) { showToast('⚠️',name+'さんは本日すでに出勤済みです'); return; }
+  if (type==='退勤'&&punchedTodayOut.has(name)) { showToast('⚠️',name+'さんは本日すでに退勤済みです'); return; }
+  document.getElementById('btnIn').disabled = true;
+  document.getElementById('btnOut').disabled = true;
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
+  try {
+    await gasGet({action:'punch', name, type, timestamp:now.toISOString()});
+    if (type==='出勤') punchedTodayIn.add(name);
+    if (type==='退勤') punchedTodayOut.add(name);
+    showToast('✅',name+'さんの'+type+'を記録しました（'+timeStr+'）');
+    setTimeout(loadTodayPunchLog, 1500);
+  } catch(e) {
+    if (type==='出勤') punchedTodayIn.add(name);
+    if (type==='退勤') punchedTodayOut.add(name);
+    showToast('✅',name+'さんの'+type+'を記録しました（'+timeStr+'）');
+    setTimeout(loadTodayPunchLog, 1500);
+  } finally {
+    setTimeout(() => { document.getElementById('btnIn').disabled=false; document.getElementById('btnOut').disabled=false; }, 2000);
+  }
+}
+
+async function loadTodayPunchLog() {
+  const el = document.getElementById('todayPunchLog');
+  try {
+    const data = await gasGet({action:'punch_today'});
+    if (!data) { if (el) el.innerHTML='<div style="color:var(--text-sub);font-size:13px;">接続中...</div>'; return; }
+    renderTodayPunchLog(data);
+    const t = new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    const updEl = document.getElementById('punchLogUpdated');
+    if (updEl) updEl.textContent = t+' 更新';
+  } catch(e) { if (el) el.innerHTML='<div style="color:var(--text-sub);font-size:13px;">読み込みエラー</div>'; }
+}
+
+function renderTodayPunchLog(logs) {
+  const el = document.getElementById('todayPunchLog');
+  if (!el) return;
+  _todayPunchRaw = logs;
+  const editBtn = document.getElementById('punchEditOpenBtn');
+  if (editBtn) editBtn.style.display = (!personalUser&&logs.length>0)?'inline-block':'none';
+  const map = {};
+  logs.forEach(r => {
+    if (!map[r.name]) map[r.name]={name:r.name,in:'',out:''};
+    if (r.type==='出勤') { map[r.name].in=r.time; punchedTodayIn.add(r.name); }
+    if (r.type==='退勤') { map[r.name].out=r.time; punchedTodayOut.add(r.name); }
+  });
+  updatePunchButtons(map);
+  if (!logs.length) { el.innerHTML='<div style="color:var(--text-sub);font-size:13px;">本日の打刻はまだありません</div>'; return; }
+  const rows = Object.values(map).sort((a,b) => a.in.localeCompare(b.in));
+  const todayIsComp = isCompRestDay(new Date());
+  el.innerHTML = rows.map(r => {
+    const statusLabel = r.out?'退勤済':r.in?'出勤中':'';
+    const statusColor = r.out?'var(--text-sub)':'var(--green)';
+    const statusBg = r.out?'var(--surface2)':'var(--green-bg)';
+    const compBtn = (!personalUser&&todayIsComp&&r.in&&!compConfirmedToday.has(r.name))?`<button onclick="confirmCompLeave('${r.name}')" style="margin-left:8px;padding:4px 8px;border-radius:6px;background:#eff6ff;color:#3b82f6;border:1px solid #3b82f6;font-size:11px;font-weight:700;cursor:pointer;">＋代休</button>`:'';
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+      <div style="font-weight:700;font-size:14px;color:var(--text);min-width:80px;">${r.name}</div>
+      <div style="font-size:13px;color:var(--text-sub);font-family:'DM Mono',ui-monospace,monospace;flex:1;text-align:center;">${r.in?'🟢 '+r.in:'—'}　${r.out?'🔴 '+r.out:r.in?'<span style="color:var(--amber);">退勤待ち</span>':''}</div>
+      <div style="display:flex;align-items:center;"><span style="font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;background:${statusBg};color:${statusColor};">${statusLabel}</span>${compBtn}</div>
+    </div>`;
+  }).join('');
+}
+
+function updatePunchButtons(map) {
+  const btnIn = document.getElementById('btnIn');
+  const btnOut = document.getElementById('btnOut');
+  if (!btnIn||!btnOut) return;
+  const name = personalUser||document.getElementById('punchName').value;
+  if (!name) { btnIn.disabled=false; btnOut.disabled=false; return; }
+  const status = map[name]||{in:'',out:''};
+  const hasIn = !!status.in, hasOut = !!status.out;
+  btnIn.disabled=hasIn; btnIn.style.opacity=hasIn?'0.4':'1';
+  btnOut.disabled=hasOut||!hasIn; btnOut.style.opacity=(hasOut||!hasIn)?'0.4':'1';
+}
+
+// ── LEAVE ──
+var _confirmCallback = null;
+
+function showConfirmDialog({icon,title,body,okLabel,okColor,onOk}) {
+  document.getElementById('confirmDialogIcon').textContent = icon||'📝';
+  document.getElementById('confirmDialogTitle').textContent = title||'確認';
+  document.getElementById('confirmDialogBody').innerHTML = body||'';
+  const okBtn = document.getElementById('confirmDialogOk');
+  okBtn.textContent = okLabel||'送信する';
+  okBtn.style.background = okColor||'linear-gradient(135deg,#d97706,#f59e0b)';
+  _confirmCallback = onOk;
+  okBtn.onclick = async () => { const cb=_confirmCallback; closeConfirmDialog(); if(cb) await cb(); };
+  document.getElementById('confirmDialog').style.display = 'flex';
+}
+
+function closeConfirmDialog() { document.getElementById('confirmDialog').style.display='none'; _confirmCallback=null; }
+
+function submitLeave() {
+  const name = document.getElementById('leaveName').value;
+  const date = document.getElementById('leaveDate').value;
+  const reason = document.getElementById('leaveReason').value.trim();
+  if (!name) { showToast('⚠️','申請者を選択してください'); return; }
+  if (!date) { showToast('⚠️','取得日を選択してください'); return; }
+  const kind = document.getElementById('leaveKind').value;
+  const kindLabel = kind==='comp'?'代休':'有給休暇';
+  showConfirmDialog({
+    icon:'📝', title:kindLabel+'の申請確認',
+    body:`<b>申請者：</b>${name}<br><b>取得日：</b>${fmtDate(date)}<br><b>種別：</b>${kindLabel}${reason?'<br><b>理由：</b>'+reason:''}`,
+    okLabel:'申請する', okColor:'linear-gradient(135deg,#d97706,#f59e0b)',
+    onOk: async () => {
+      showToast('⏳','送信中...');
+      await gasCall({action:'leave_submit', name, date, reason:reason||'', kind});
+      document.getElementById('leaveDate').value='';
+      document.getElementById('leaveReason').value='';
+      document.getElementById('leaveKind').value='paid';
+      showToast('📝',kind==='comp'?'代休申請を送信しました':'有給申請を送信しました');
+      await loadLeaveHistory();
+    }
+  });
+}
+
+async function loadYearPunchLogs() {
+  try {
+    const year = new Date().getFullYear();
+    const data = await gasGet({action:'punch_year_get', year});
+    if (Array.isArray(data)) { window.allPunchLogs=data; updateLeaveBalance(); }
+  } catch(e) { console.warn('punch_year_get error:', e); }
+}
+
+// ★ 修正1: loadAnnualHolidayDays をGAS同期対応に
 async function loadAnnualHolidayDays() {
-  // まずlocalStorageから即時表示（レスポンス向上）
-  var localDays = parseInt(localStorage.getItem('annualHolidayDays') || '0') || 0;
+  var localDays = parseInt(localStorage.getItem('annualHolidayDays')||'0')||0;
   var el = document.getElementById('annualHolidayDays');
   if (el && localDays) el.value = localDays;
-
-  // GASから最新値を取得して上書き（全デバイスで同期）
   try {
-    var data = await gasGet({action: 'settings_get'});
+    var data = await gasGet({action:'settings_get'});
     if (data && data.annualHolidayDays) {
-      var gasDays = parseInt(data.annualHolidayDays) || 0;
+      var gasDays = parseInt(data.annualHolidayDays)||0;
       if (gasDays > 0) {
         localStorage.setItem('annualHolidayDays', gasDays);
         if (el) el.value = gasDays;
         return gasDays;
       }
     }
-  } catch(e) {
-    console.warn('settings_get error:', e);
-  }
+  } catch(e) { console.warn('settings_get error:', e); }
   return localDays;
 }
 
-===================================================================
-【修正2】saveAnnualHolidayDays() 関数を置き換え
-===================================================================
-
-▼ 修正前:
-function saveAnnualHolidayDays() {
-  var val = parseInt(document.getElementById('annualHolidayDays').value) || 0;
-  localStorage.setItem('annualHolidayDays', val);
-  showToast('✅', '年間法定休日数を ' + val + ' 日に設定しました');
-  // 有給申請ページが表示中なら再計算
-  updateLeaveBalance();
-}
-
-▼ 修正後:
+// ★ 修正2: saveAnnualHolidayDays をGAS保存対応に
 async function saveAnnualHolidayDays() {
-  var val = parseInt(document.getElementById('annualHolidayDays').value) || 0;
+  var val = parseInt(document.getElementById('annualHolidayDays').value)||0;
   localStorage.setItem('annualHolidayDays', val);
-  // GASにも保存（全デバイスで共有）
-  await gasCall({action: 'settings_set', key: 'annualHolidayDays', value: val});
-  showToast('✅', '年間法定休日数を ' + val + ' 日に設定しました');
+  await gasCall({action:'settings_set', key:'annualHolidayDays', value:val});
+  showToast('✅','年間法定休日数を '+val+' 日に設定しました');
   updateLeaveBalance();
 }
 
-===================================================================
-【修正3】updateLeaveBalance() 内の annualHolidays 取得部分を修正
-===================================================================
-
-updateLeaveBalance() 関数内の以下の部分を探す:
-    var annualHolidays = parseInt(localStorage.getItem('annualHolidayDays') || '0') || 0;
-
-この1行は変更不要。
-ただし、関数の先頭付近に以下を追加して、
-GASから取得した値がlocalStorageに反映された後に呼ばれるよう
-loadLeaveHistory() の中で loadAnnualHolidayDays() を呼ぶ。
-
-===================================================================
-【修正4】loadLeaveHistory() 内に設定値の読み込みを追加
-===================================================================
-
-▼ 修正前（loadLeaveHistory関数内）:
+// ★ 修正3: loadLeaveHistory にsettings_get追加
 async function loadLeaveHistory() {
   const el = document.getElementById('leaveHistory');
   el.innerHTML = '<div style="color:var(--text-sub);font-size:13px;padding:12px 0;">読み込み中...</div>';
-  const params = personalUser
-    ? {action:'leave_get', name: personalUser}
-    : {action:'leave_get'};
-  const [data, masterData] = await Promise.all([
-    gasGet(params),
-    gasGet({action:'employee_get'})
-  ]);
-  leaveHistory = data || [];
-  if (masterData) { employeeMaster = masterData; window.employeeMaster = masterData; }
-  renderLeaveHistory();
-  updateLeaveBalance();
-  checkAdminNotifications();
-}
-
-▼ 修正後（settings_getを並行取得に追加）:
-async function loadLeaveHistory() {
-  const el = document.getElementById('leaveHistory');
-  el.innerHTML = '<div style="color:var(--text-sub);font-size:13px;padding:12px 0;">読み込み中...</div>';
-  const params = personalUser
-    ? {action:'leave_get', name: personalUser}
-    : {action:'leave_get'};
+  const params = personalUser ? {action:'leave_get', name:personalUser} : {action:'leave_get'};
   const [data, masterData, settingsData] = await Promise.all([
     gasGet(params),
     gasGet({action:'employee_get'}),
     gasGet({action:'settings_get'})
   ]);
-  leaveHistory = data || [];
-  if (masterData) { employeeMaster = masterData; window.employeeMaster = masterData; }
-  // ★ 年間法定休日数をGASから同期
+  leaveHistory = data||[];
+  if (masterData) { employeeMaster=masterData; window.employeeMaster=masterData; }
   if (settingsData && settingsData.annualHolidayDays) {
-    var gasDays = parseInt(settingsData.annualHolidayDays) || 0;
-    if (gasDays > 0) {
-      localStorage.setItem('annualHolidayDays', gasDays);
-    }
+    var gasDays = parseInt(settingsData.annualHolidayDays)||0;
+    if (gasDays > 0) localStorage.setItem('annualHolidayDays', gasDays);
   }
   renderLeaveHistory();
   updateLeaveBalance();
   checkAdminNotifications();
 }
 
-===================================================================
-【修正5】initApp() 内の loadAnnualHolidayDays() 呼び出し箇所
-===================================================================
+function updateLeaveBalance() {
+  const name = personalUser||document.getElementById('leaveName').value;
+  const card = document.getElementById('leaveBalanceCard');
+  if (!name||!card) return;
+  const masterEmp = (window.employeeMaster||{})[name];
+  const localEmp = employees.find(e => e.name===name);
+  if (!masterEmp&&!localEmp) { card.style.display='none'; return; }
+  const paidGranted = masterEmp?(masterEmp.paidLeave||0):(localEmp.paidLeave||0);
+  const compGranted = masterEmp?(masterEmp.compLeave||0):(localEmp.compLeave||0);
+  const activeStatuses = ['approved','pending','cancel_requested'];
+  const paidUsed = leaveHistory.filter(r => r.name===name&&activeStatuses.includes(r.status)&&r.kind!=='comp').length;
+  const compUsed = leaveHistory.filter(r => r.name===name&&activeStatuses.includes(r.status)&&r.kind==='comp').length;
+  const encourageUsed = calcEncourageDaysUsed();
+  const paidRemain = Math.max(0, paidGranted-paidUsed-encourageUsed);
+  const compRemain = Math.max(0, compGranted-compUsed);
+  document.getElementById('paidLeaveBalance').textContent = paidRemain;
+  document.getElementById('compLeaveBalance').textContent = compRemain;
 
-initApp() 関数内の:
-    loadAnnualHolidayDays();
+  var legalBalEl = document.getElementById('legalHolidayBalance');
+  var legalDetailEl = document.getElementById('legalHolidayDetail');
+  var legalCard = document.getElementById('legalHolidayCard');
+  var empType = (masterEmp&&masterEmp.type)||(localEmp&&localEmp.type)||'';
+  var isFulltime = (empType !== 'パート');
+  if (legalCard) legalCard.style.display = isFulltime?'':'none';
+  if (isFulltime) {
+    var annualHolidays = parseInt(localStorage.getItem('annualHolidayDays')||'0')||0;
+    if (annualHolidays > 0) {
+      var holidayUsed = calcLegalHolidayUsed(name);
+      var holidayRemain = Math.max(0, annualHolidays-holidayUsed);
+      if (legalBalEl) legalBalEl.textContent = holidayRemain;
+      var fy = (new Date().getMonth()>=3)?new Date().getFullYear():new Date().getFullYear()-1;
+      if (legalDetailEl) legalDetailEl.textContent = holidayUsed+'/'+annualHolidays+'日消化（'+fy+'年度）';
+    } else {
+      if (legalBalEl) legalBalEl.textContent = '未設定';
+      if (legalDetailEl) legalDetailEl.textContent = '設定→設定タブ';
+    }
+  }
+  card.style.display = 'block';
+}
 
-これは設定ページ用なので変更不要。
-showPage('settings') 時に呼ばれる関数も変更不要。
+function buildLeaveAdminCancelUI(r) {
+  var typeLabel = r.cancelType==='change'?'日程変更':'取消';
+  var html = '<div style="font-size:12px;color:var(--amber);font-weight:700;margin-bottom:6px;">🔄 '+typeLabel+'の申請があります</div>';
+  if (r.cancelType==='change'&&r.newDate) html += '<div style="font-size:12px;color:var(--blue);margin-bottom:6px;">変更希望日：'+fmtDate(r.newDate)+'</div>';
+  if (r.cancelNote) html += '<div style="font-size:12px;color:var(--text-sub);margin-bottom:8px;">理由：'+r.cancelNote+'</div>';
+  var btnStyle = 'padding:8px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;';
+  var approveLabel = r.cancelType==='change'?'✅ 変更を承認':'✅ 取消を承認';
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
+  html += '<button onclick="approveLeaveCancelRequest(\''+r.id+'\',\'approve\')" style="'+btnStyle+'background:var(--green-bg);color:var(--green);border:1px solid var(--green);">'+approveLabel+'</button>';
+  html += '<button onclick="approveLeaveCancelRequest(\''+r.id+'\',\'reject\')" style="'+btnStyle+'background:var(--surface2);color:var(--text-sub);border:1px solid var(--border);">↩️ 却下（維持）</button>';
+  html += '</div>';
+  return html;
+}
 
-===================================================================
-【修正6】showPage('leave') 時の処理（追記）
-===================================================================
+async function partialCancelApprove(id, action, targetDate) {
+  var shift = shiftHistory.find(function(s){ return String(s.id)===String(id); });
+  if (!shift) return;
+  var allDates = shift.cancelDates?shift.cancelDates.split(',').filter(function(d){return d.trim();}):[];
+  var dates = (targetDate==='ALL')?allDates:[targetDate];
+  if (!confirm((action==='approve'?'承認':'却下')+'しますか？\n'+dates.map(fmtDate).join('、'))) return;
+  function toYMD(d) {
+    if (!d) return '';
+    var s = String(d);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    var dt = new Date(s);
+    if (isNaN(dt.getTime())) return s;
+    var jst = new Date(dt.getTime()+9*60*60*1000);
+    return jst.getUTCFullYear()+'-'+String(jst.getUTCMonth()+1).padStart(2,'0')+'-'+String(jst.getUTCDate()).padStart(2,'0');
+  }
+  var normDates = dates.map(toYMD).join(',');
+  var normNewDate = toYMD(shift.newDate||'');
+  showToast('⏳','処理中...');
+  await gasGet({action:'shift_partial_cancel_approve', id, approvedDates:normDates, approveAction:action, newDate:normNewDate});
+  showToast('✅',action==='approve'?'承認しました':'却下しました');
+  await new Promise(function(r){setTimeout(r,1500);});
+  await loadShiftHistory();
+  renderCalendar();
+}
+window.partialCancelApprove = partialCancelApprove;
 
-showPage() 関数内の以下の部分:
-  if (id === 'leave') { loadLeaveHistory(); loadYearPunchLogs(); }
+function renderLeaveHistory() {
+  var el = document.getElementById('leaveHistory');
+  if (!leaveHistory.length) { el.innerHTML='<div style="color:var(--text-sub);font-size:13px;">申請はまだありません</div>'; return; }
+  var html = '';
+  leaveHistory.forEach(function(r) {
+    var statusLabel = r.status==='pending'?'🔵 審査中':r.status==='approved'?'✅ 承認済み':r.status==='cancel_requested'?'🔄 変更・取消申請中':'❌ 却下';
+    var statusClass = r.status==='pending'?'tag-pending':r.status==='approved'?'tag-approved':r.status==='cancel_requested'?'tag-pending':'tag-rejected';
+    html += '<div class="list-item" style="flex-direction:column;align-items:stretch;gap:10px;">';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;">';
+    html += '<div><div class="list-item-name">'+r.name+'</div><div class="list-item-sub">'+(r.date?fmtDate(r.date):'')+(r.reason?'　'+r.reason:'')+'</div></div>';
+    html += '<span class="tag '+statusClass+'">'+statusLabel+'</span></div>';
+    if (r.status==='pending'&&!personalUser) {
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
+      html += '<button data-lid="'+r.id+'" data-la="approve" style="padding:8px;border-radius:8px;background:var(--green-bg);color:var(--green);font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--green);">✅ 承認する</button>';
+      html += '<button data-lid="'+r.id+'" data-la="reject" style="padding:8px;border-radius:8px;background:var(--red-bg);color:var(--red);font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--red);">❌ 却下する</button>';
+      html += '</div>';
+    }
+    if (r.status==='cancel_requested'&&!personalUser) html += buildLeaveAdminCancelUI(r);
+    if ((r.status==='approved'||r.status==='pending')&&personalUser) {
+      html += '<button data-lid="'+r.id+'" data-la="open-cancel" style="width:100%;padding:8px;border-radius:8px;background:#fff8f8;color:#dc2626;font-size:12px;font-weight:700;cursor:pointer;border:1px solid rgba(220,38,38,0.3);">🔄 変更・取消を申請する</button>';
+    }
+    if (r.status==='approved'&&!personalUser) {
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
+      html += '<button onclick="openAdminLeaveEditModal(\''+r.id+'\')" style="padding:8px;border-radius:8px;background:var(--blue-bg,#eff6ff);color:var(--blue,#2563eb);font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--blue,#2563eb);">✏️ 日程変更</button>';
+      html += '<button onclick="adminLeaveDirect(\''+r.id+'\',\'cancel\')" style="padding:8px;border-radius:8px;background:var(--red-bg);color:var(--red);font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--red);">🗑️ 取消</button>';
+      html += '</div>';
+    }
+    if (r.status==='cancel_requested'&&personalUser) html += '<div style="text-align:center;font-size:12px;color:var(--amber);padding:6px;">管理者の確認をお待ちください</div>';
+    html += '</div>';
+  });
+  el.innerHTML = html;
+}
 
-変更不要。loadLeaveHistory() 内で settings_get が呼ばれるようになるため自動的に同期される。
+var leaveCancelTargetId = null;
 
-===================================================================
-まとめ: 変更が必要なのは以下の2関数と1関数内の1箇所のみ
-===================================================================
-1. loadAnnualHolidayDays() → async化してGASからも取得
-2. saveAnnualHolidayDays() → async化してGASにも保存
-3. loadLeaveHistory()       → settings_getを並行取得に追加
+function openLeaveCancelModal(id) {
+  leaveCancelTargetId = id;
+  document.getElementById('leaveCancelNote').value = '';
+  document.getElementById('leaveCancelNewDate').value = '';
+  document.querySelector('input[name="leaveCancelType"][value="cancel"]').checked = true;
+  updateLeaveCancelTypeUI();
+  document.getElementById('leaveCancelModal').style.display = 'flex';
+}
 
-===================================================================
-【補足】西岡さんのフルネームについて
-===================================================================
-GASコードの FULL_NAME_MAP で:
-  '西岡': '西岡',
-となっています。フルネームが確定したら以下のように更新してください:
-  '西岡': '西岡 ○○',
+function closeLeaveCancelModal() { document.getElementById('leaveCancelModal').style.display='none'; leaveCancelTargetId=null; }
+
+function updateLeaveCancelTypeUI() {
+  var type = document.querySelector('input[name="leaveCancelType"]:checked').value;
+  var dateSection = document.getElementById('leaveCancelDateSection');
+  if (dateSection) dateSection.style.display = type==='change'?'block':'none';
+  var lc = document.getElementById('leaveCancelRadioCancel');
+  var lch = document.getElementById('leaveCancelRadioChange');
+  if (lc) lc.style.borderColor = type==='cancel'?'var(--red)':'var(--border)';
+  if (lch) lch.style.borderColor = type==='change'?'var(--blue)':'var(--border)';
+}
+
+async function submitLeaveCancelRequest() {
+  try {
+    var typeRadio = document.querySelector('input[name="leaveCancelType"]:checked');
+    var type = typeRadio?typeRadio.value:'cancel';
+    var note = document.getElementById('leaveCancelNote').value.trim();
+    var newDate = '';
+    if (type==='change') { newDate=document.getElementById('leaveCancelNewDate').value; if(!newDate){showToast('⚠️','変更後の日付を選択してください');return;} }
+    var targetId = leaveCancelTargetId;
+    if (!targetId) { showToast('⚠️','申請IDが取得できませんでした'); return; }
+    closeLeaveCancelModal();
+    showToast('⏳','申請中...');
+    await gasGet({action:'leave_cancel_request', id:targetId, name:personalUser||'', cancelType:type, newDate, cancelNote:note});
+    showToast('🔄',type==='change'?'日程変更を申請しました':'取消を申請しました');
+    await new Promise(function(r){setTimeout(r,1500);});
+    await loadLeaveHistory();
+  } catch(e) { showToast('⚠️','申請中にエラーが発生しました'); }
+}
+
+async function approveLeaveCancelRequest(id, action) {
+  var record = leaveHistory.find(function(r){return r.id===id;});
+  if (!record) return;
+  var typeLabel = record.cancelType==='change'?'日程変更':'取消';
+  var actionLabel = action==='approve'?'承認':'却下（維持）';
+  if (!confirm(typeLabel+'を'+actionLabel+'しますか？')) return;
+  showToast('⏳','処理中...');
+  await gasGet({action:'leave_cancel_approve', id, approveAction:action, newDate:record.newDate||''});
+  showToast(action==='approve'?'✅':'↩️',typeLabel+'を'+actionLabel+'しました');
+  await new Promise(function(r){setTimeout(r,1500);});
+  await loadLeaveHistory();
+}
+
+async function updateLeaveStatus(id, status) {
+  showToast('⏳','処理中...');
+  await gasCall({action:'leave_update', id, status});
+  showToast(status==='approved'?'✅':'❌','有給申請を'+(status==='approved'?'承認':'却下')+'しました');
+  await loadLeaveHistory();
+  if (document.getElementById('page-admin').classList.contains('active')) await loadAdminPage();
+}
+
+// ── SHIFT CALENDAR ──
+let calYear, calMonth, selectedDates = new Set();
+
+function initCalendar() {
+  const now = new Date();
+  calYear = now.getFullYear();
+  calMonth = now.getMonth();
+  buildTimeOptions();
+  renderCalendar();
+}
+
+function changeMonth(dir) {
+  calMonth += dir;
+  if (calMonth>11){calMonth=0;calYear++;}
+  if (calMonth<0){calMonth=11;calYear--;}
+  renderCalendar();
+}
+
+function renderCalendar() {
+  const months=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+  document.getElementById('calTitle').textContent = calYear+'年 '+months[calMonth];
+  const labelsEl = document.getElementById('calDayLabels');
+  const days=['日','月','火','水','木','金','土'];
+  labelsEl.innerHTML = days.map(d=>`<div class="cal-day-label">${d}</div>`).join('');
+  const grid = document.getElementById('calGrid');
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const lastDate = new Date(calYear, calMonth+1, 0).getDate();
+  const today = new Date(); today.setHours(0,0,0,0);
+  const currentName = personalUser||document.getElementById('shiftName').value;
+  const dateStatusMap = {};
+  const dateNamesMap = {};
+  function normDateKey(d) {
+    if (!d) return '';
+    var dt = new Date(d);
+    if (isNaN(dt.getTime())||dt.getFullYear()<2000) return '';
+    return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
+  }
+  shiftHistory.filter(s=>!currentName||s.name===currentName).forEach(s=>{
+    if(s.status==='cancelled') return;
+    s.dates.forEach(d=>{
+      const key=normDateKey(d); if(!key) return;
+      const prev=dateStatusMap[key];
+      const priority={'approved':4,'cancel_requested':3,'pending':2,'rejected':1};
+      if(!prev||(priority[s.status]||0)>(priority[prev]||0)) dateStatusMap[key]=s.status;
+      if(!dateNamesMap[key]) dateNamesMap[key]=[];
+      if(!dateNamesMap[key].find(e=>e.name===s.name)) dateNamesMap[key].push({name:s.name,status:s.status});
+    });
+  });
+  let html='';
+  for(let i=0;i<firstDay;i++) html+='<div class="cal-day cal-day-empty"></div>';
+  for(let d=1;d<=lastDate;d++){
+    const dateStr=calYear+'-'+String(calMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const thisDate=new Date(calYear,calMonth,d);
+    const isPast=thisDate<today, isToday=thisDate.getTime()===today.getTime(), isSelected=selectedDates.has(dateStr);
+    const dateStatus=dateStatusMap[dateStr];
+    let cls='cal-day';
+    if(isPast){cls+=' cal-day-past';if(dateStatus==='approved')cls+=' cal-approved-past';}
+    else if(dateStatus==='approved')cls+=' cal-approved';
+    else if(dateStatus==='pending')cls+=' cal-pending';
+    else if(dateStatus==='cancel_requested')cls+=' cal-cancel-req';
+    else if(dateStatus==='rejected')cls+=' cal-rejected';
+    else if(isSelected)cls+=' selected';
+    else if(isToday)cls+=' today';
+    const isLocked=dateStatus==='approved'||dateStatus==='pending'||dateStatus==='cancel_requested';
+    const clickable=!isPast&&!isLocked?`onclick="toggleDate('${dateStr}')"` :'';
+    let namesHtml='';
+    if(!currentName&&dateNamesMap[dateStr]&&dateNamesMap[dateStr].length>0){
+      const statusColor={'approved':'var(--green)','pending':'var(--blue)','cancel_requested':'#f59e0b','rejected':'var(--red)'};
+      namesHtml='<div style="font-size:7px;line-height:1.3;margin-top:2px;overflow:hidden;max-height:28px;">'+
+        dateNamesMap[dateStr].map(e=>`<span style="color:${statusColor[e.status]||'var(--text-sub)'};display:block;">${e.name}</span>`).join('')+'</div>';
+    }
+    html+=`<div class="${cls}" ${clickable} style="position:relative;padding-bottom:2px;">${d}${namesHtml}</div>`;
+  }
+  grid.innerHTML=html;
+}
+
+function toggleDate(dateStr) {
+  if(selectedDates.has(dateStr))selectedDates.delete(dateStr);else selectedDates.add(dateStr);
+  renderCalendar(); updateTimePicker();
+}
+
+function updateTimePicker() {
+  const section=document.getElementById('timePickerSection');
+  const listEl=document.getElementById('selectedDatesList');
+  if(!section) return;
+  if(selectedDates.size===0){section.style.display='none';return;}
+  section.style.display='block';
+  const sorted=Array.from(selectedDates).sort();
+  const days=['日','月','火','水','木','金','土'];
+  listEl.textContent='選択中：'+sorted.map(d=>{const dt=new Date(d);return(dt.getMonth()+1)+'/'+dt.getDate()+'('+days[dt.getDay()]+')'}).join('、');
+}
+
+function buildTimeOptions() {
+  const startSel=document.getElementById('timeStart');
+  const endSel=document.getElementById('timeEnd');
+  if(!startSel||!endSel) return;
+  startSel.innerHTML=''; endSel.innerHTML='';
+  for(let h=6;h<=22;h++){['00','30'].forEach(m=>{const val=String(h).padStart(2,'0')+':'+m;startSel.innerHTML+=`<option value="${val}">${val}</option>`;endSel.innerHTML+=`<option value="${val}">${val}</option>`;});}
+  startSel.value='09:00'; endSel.value='17:00';
+}
+
+async function submitShift() {
+  const name=document.getElementById('shiftName').value;
+  if(!name){showToast('⚠️','申請者を選択してください');return;}
+  if(selectedDates.size===0){showToast('⚠️','希望日を選択してください');return;}
+  const timeStart=document.getElementById('timeStart').value;
+  const timeEnd=document.getElementById('timeEnd').value;
+  if(timeStart>=timeEnd){showToast('⚠️','終了時刻は開始時刻より後にしてください');return;}
+  const dates=Array.from(selectedDates).sort();
+  const datesPreview=dates.slice(0,3).map(d=>fmtDate(d)).join('、')+(dates.length>3?' 他'+(dates.length-3)+'日':'');
+  showConfirmDialog({
+    icon:'📆', title:'シフト希望の申請確認',
+    body:`<b>申請者：</b>${name}<br><b>日数：</b>${dates.length}日<br><b>日程：</b>${datesPreview}<br><b>時間：</b>${timeStart}〜${timeEnd}`,
+    okLabel:'申請する', okColor:'linear-gradient(135deg,#d97706,#f59e0b)',
+    onOk: async () => {
+      showToast('⏳','送信中...');
+      await gasCall({action:'shift_submit', name, dates:dates.join(','), timeStart, timeEnd});
+      selectedDates.clear();
+      document.getElementById('timePickerSection').style.display='none';
+      showToast('📆',dates.length+'日分のシフト希望を送信しました');
+      await loadShiftHistory(); renderCalendar();
+    }
+  });
+}
+
+function checkShiftAccess() {
+  if(!personalUser) return;
+  const emp=employees.find(e=>e.name===personalUser);
+  if(emp&&emp.type!=='パート'){
+    document.getElementById('page-shift').innerHTML='<div style="padding:40px 20px;text-align:center;color:var(--text-sub);"><div style="font-size:40px;margin-bottom:16px;">🚫</div><div style="font-size:15px;font-weight:700;color:var(--text);">シフト申請は対象外です</div><div style="font-size:13px;margin-top:8px;">パート社員のみ利用できます</div></div>';
+  }
+}
+
+async function loadShiftHistory() {
+  const params=personalUser?{action:'shift_get',name:personalUser}:{action:'shift_get'};
+  const data=await gasGet(params);
+  shiftHistory=data||[];
+  renderShiftHistory();
+  const stBtn=document.getElementById('shiftTableBtn');
+  if(stBtn&&!personalUser) stBtn.style.display='block';
+  checkAdminNotifications();
+}
+
+function buildCancelAdminUI(r) {
+  var typeLabel=r.cancelType==='change'?'日程・時間変更':'取消';
+  var html='<div style="font-size:12px;color:var(--amber);font-weight:700;margin-bottom:6px;">🔄 '+typeLabel+'の申請があります</div>';
+  if(r.newDate) html+='<div style="font-size:12px;color:var(--blue);margin-bottom:4px;">変更後の日付：'+fmtDate(r.newDate)+'</div>';
+  if(r.newTime) html+='<div style="font-size:12px;color:var(--blue);margin-bottom:6px;">新時間：'+r.newTime+'</div>';
+  if(r.cancelDates){
+    var dates=r.cancelDates.split(',').filter(function(d){return d.trim();});
+    html+='<div style="font-size:11px;color:var(--text-sub);margin-bottom:4px;">対象日（1日ずつ承認可）：</div>';
+    html+='<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:8px;">';
+    dates.forEach(function(d){
+      var dTrimmed=d.trim();
+      html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 8px;background:var(--surface2);border-radius:8px;"><span style="font-size:12px;">'+fmtDate(dTrimmed)+'</span><div style="display:flex;gap:4px;">';
+      html+='<button data-pcid="'+r.id+'" data-pcaction="approve" data-pcdate="'+dTrimmed+'" class="partial-cancel-btn" style="padding:3px 8px;border-radius:6px;background:var(--green-bg);color:var(--green);border:1px solid var(--green);font-size:11px;font-weight:700;cursor:pointer;">✅ 承認</button>';
+      html+='<button data-pcid="'+r.id+'" data-pcaction="reject" data-pcdate="'+dTrimmed+'" class="partial-cancel-btn" style="padding:3px 8px;border-radius:6px;background:var(--surface3);color:var(--text-sub);border:1px solid var(--border);font-size:11px;font-weight:700;cursor:pointer;">↩ 却下</button>';
+      html+='</div></div>';
+    });
+    html+='</div>';
+    if(dates.length>1){
+      html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">';
+      html+='<button data-pcid="'+r.id+'" data-pcaction="approve" data-pcdate="ALL" class="partial-cancel-btn" style="padding:6px;border-radius:8px;background:var(--green-bg);color:var(--green);border:1px solid var(--green);font-size:12px;font-weight:700;cursor:pointer;">✅ 全て承認</button>';
+      html+='<button data-pcid="'+r.id+'" data-pcaction="reject" data-pcdate="ALL" class="partial-cancel-btn" style="padding:6px;border-radius:8px;background:var(--surface3);color:var(--text-sub);border:1px solid var(--border);font-size:12px;font-weight:700;cursor:pointer;">↩ 全て却下</button>';
+      html+='</div>';
+    }
+  }
+  return html+'</div>';
+}
+
+function renderShiftHistory() {
+  const el=document.getElementById('shiftHistory');
+  if(!shiftHistory.length){el.innerHTML='<div style="color:var(--text-sub);font-size:13px;">申請はまだありません</div>';return;}
+  el.innerHTML=shiftHistory.map(r=>{
+    const statusLabel=r.status==='pending'?'🔵 審査中':r.status==='approved'?'✅ 承認済み':r.status==='cancel_requested'?'🔄 変更・取消申請中':r.status==='cancelled'?'🗑️ 取消済み':'❌ 却下';
+    const statusClass=r.status==='pending'?'tag-pending':r.status==='approved'?'tag-approved':r.status==='cancel_requested'?'tag-pending':'tag-rejected';
+    const datesArr=Array.isArray(r.dates)?r.dates:r.dates.split(',');
+    const datesPreview=datesArr.slice(0,3).map(d=>fmtDate(d)).join('、')+(datesArr.length>3?'　他'+(datesArr.length-3)+'日':'');
+    const isValidTime=t=>t&&!t.includes('1899');
+    const timeInfo=(isValidTime(r.timeStart)&&isValidTime(r.timeEnd))?r.timeStart.substring(11,16)+'〜'+r.timeEnd.substring(11,16):'';
+    return `<div class="list-item" style="flex-direction:column;align-items:stretch;gap:10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div><div class="list-item-name">${r.name}</div><div class="list-item-sub">${datesArr.length}日　${datesPreview}${timeInfo?'　⏰'+timeInfo:''}</div></div>
+        <span class="tag ${statusClass}">${statusLabel}</span>
+      </div>
+      ${r.status==='pending'&&!personalUser?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"><button onclick="updateShiftStatus('${r.id}','approved')" style="padding:8px;border-radius:8px;background:var(--green-bg);color:var(--green);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--green);">✅ 承認する</button><button onclick="updateShiftStatus('${r.id}','rejected')" style="padding:8px;border-radius:8px;background:var(--red-bg);color:var(--red);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--red);">❌ 却下する</button></div>`:''}
+      ${r.status==='cancel_requested'&&!personalUser?buildCancelAdminUI(r):''}
+      ${personalUser&&(r.status==='approved'||r.status==='pending')?`<button onclick="requestShiftCancel('${r.id}')" style="width:100%;padding:8px;border-radius:8px;background:#fff8f8;color:#dc2626;font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid rgba(220,38,38,0.3);">🔄 変更・取消を申請する</button>`:''}
+      ${r.status==='cancel_requested'&&personalUser?'<div style="text-align:center;font-size:12px;color:var(--amber);padding:6px;">管理者の確認をお待ちください</div>':''}
+      ${!personalUser&&r.status==='approved'?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"><button onclick="openAdminShiftEditModal('${r.id}')" style="padding:8px;border-radius:8px;background:#eff6ff;color:#2563eb;font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid #2563eb;">✏️ 日程変更</button><button onclick="adminShiftDirect('${r.id}','cancel')" style="padding:8px;border-radius:8px;background:var(--red-bg);color:var(--red);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--red);">🗑️ 取消</button></div>`:''}
+    </div>`;
+  }).join('');
+}
+
+let cancelTargetId=null, cancelSelectedDates=new Set();
+
+function requestShiftCancel(id) {
+  const record=shiftHistory.find(r=>r.id===id);
+  if(!record) return;
+  cancelTargetId=id; cancelSelectedDates=new Set();
+  const datesArr=Array.isArray(record.dates)?record.dates:record.dates.split(',');
+  const listEl=document.getElementById('cancelDateList');
+  listEl.innerHTML=datesArr.map(d=>`<div class="cancel-date-chip" id="chip-${d}" onclick="toggleCancelDate('${d}')">${fmtDate(d)}</div>`).join('');
+  buildCancelTimeOptions(record.timeStart||'09:00', record.timeEnd||'17:00');
+  document.querySelector('input[name="cancelType"][value="cancel"]').checked=true;
+  var newDateEl=document.getElementById('cancelNewDate');
+  if(newDateEl) newDateEl.value='';
+  updateCancelTypeUI();
+  document.getElementById('cancelModal').style.display='flex';
+}
+
+function toggleCancelDate(d) {
+  const chip=document.getElementById('chip-'+d);
+  if(cancelSelectedDates.has(d)){cancelSelectedDates.delete(d);chip.classList.remove('chip-selected');}
+  else{cancelSelectedDates.add(d);chip.classList.add('chip-selected');}
+}
+
+function updateCancelTypeUI() {
+  const type=document.querySelector('input[name="cancelType"]:checked').value;
+  document.getElementById('cancelTimeSection').style.display=type==='change'?'block':'none';
+  document.getElementById('radioLabelCancel').style.borderColor=type==='cancel'?'var(--red)':'var(--border)';
+  document.getElementById('radioLabelChange').style.borderColor=type==='change'?'var(--blue)':'var(--border)';
+}
+
+function buildCancelTimeOptions(defaultStart, defaultEnd) {
+  ['cancelTimeStart','cancelTimeEnd'].forEach(id=>{
+    const sel=document.getElementById(id);
+    sel.innerHTML='';
+    for(let h=6;h<=22;h++){['00','30'].forEach(m=>{const val=String(h).padStart(2,'0')+':'+m;sel.innerHTML+=`<option value="${val}">${val}</option>`;});}
+  });
+  document.getElementById('cancelTimeStart').value=defaultStart;
+  document.getElementById('cancelTimeEnd').value=defaultEnd;
+}
+
+function closeCancelModal(){document.getElementById('cancelModal').style.display='none';cancelTargetId=null;cancelSelectedDates=new Set();}
+
+async function submitCancelRequest() {
+  if(cancelSelectedDates.size===0){showToast('⚠️','対象日を選択してください');return;}
+  const type=document.querySelector('input[name="cancelType"]:checked').value;
+  let newStart='',newEnd='',newDate='';
+  if(type==='change'){
+    newStart=document.getElementById('cancelTimeStart').value;
+    newEnd=document.getElementById('cancelTimeEnd').value;
+    if(newStart>=newEnd){showToast('⚠️','終了時刻は開始時刻より後にしてください');return;}
+    var newDateEl=document.getElementById('cancelNewDate');
+    newDate=newDateEl?newDateEl.value:'';
+  }
+  const targetShift=shiftHistory.find(r=>r.id===cancelTargetId);
+  const submitName=personalUser||(targetShift?targetShift.name:'');
+  const submitId=cancelTargetId;
+  const submitDates=Array.from(cancelSelectedDates).sort().join(',');
+  const typeLabel=type==='cancel'?'取消':'日程・時間変更';
+  const datesPreview=submitDates.split(',').map(d=>fmtDate(d)).join('、');
+  let bodyHtml=`<b>申請者：</b>${submitName}<br><b>種別：</b>${typeLabel}<br><b>対象日：</b>${datesPreview}`;
+  if(type==='change'){if(newDate)bodyHtml+=`<br><b>変更後日付：</b>${fmtDate(newDate)}`;bodyHtml+=`<br><b>変更後時間：</b>${newStart}〜${newEnd}`;}
+  showConfirmDialog({
+    icon:type==='cancel'?'🗑️':'🔄', title:'シフト'+typeLabel+'の確認', body:bodyHtml,
+    okLabel:typeLabel+'を申請する',
+    okColor:type==='cancel'?'linear-gradient(135deg,#dc2626,#ef4444)':'linear-gradient(135deg,#d97706,#f59e0b)',
+    onOk: async () => {
+      closeCancelModal();
+      showToast('⏳','処理中...');
+      await gasGet({action:'shift_cancel_request', id:submitId, name:submitName, cancelType:type, cancelDates:submitDates, newTimeStart:newStart, newTimeEnd:newEnd, newDate});
+      showToast('🔄',cancelSelectedDates.size+'日分の'+typeLabel+'を処理しました');
+      await new Promise(function(r){setTimeout(r,1500);});
+      await loadShiftHistory(); renderCalendar();
+      if(document.getElementById('page-admin')&&document.getElementById('page-admin').classList.contains('active')) await loadAdminPage();
+    }
+  });
+}
+
+document.addEventListener('click', async function(e) {
+  var btn=e.target.closest('[data-action]');
+  if(btn){var action=btn.dataset.action,id=btn.dataset.shiftId;if(action==='reject-cancel')updateShiftStatus(id,'rejected');if(action==='keep-shift')updateShiftStatus(id,'approved');}
+  var pcBtn=e.target.closest('.partial-cancel-btn');
+  if(pcBtn) window.partialCancelApprove(pcBtn.dataset.pcid,pcBtn.dataset.pcaction,pcBtn.dataset.pcdate);
+});
+
+async function updateShiftStatus(id, status) {
+  showToast('⏳','処理中...');
+  await gasCall({action:'shift_update', id, status});
+  showToast(status==='approved'?'✅':'❌','シフト申請を'+(status==='approved'?'承認':'却下')+'しました');
+  await loadShiftHistory(); renderCalendar();
+  if(document.getElementById('page-admin')&&document.getElementById('page-admin').classList.contains('active')) await loadAdminPage();
+}
+
+// ── GAS URL ──
+function loadGasUrl() {
+  localStorage.setItem('gasUrl','https://script.google.com/macros/s/AKfycbwYs7SpsnnXYgCdotURcO2BCfYlD0AtYw0jMSC7h07kRmhYM8kZf7VDXveXixPsvjt8bw/exec');
+  const saved='https://script.google.com/macros/s/AKfycbwYs7SpsnnXYgCdotURcO2BCfYlD0AtYw0jMSC7h07kRmhYM8kZf7VDXveXixPsvjt8bw/exec';
+  if(saved){document.getElementById('gasUrl').value=saved;document.getElementById('gasUrlSettings').value=saved;document.getElementById('statusDot').classList.add('on');document.getElementById('statusText').textContent='設定済み';}
+}
+
+function saveGasUrlSettings() {
+  const url=document.getElementById('gasUrlSettings').value.trim();
+  if(!url||!url.startsWith('https://')){showToast('⚠️','正しいURLを入力してください');return;}
+  localStorage.setItem('gasUrl',url);
+  document.getElementById('gasUrl').value=url;
+  document.getElementById('statusDot').classList.add('on');
+  document.getElementById('statusText').textContent='設定済み';
+  showToast('✅','GAS URLを保存しました');
+}
+
+// ── 会社指定休日 ──
+function loadCompanyHolidays(){return JSON.parse(localStorage.getItem('companyHolidays')||'[]');}
+function saveCompanyHolidaysData(list){localStorage.setItem('companyHolidays',JSON.stringify(list));}
+
+function renderCompanyHolidayList() {
+  var list=loadCompanyHolidays(); var el=document.getElementById('companyHolidayList');
+  if(!el) return;
+  if(!list.length){el.innerHTML='<div style="font-size:13px;color:var(--text-sub);padding:8px 0;">登録されていません</div>';return;}
+  list.sort(function(a,b){return a.date.localeCompare(b.date);});
+  el.innerHTML=list.map(function(h,i){
+    var badge=h.type==='encourage'?'<span style="font-size:10px;padding:1px 6px;border-radius:4px;background:#fce8e6;color:#c62828;margin-right:6px;">有給奨励日</span>':'<span style="font-size:10px;padding:1px 6px;border-radius:4px;background:#fff8e1;color:#e65100;margin-right:6px;">指定休日</span>';
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">'+
+      '<div>'+badge+'<span style="font-size:13px;font-weight:700;color:var(--amber);">'+h.date+'</span>'+(h.label?'<span style="font-size:12px;color:var(--text-sub);margin-left:8px;">'+h.label+'</span>':'')+'</div>'+
+      '<button onclick="removeCompanyHoliday('+i+')" style="background:var(--red-bg);color:var(--red);border:1px solid var(--red);border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;">削除</button></div>';
+  }).join('');
+}
+
+function addCompanyHoliday(){
+  var date=document.getElementById('newCompanyHoliday').value;
+  var label=document.getElementById('newCompanyHolidayLabel').value.trim();
+  if(!date){showToast('⚠️','日付を入力してください');return;}
+  var list=loadCompanyHolidays();
+  if(list.some(function(h){return h.date===date;})){showToast('⚠️','すでに登録済みの日付です');return;}
+  var type=(document.getElementById('newCompanyHolidayType')||{}).value||'designated';
+  list.push({date,label,type});
+  saveCompanyHolidaysData(list);
+  document.getElementById('newCompanyHoliday').value='';
+  document.getElementById('newCompanyHolidayLabel').value='';
+  renderCompanyHolidayList();
+  showToast('✅',date+' を登録しました');
+}
+
+function removeCompanyHoliday(index){var list=loadCompanyHolidays();list.splice(index,1);saveCompanyHolidaysData(list);renderCompanyHolidayList();}
+function clearCompanyHolidays(){if(!confirm('会社指定休日をすべて削除しますか？'))return;saveCompanyHolidaysData([]);renderCompanyHolidayList();showToast('🗑','全削除しました');}
+function bulkAddCompanyHolidays(){document.getElementById('bulkHolidayText').value='';document.getElementById('bulkHolidayOverlay').classList.add('open');}
+
+function saveBulkHolidays(){
+  var text=document.getElementById('bulkHolidayText').value.trim();if(!text)return;
+  var list=loadCompanyHolidays();var added=0,skipped=0;
+  text.split('\n').forEach(function(line){
+    line=line.trim();if(!line)return;
+    var parts=line.split(/\s+/);var date=parts[0],label=parts.slice(1).join(' ');
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(date)){skipped++;return;}
+    if(list.some(function(h){return h.date===date;})){skipped++;return;}
+    var type=(document.getElementById('newCompanyHolidayType')||{}).value||'designated';
+    list.push({date,label,type});added++;
+  });
+  saveCompanyHolidaysData(list);renderCompanyHolidayList();
+  document.getElementById('bulkHolidayOverlay').classList.remove('open');
+  showToast('✅',added+'件登録しました'+(skipped?'（'+skipped+'件スキップ）':''));
+}
+
+// ── SELFIE ──
+let selfieStream=null,selfieCapture=null,selfiePendingAction=null;
+
+async function openSelfieModal(name,punchType){
+  selfiePendingAction={name,punchType};
+  document.getElementById('selfieModalTitle').textContent=name+'さん　'+(punchType==='出勤'?'🟢 出勤':'🔴 退勤');
+  document.getElementById('selfiePreview').style.display='none';
+  document.getElementById('selfieVideo').style.display='block';
+  document.getElementById('selfieGuide').style.display='flex';
+  document.getElementById('selfieBtns').style.display='block';
+  document.getElementById('selfieConfirmBtns').style.display='none';
+  selfieCapture=null;
+  document.getElementById('selfieOverlay').classList.add('open');
+  try{selfieStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false});document.getElementById('selfieVideo').srcObject=selfieStream;}
+  catch(e){showToast('⚠️','カメラにアクセスできません');closeSelfieModal();}
+}
+
+function takeSelfie(){
+  const video=document.getElementById('selfieVideo'),canvas=document.getElementById('selfieCanvas');
+  canvas.width=video.videoWidth||640;canvas.height=video.videoHeight||480;
+  const ctx=canvas.getContext('2d');ctx.translate(canvas.width,0);ctx.scale(-1,1);ctx.drawImage(video,0,0);
+  selfieCapture=canvas.toDataURL('image/jpeg',0.7);
+  document.getElementById('selfiePreview').src=selfieCapture;
+  document.getElementById('selfiePreview').style.display='block';
+  document.getElementById('selfieVideo').style.display='none';
+  document.getElementById('selfieGuide').style.display='none';
+  document.getElementById('selfieBtns').style.display='none';
+  document.getElementById('selfieConfirmBtns').style.display='block';
+}
+
+function retakeSelfie(){
+  selfieCapture=null;
+  document.getElementById('selfiePreview').style.display='none';
+  document.getElementById('selfieVideo').style.display='block';
+  document.getElementById('selfieGuide').style.display='flex';
+  document.getElementById('selfieBtns').style.display='block';
+  document.getElementById('selfieConfirmBtns').style.display='none';
+}
+
+async function confirmSelfie(){if(!selfieCapture||!selfiePendingAction)return;const{name,punchType}=selfiePendingAction;closeSelfieModal();await executePunch(name,punchType);}
+function closeSelfieModal(){if(selfieStream){selfieStream.getTracks().forEach(t=>t.stop());selfieStream=null;}document.getElementById('selfieOverlay').classList.remove('open');selfiePendingAction=null;selfieCapture=null;}
+
+// ── PIN ──
+function savePins(){localStorage.setItem('pins',JSON.stringify(pins));}
+
+function renderPinSettingsList(){
+  const el=document.getElementById('pinSettingsList');
+  const tabletEmps=employees.filter(e=>e.device==='tablet');
+  if(!tabletEmps.length){el.innerHTML='<div style="color:var(--text-sub);font-size:13px;">iPadチームの社員がいません</div>';return;}
+  el.innerHTML=tabletEmps.map(e=>{
+    const hasPin=!!pins[e.name];
+    return `<div class="list-item"><div><div class="list-item-name">${e.name}</div><div class="list-item-sub">${hasPin?'PIN設定済み':'未設定'}</div></div><button class="qr-btn ${hasPin?'qr-btn-print':'qr-btn-copy'}" style="padding:8px 14px;font-size:12px;" onclick="promptSetPin('${e.name}')">${hasPin?'変更':'PINを設定'}</button></div>`;
+  }).join('');
+}
+
+function promptSetPin(name){
+  const pin=prompt(name+'さんの新しいPIN（4桁の数字）を入力してください:');
+  if(!pin) return;
+  if(!/^[0-9]{4}$/.test(pin)){showToast('⚠️','4桁の数字で入力してください');return;}
+  pins[name]=pin;savePins();renderPinSettingsList();showToast('🔐',name+'さんのPINを設定しました');
+}
+
+function openPinModal(name,punchType){pinBuffer='';pinPendingAction={name,punchType};document.getElementById('pinModalName').textContent=name+'さんのPIN';updatePinDots();document.getElementById('pinOverlay').classList.add('open');}
+function closePinModal(){document.getElementById('pinOverlay').classList.remove('open');pinBuffer='';pinPendingAction=null;}
+function pinInput(digit){if(pinBuffer.length>=4)return;pinBuffer+=digit;updatePinDots();if(pinBuffer.length===4)setTimeout(checkPin,150);}
+function pinDelete(){pinBuffer=pinBuffer.slice(0,-1);updatePinDots();}
+function pinClear(){pinBuffer='';updatePinDots();}
+function updatePinDots(error=false){const dots=document.querySelectorAll('.pin-dot');dots.forEach((d,i)=>{d.classList.remove('filled','error');if(error)d.classList.add('error');else if(i<pinBuffer.length)d.classList.add('filled');});}
+function checkPin(){const{name,punchType}=pinPendingAction;const correct=pins[name];if(!correct){closePinModal();executePunch(name,punchType);return;}if(pinBuffer===correct){closePinModal();executePunch(name,punchType);}else{updatePinDots(true);showToast('❌','PINが違います');setTimeout(()=>{pinBuffer='';updatePinDots();},800);}}
+
+// ── PERSONAL PAGE ──
+function initPersonalPage(){
+  const params=new URLSearchParams(window.location.search);
+  const user=params.get('user');
+  if(!user) return;
+  personalUser=decodeURIComponent(user);
+  document.getElementById('personalBanner').style.display='block';
+  document.getElementById('bannerName').textContent=personalUser;
+  document.getElementById('navEmployees').style.display='none';
+  document.getElementById('navQr').style.display='none';
+  document.getElementById('navAdmin').style.display='none';
+  document.querySelectorAll('.nav-btn').forEach(function(btn){if(btn.textContent.includes('設定'))btn.style.display='none';});
+  var gasBox=document.getElementById('gasSetupBox');if(gasBox)gasBox.style.display='none';
+  const emp=employees.find(e=>e.name===personalUser);
+  if(emp&&emp.type!=='パート'){const shiftNav=document.getElementById('navShift');if(shiftNav)shiftNav.style.display='none';}
+  if(emp&&emp.type==='パート'){const leaveNav=document.getElementById('navLeave');if(leaveNav)leaveNav.style.display='none';}
+  setPersonalIcon(personalUser);
+  setTimeout(()=>{
+    ['punchName','leaveName','shiftName'].forEach(id=>{
+      const sel=document.getElementById(id);if(!sel)return;
+      sel.innerHTML='<option value="'+personalUser+'">'+personalUser+'</option>';
+      sel.value=personalUser;sel.disabled=true;sel.style.opacity='0.7';
+    });
+  },100);
+}
+
+function setPersonalIcon(name){
+  document.title=name+'_勤怠';
+  const titleMeta=document.getElementById('appTitle');if(titleMeta)titleMeta.setAttribute('content',name+'_勤怠');
+  const colors=[['#1d4ed8','#93c5fd'],['#dc2626','#fca5a5'],['#16a34a','#86efac'],['#d97706','#fcd34d'],['#7c3aed','#c4b5fd'],['#0891b2','#67e8f9'],['#db2777','#f9a8d4'],['#ea580c','#fdba74'],['#059669','#6ee7b7'],['#4f46e5','#a5b4fc'],['#b45309','#fde68a'],['#be185d','#fbcfe8']];
+  const idx=employees.map(e=>e.name).indexOf(name);
+  const[bg,fg]=colors[(idx>=0?idx:0)%colors.length];
+  const canvas=document.createElement('canvas');canvas.width=512;canvas.height=512;
+  const ctx=canvas.getContext('2d');
+  ctx.fillStyle=bg;ctx.fillRect(0,0,512,512);
+  const grad=ctx.createRadialGradient(180,160,0,256,256,380);
+  grad.addColorStop(0,'rgba(255,255,255,0.25)');grad.addColorStop(1,'rgba(0,0,0,0.15)');
+  ctx.fillStyle=grad;ctx.fillRect(0,0,512,512);
+  const emp=employees.find(e=>e.name===name);
+  const char=(emp&&emp.icon)?emp.icon:name.charAt(0);
+  ctx.fillStyle=fg;ctx.font='bold 260px "Noto Sans JP",sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.shadowColor='rgba(0,0,0,0.2)';ctx.shadowBlur=12;ctx.shadowOffsetY=6;
+  ctx.fillText(char,256,276);ctx.shadowBlur=0;ctx.shadowOffsetY=0;
+  ctx.fillStyle='rgba(255,255,255,0.7)';ctx.font='bold 72px "Noto Sans JP",sans-serif';ctx.fillText(name,256,440);
+  const dataUrl=canvas.toDataURL('image/png');
+  const iconLink=document.getElementById('appleTouchIcon');
+  if(iconLink)iconLink.href=dataUrl;
+}
+
+// ── QR ──
+function renderQrList(){
+  const el=document.getElementById('qrList');
+  if(!employees.length){el.innerHTML='<div style="color:var(--text-sub);font-size:13px;">社員が登録されていません。先に社員管理タブで追加してください。</div>';return;}
+  el.innerHTML=employees.map(e=>`<div class="qr-item" id="qr-item-${e.id}"><div class="qr-item-header"><div><div class="qr-item-name">${e.name}</div><div class="qr-item-type">${e.type}</div></div></div><div class="qr-canvas-wrap"><canvas id="qr-canvas-${e.id}" width="160" height="160"></canvas></div><div class="qr-url" id="qr-url-${e.id}"></div><div class="qr-btns"><button class="qr-btn qr-btn-print" onclick="printQr(${e.id},'${e.name}')">🖨 印刷</button><button class="qr-btn qr-btn-copy" onclick="copyUrl(${e.id})">📋 URLコピー</button></div></div>`).join('');
+  employees.forEach(e=>generateQr(e));
+}
+
+function getPersonalUrl(name){return window.location.href.split('?')[0]+'?user='+encodeURIComponent(name);}
+
+function generateQr(emp){
+  const url=getPersonalUrl(emp.name);
+  document.getElementById('qr-url-'+emp.id).textContent=url;
+  drawQr(document.getElementById('qr-canvas-'+emp.id),url);
+}
+
+function drawQr(canvas,text){
+  if(window.QRCode){renderQrCanvas(canvas,text);}
+  else{const script=document.createElement('script');script.src='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';script.onload=()=>renderQrCanvas(canvas,text);document.head.appendChild(script);}
+}
+
+function renderQrCanvas(canvas,text){
+  const ctx=canvas.getContext('2d');ctx.fillStyle='#ffffff';ctx.fillRect(0,0,160,160);
+  try{const qr=new QRCode(document.createElement('div'),{text,width:160,height:160,colorDark:'#000000',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});setTimeout(()=>{const img=qr._el.querySelector('img')||qr._el.querySelector('canvas');if(img)ctx.drawImage(img,0,0,160,160);},100);}
+  catch(e){ctx.fillStyle='#333';ctx.font='12px sans-serif';ctx.fillText('QR生成中...',40,80);}
+}
+
+function printQr(id,name){
+  const url=getPersonalUrl(name);const canvas=document.getElementById('qr-canvas-'+id);const dataUrl=canvas.toDataURL();
+  const win=window.open('','_blank');
+  win.document.write(`<html><head><title>${name} 勤怠打刻QR</title><style>body{font-family:sans-serif;text-align:center;padding:40px;}img{width:200px;height:200px;}h2{font-size:20px;margin-bottom:8px;}p{font-size:11px;color:#666;word-break:break-all;max-width:280px;margin:8px auto 0;}</style></head><body><h2>${name}</h2><img src="${dataUrl}"><p>${url}</p><script>window.onload=()=>window.print()<\/script></body></html>`);
+  win.document.close();
+}
+
+function copyUrl(id){
+  const url=document.getElementById('qr-url-'+id).textContent;
+  navigator.clipboard.writeText(url).then(()=>showToast('📋','URLをコピーしました')).catch(()=>showToast('⚠️','コピーに失敗しました'));
+}
+
+let toastTimer;
+function showToast(icon,text){const t=document.getElementById('toast');document.getElementById('toastIcon').textContent=icon;document.getElementById('toastText').textContent=text;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),3500);}
+
+// ── UTILS ──
+function isJpHoliday(date){const m=date.getMonth()+1,d=date.getDate();const holidays=[[1,1],[1,2],[1,3],[2,11],[2,23],[3,20],[3,21],[4,29],[5,3],[5,4],[5,5],[7,15],[8,11],[9,15],[9,23],[10,13],[11,3],[11,23],[12,23]];for(var i=0;i<holidays.length;i++){if(holidays[i][0]===m&&holidays[i][1]===d)return true;}return false;}
+function isCompRestDay(date){var dow=date.getDay();return dow===0||isJpHoliday(date);}
+
+async function confirmCompLeave(name){
+  if(!confirm(name+'さんに代休を1日付与しますか？'))return;
+  if(typeof employeeMaster==='undefined')window.employeeMaster={};
+  const current=(window.employeeMaster||{})[name]||{paidLeave:0,compLeave:0};
+  const newComp=(current.compLeave||0)+1;
+  await gasCall({action:'employee_set',name,paidLeave:current.paidLeave||0,compLeave:newComp});
+  window.employeeMaster[name]=Object.assign({},current,{compLeave:newComp});
+  const emp=employees.find(e=>e.name===name);
+  if(emp){emp.compLeave=newComp;setData('employees',employees);}
+  compConfirmedToday.add(name);
+  showToast('✅',name+'さんの代休を1日付与しました（計'+newComp+'日）');
+  loadTodayPunchLog();
+}
+
+function fmtDate(d){
+  if(!d)return'';var dt=new Date(d);if(isNaN(dt.getTime()))return String(d);if(dt.getFullYear()<2000)return'';
+  const days=['日','月','火','水','木','金','土'];
+  return dt.getFullYear()+'/'+(String(dt.getMonth()+1).padStart(2,'0'))+'/'+String(dt.getDate()).padStart(2,'0')+'（'+days[dt.getDay()]+'）';
+}
+
+function handleLeaveAction(action,id){
+  if(action==='approve')updateLeaveStatus(id,'approved');
+  else if(action==='reject')updateLeaveStatus(id,'rejected');
+  else if(action==='open-cancel')openLeaveCancelModal(id);
+}
+
+// ── 管理者：有給・シフト直接操作 ──
+async function adminLeaveDirect(id,action){
+  if(!confirm('この有給申請を取消しますか？'))return;
+  showToast('⏳','処理中...');
+  await gasGet({action:'admin_leave_cancel',id});
+  showToast('🗑️','有給申請を取消しました');
+  await new Promise(function(r){setTimeout(r,1000);});
+  await loadLeaveHistory();
+}
+
+var adminLeaveEditTargetId=null;
+function openAdminLeaveEditModal(id){
+  adminLeaveEditTargetId=id;
+  var rec=leaveHistory.find(function(r){return r.id===id;});if(!rec)return;
+  document.getElementById('adminLeaveEditDate').value=rec.date?rec.date.substring(0,10):'';
+  document.getElementById('adminLeaveEditModal').style.display='flex';
+}
+function closeAdminLeaveEditModal(){document.getElementById('adminLeaveEditModal').style.display='none';adminLeaveEditTargetId=null;}
+async function submitAdminLeaveEdit(){
+  var newDate=document.getElementById('adminLeaveEditDate').value;
+  if(!newDate){showToast('⚠️','日付を選択してください');return;}
+  var targetId=adminLeaveEditTargetId;closeAdminLeaveEditModal();showToast('⏳','処理中...');
+  await gasGet({action:'admin_leave_date_update',id:targetId,newDate});
+  showToast('✅','日程を変更しました');
+  await new Promise(function(r){setTimeout(r,1000);});await loadLeaveHistory();
+}
+
+async function adminShiftDirect(id,action){
+  if(!confirm('このシフト申請を取消しますか？'))return;
+  showToast('⏳','処理中...');
+  await gasGet({action:'admin_shift_cancel',id});
+  showToast('🗑️','シフト申請を取消しました');
+  await new Promise(function(r){setTimeout(r,1000);});await loadShiftHistory();
+}
+
+var adminShiftEditTargetId=null;
+function openAdminShiftEditModal(id){
+  adminShiftEditTargetId=id;
+  var rec=shiftHistory.find(function(r){return r.id===id;});if(!rec)return;
+  var dates=Array.isArray(rec.dates)?rec.dates:rec.dates.split(',');
+  document.getElementById('adminShiftEditDate').value=dates[0]||'';
+  document.getElementById('adminShiftEditTimeStart').value=rec.timeStart||'09:00';
+  document.getElementById('adminShiftEditTimeEnd').value=rec.timeEnd||'17:00';
+  document.getElementById('adminShiftEditModal').style.display='flex';
+}
+function closeAdminShiftEditModal(){document.getElementById('adminShiftEditModal').style.display='none';adminShiftEditTargetId=null;}
+async function submitAdminShiftEdit(){
+  var newDate=document.getElementById('adminShiftEditDate').value;
+  var newStart=document.getElementById('adminShiftEditTimeStart').value;
+  var newEnd=document.getElementById('adminShiftEditTimeEnd').value;
+  if(!newDate){showToast('⚠️','日付を選択してください');return;}
+  var targetId=adminShiftEditTargetId;closeAdminShiftEditModal();showToast('⏳','処理中...');
+  await gasGet({action:'admin_shift_date_update',id:targetId,newDate,timeStart:newStart,timeEnd:newEnd});
+  showToast('✅','日程を変更しました');
+  await new Promise(function(r){setTimeout(r,1000);});await loadShiftHistory();
+}
+
+// ── 管理者変更通知バナー ──
+function checkAdminNotifications(){
+  if(!personalUser) return;
+  var notifications=[];
+  (leaveHistory||[]).forEach(function(r){
+    if(!r.adminNote)return;var msg='';
+    if(r.adminNote.startsWith('date_changed:'))msg='📅 有給申請（'+fmtDate(r.date)+'）が管理者により '+fmtDate(r.adminNote.split(':')[1])+' に変更されました';
+    else if(r.adminNote==='cancelled')msg='🗑️ 有給申請（'+fmtDate(r.date)+'）が管理者により取消されました';
+    if(msg)notifications.push({msg,id:r.id,type:'leave'});
+  });
+  (shiftHistory||[]).forEach(function(r){
+    if(!r.adminNote)return;
+    var datesArr=Array.isArray(r.dates)?r.dates:r.dates.split(',');
+    var dateLabel=datesArr.length>0?fmtDate(datesArr[0]):'';var msg='';
+    if(r.adminNote.startsWith('date_changed:'))msg='📅 シフト申請（'+dateLabel+'）が管理者により '+fmtDate(r.adminNote.split(':')[1])+' に変更されました';
+    else if(r.adminNote==='cancelled')msg='🗑️ シフト申請（'+dateLabel+'）が管理者により取消されました';
+    if(msg)notifications.push({msg,id:r.id,type:'shift'});
+  });
+  renderAdminNotificationBanner(notifications);
+}
+
+function renderAdminNotificationBanner(notifications){
+  var el=document.getElementById('adminNotificationBanner');if(!el)return;
+  if(!notifications.length){el.style.display='none';return;}
+  var items=notifications.map(function(n){
+    return '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:10px 12px;background:rgba(255,255,255,0.08);border-radius:10px;"><div style="font-size:13px;line-height:1.5;">'+n.msg+'</div><button data-nid="'+n.id+'" data-ntype="'+n.type+'" class="admin-note-confirm" style="flex-shrink:0;padding:4px 10px;border:none;border-radius:6px;background:rgba(255,255,255,0.2);color:#fff;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">確認</button></div>';
+  }).join('');
+  el.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;"><div style="font-size:13px;font-weight:800;">📢 お知らせ</div></div>'+items;
+  el.style.display='block';
+}
+
+async function confirmAdminNote(id,type){
+  await gasGet({action:'admin_note_clear',id,sheetType:type});
+  if(type==='leave'){var rec=(leaveHistory||[]).find(function(r){return r.id===id;});if(rec)rec.adminNote='';checkAdminNotifications();}
+  else{var rec=(shiftHistory||[]).find(function(r){return r.id===id;});if(rec)rec.adminNote='';checkAdminNotifications();}
+}
+
+// ── 申請管理ページ ──
+var adminCurrentTab='leave',adminLeaveData=[],adminShiftData=[];
+
+function goAdminPage(){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-admin').classList.add('active');
+  const btn=document.getElementById('navAdmin');if(btn)btn.classList.add('active');
+  loadAdminPage();
+}
+
+function switchAdminTab(tab){
+  adminCurrentTab=tab;
+  ['leave','shift'].forEach(t=>{
+    const panel=document.getElementById('adminPanel-'+t),btn=document.getElementById('adminTab-'+t);
+    if(panel)panel.style.display=(t===tab)?'block':'none';
+    if(btn){btn.style.background=(t===tab)?'var(--blue)':'var(--surface2)';btn.style.color=(t===tab)?'#fff':'var(--text-sub)';}
+  });
+}
+
+async function loadAdminPage(){
+  ['adminLeaveFilter','adminShiftFilter'].forEach(id=>{
+    const sel=document.getElementById(id);if(!sel)return;
+    const cur=sel.value;
+    sel.innerHTML='<option value="all">全員</option>'+employees.map(e=>`<option value="${e.name}">${e.name}</option>`).join('');
+    sel.value=cur;
+  });
+  const[leaveData,shiftData]=await Promise.all([gasGet({action:'leave_get'}),gasGet({action:'shift_get'})]);
+  adminLeaveData=leaveData||[];adminShiftData=shiftData||[];
+  leaveHistory=adminLeaveData;shiftHistory=adminShiftData;
+  renderAdminLeaveList();renderAdminShiftList();
+}
+
+function renderAdminLeaveList(){
+  const el=document.getElementById('adminLeaveList'),countEl=document.getElementById('adminLeaveCount');if(!el)return;
+  const nameFilter=document.getElementById('adminLeaveFilter').value;
+  const statusFilter=document.getElementById('adminLeaveStatusFilter').value;
+  let list=adminLeaveData.slice();
+  if(nameFilter!=='all')list=list.filter(r=>r.name===nameFilter);
+  if(statusFilter!=='all')list=list.filter(r=>r.status===statusFilter);
+  list.sort((a,b)=>{const pri=s=>s==='pending'?0:s==='cancel_requested'?1:s==='approved'?2:3;return pri(a.status)-pri(b.status);});
+  const pendingCount=list.filter(r=>r.status==='pending'||r.status==='cancel_requested').length;
+  if(countEl){countEl.textContent=`${list.length}件表示 ${pendingCount>0?'（要対応：'+pendingCount+'件）':''}`;countEl.style.color=pendingCount>0?'var(--amber)':'var(--text-sub)';}
+  if(!list.length){el.innerHTML='<div style="color:var(--text-sub);font-size:13px;padding:20px;text-align:center;">該当する申請はありません</div>';return;}
+  var html='';
+  list.forEach(function(r){
+    var statusLabel=r.status==='pending'?'🔵 審査中':r.status==='approved'?'✅ 承認済み':r.status==='cancel_requested'?'🔄 変更・取消申請中':r.status==='rejected'?'❌ 却下':'🗑️ 取消済み';
+    var statusClass=r.status==='pending'?'tag-pending':r.status==='approved'?'tag-approved':r.status==='cancel_requested'?'tag-pending':'tag-rejected';
+    var kindLabel=r.kind==='comp'?'代休':'有給休暇';
+    html+='<div class="list-item" style="flex-direction:column;align-items:stretch;gap:10px;margin-bottom:10px;">';
+    html+='<div style="display:flex;align-items:center;justify-content:space-between;">';
+    html+='<div><div class="list-item-name">'+r.name+' <span style="font-size:11px;font-weight:400;color:var(--text-sub);">('+kindLabel+')</span></div><div class="list-item-sub">'+(r.date?fmtDate(r.date):'')+(r.reason?'　'+r.reason:'')+'</div></div>';
+    html+='<span class="tag '+statusClass+'">'+statusLabel+'</span></div>';
+    if(r.status==='pending'){html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"><button data-lid="'+r.id+'" data-la="approve" style="padding:8px;border-radius:8px;background:var(--green-bg);color:var(--green);font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--green);">✅ 承認する</button><button data-lid="'+r.id+'" data-la="reject" style="padding:8px;border-radius:8px;background:var(--red-bg);color:var(--red);font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--red);">❌ 却下する</button></div>';}
+    if(r.status==='cancel_requested')html+=buildLeaveAdminCancelUI(r);
+    if(r.status==='approved'){
+      html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
+      html+='<button onclick="openAdminLeaveEditModal(\''+r.id+'\')" style="padding:8px;border-radius:8px;background:var(--blue-bg,#eff6ff);color:var(--blue,#2563eb);font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--blue,#2563eb);">✏️ 日程変更</button>';
+      html+='<button onclick="adminLeaveDirect(\''+r.id+'\',\'cancel\')" style="padding:8px;border-radius:8px;background:var(--red-bg);color:var(--red);font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--red);">🗑️ 取消</button></div>';
+    }
+    html+='</div>';
+  });
+  el.innerHTML=html;
+}
+
+function renderAdminShiftList(){
+  const el=document.getElementById('adminShiftList'),countEl=document.getElementById('adminShiftCount');if(!el)return;
+  const nameFilter=document.getElementById('adminShiftFilter').value;
+  const statusFilter=document.getElementById('adminShiftStatusFilter').value;
+  let list=adminShiftData.slice();
+  if(nameFilter!=='all')list=list.filter(r=>r.name===nameFilter);
+  if(statusFilter!=='all')list=list.filter(r=>r.status===statusFilter);
+  list.sort((a,b)=>{const pri=s=>s==='pending'?0:s==='cancel_requested'?1:s==='approved'?2:3;return pri(a.status)-pri(b.status);});
+  const pendingCount=list.filter(r=>r.status==='pending'||r.status==='cancel_requested').length;
+  if(countEl){countEl.textContent=`${list.length}件表示 ${pendingCount>0?'（要対応：'+pendingCount+'件）':''}`;countEl.style.color=pendingCount>0?'var(--amber)':'var(--text-sub)';}
+  if(!list.length){el.innerHTML='<div style="color:var(--text-sub);font-size:13px;padding:20px;text-align:center;">該当する申請はありません</div>';return;}
+  el.innerHTML=list.map(r=>{
+    const statusLabel=r.status==='pending'?'🔵 審査中':r.status==='approved'?'✅ 承認済み':r.status==='cancel_requested'?'🔄 変更・取消申請中':r.status==='cancelled'?'🗑️ 取消済み':'❌ 却下';
+    const statusClass=r.status==='pending'?'tag-pending':r.status==='approved'?'tag-approved':r.status==='cancel_requested'?'tag-pending':'tag-rejected';
+    const datesArr=Array.isArray(r.dates)?r.dates:(r.dates||'').split(',').filter(Boolean);
+    const datesPreview=datesArr.slice(0,3).map(d=>fmtDate(d)).join('、')+(datesArr.length>3?'　他'+(datesArr.length-3)+'日':'');
+    const isValidTime=t=>t&&!t.includes('1899');
+    const timeInfo=(isValidTime(r.timeStart)&&isValidTime(r.timeEnd))?r.timeStart.substring(11,16)+'〜'+r.timeEnd.substring(11,16):'';
+    let btns='';
+    if(r.status==='pending')btns=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"><button onclick="updateShiftStatus('${r.id}','approved');loadAdminPage();" style="padding:8px;border-radius:8px;background:var(--green-bg);color:var(--green);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--green);">✅ 承認する</button><button onclick="updateShiftStatus('${r.id}','rejected');loadAdminPage();" style="padding:8px;border-radius:8px;background:var(--red-bg);color:var(--red);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--red);">❌ 却下する</button></div>`;
+    else if(r.status==='cancel_requested')btns=buildCancelAdminUI(r);
+    else if(r.status==='approved')btns=`<button onclick="shiftHistory=adminShiftData;requestShiftCancel('${r.id}')" style="width:100%;padding:8px;border-radius:8px;background:var(--amber-bg);color:var(--amber);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--amber);">🔄 変更・取消を処理</button>`;
+    return `<div class="list-item" style="flex-direction:column;align-items:stretch;gap:10px;margin-bottom:10px;"><div style="display:flex;align-items:center;justify-content:space-between;"><div><div class="list-item-name">${r.name}</div><div class="list-item-sub">${datesArr.length}日　${datesPreview}${timeInfo?'　⏰'+timeInfo:''}</div></div><span class="tag ${statusClass}">${statusLabel}</span></div>${btns}</div>`;
+  }).join('');
+}
+
+// ── 法定休日計算 ──
+function getJapaneseHolidays(year){
+  var fixed=[[1,1],[2,11],[2,23],[4,29],[5,3],[5,4],[5,5],[7,20],[8,11],[9,23],[10,14],[11,3],[11,23],[12,23]];
+  var holidays=new Set();
+  fixed.forEach(function(md){holidays.add(year+'-'+String(md[0]).padStart(2,'0')+'-'+String(md[1]).padStart(2,'0'));});
+  return holidays;
+}
+
+function calcLegalHolidayUsed(name){
+  var emp=employees.find(function(e){return e.name===name;});
+  if(emp&&emp.type==='パート')return 0;
+  var today=new Date();
+  var fiscalYear=today.getMonth()>=3?today.getFullYear():today.getFullYear()-1;
+  var yearStart=new Date(fiscalYear,3,1);
+  var yearEnd=new Date(fiscalYear+1,2,31);
+  var yesterday=new Date(today);yesterday.setDate(yesterday.getDate()-1);yesterday.setHours(23,59,59,999);
+  var rangeEnd=yesterday<yearEnd?yesterday:yearEnd;
+  var allDays=[];var cur=new Date(yearStart);while(cur<=rangeEnd){allDays.push(new Date(cur));cur.setDate(cur.getDate()+1);}
+  var holidays=new Set([...Array.from(getJapaneseHolidays(fiscalYear)),...Array.from(getJapaneseHolidays(fiscalYear+1))]);
+  var companyHolidays=loadCompanyHolidays();
+  var designatedSet=new Set(),encourageSet=new Set();
+  companyHolidays.forEach(function(h){if(h.type==='encourage')encourageSet.add(h.date);else designatedSet.add(h.date);});
+  var punchedDays=new Set();
+  (window.allPunchLogs||[]).forEach(function(log){
+    if(log.name!==name)return;
+    var d=new Date(log.timestamp||log.date||'');if(isNaN(d))return;
+    punchedDays.add(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'));
+  });
+  var paidLeaveDays=new Set(),compLeaveDays=new Set();
+  var activeStatuses=['approved','pending','cancel_requested'];
+  leaveHistory.filter(function(r){return r.name===name&&activeStatuses.includes(r.status);}).forEach(function(r){
+    var dateStr=typeof r.date==='string'?r.date.substring(0,10):'';
+    if(!dateStr&&r.date){var d=new Date(r.date);dateStr=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+    if(!dateStr)return;
+    if(r.kind==='comp')compLeaveDays.add(dateStr);else paidLeaveDays.add(dateStr);
+  });
+  var shiftDays=new Set();
+  (shiftHistory||[]).filter(function(r){return r.name===name&&activeStatuses.includes(r.status);}).forEach(function(r){
+    (r.dates||[]).forEach(function(d){
+      var dateStr=typeof d==='string'?d.substring(0,10):'';
+      if(!dateStr&&d){var dd=new Date(d);dateStr=dd.getFullYear()+'-'+String(dd.getMonth()+1).padStart(2,'0')+'-'+String(dd.getDate()).padStart(2,'0');}
+      if(dateStr)shiftDays.add(dateStr);
+    });
+  });
+  var holidayUsed=0;
+  allDays.forEach(function(d){
+    var dow=d.getDay();
+    var key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    if(designatedSet.has(key)){holidayUsed++;return;}
+    if(dow===0||holidays.has(key)){if(!compLeaveDays.has(key))holidayUsed++;return;}
+    if(dow===6){if(!paidLeaveDays.has(key)&&!punchedDays.has(key)&&!shiftDays.has(key))holidayUsed++;return;}
+  });
+  return holidayUsed;
+}
+
+function calcEncourageDaysUsed(){
+  var today=new Date();
+  var fiscalYear=today.getMonth()>=3?today.getFullYear():today.getFullYear()-1;
+  var yearStart=new Date(fiscalYear,3,1);
+  var yesterday=new Date(today);yesterday.setDate(yesterday.getDate()-1);
+  var companyHolidays=loadCompanyHolidays();
+  var count=0;
+  companyHolidays.forEach(function(h){
+    if(h.type!=='encourage')return;var d=new Date(h.date);if(isNaN(d))return;
+    if(d>=yearStart&&d<=yesterday)count++;
+  });
+  return count;
+}
+
+// ── シフト表 ──
+var shiftTableYear=new Date().getFullYear(),shiftTableMonthNum=new Date().getMonth()+1,shiftTableVisible=false;
+
+function toggleShiftTable(){
+  shiftTableVisible=!shiftTableVisible;
+  const card=document.getElementById('shiftTableCard');
+  const btn=document.getElementById('shiftTableBtn');
+  if(!card){showToast('⚠️','シフト表の表示エリアが見つかりません');return;}
+  if(shiftTableVisible){card.style.display='block';btn.textContent='📊 シフト表を閉じる';setTimeout(()=>card.scrollIntoView({behavior:'smooth',block:'start'}),50);loadShiftTable();}
+  else{card.style.display='none';btn.textContent='📊 シフト表を見る';}
+}
+
+async function changeShiftTableMonth(delta){
+  shiftTableMonthNum+=delta;
+  if(shiftTableMonthNum>12){shiftTableMonthNum=1;shiftTableYear++;}
+  if(shiftTableMonthNum<1){shiftTableMonthNum=12;shiftTableYear--;}
+  await loadShiftTable();
+}
+
+async function loadShiftTable(){
+  const el=document.getElementById('shiftTableContent'),titleEl=document.getElementById('shiftTableTitle');
+  if(!el||!titleEl)return;
+  el.innerHTML='<div style="color:var(--text-sub);font-size:13px;padding:16px;">読み込み中...</div>';
+  titleEl.textContent=shiftTableYear+'年'+shiftTableMonthNum+'月';
+  const data=await gasGet({action:'shift_table_get',year:shiftTableYear,month:shiftTableMonthNum});
+  if(!data||!data.employees||data.employees.length===0){el.innerHTML='<div style="color:var(--text-sub);font-size:13px;padding:16px;">該当月のシフトデータがありません</div>';return;}
+  renderShiftTable(data);
+}
+
+function parseTime(t){
+  if(!t)return'';var s=String(t);
+  if(/^\d{2}:\d{2}$/.test(s))return s;
+  if(s.includes('T')){var d=new Date(s);if(!isNaN(d)){return String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0');}}
+  var match=s.match(/(\d{2}):(\d{2}):\d{2}/);if(match)return match[1]+':'+match[2];
+  return s.substring(0,5);
+}
+
+var _lastShiftTableData=null;
+
+function renderShiftTable(data){
+  _lastShiftTableData=data;
+  const el=document.getElementById('shiftTableContent');
+  const days=['日','月','火','水','木','金','土'];
+  const emps=data.employees;
+  let html='<table style="border-collapse:collapse;font-size:11px;min-width:100%;"><tr><th style="padding:5px 7px;border:1px solid var(--border);background:var(--surface2);white-space:nowrap;position:sticky;left:0;z-index:2;">日付</th>';
+  emps.forEach(function(name){html+=`<th style="padding:5px 7px;border:1px solid var(--border);background:var(--surface2);white-space:nowrap;min-width:60px;">${name}</th>`;});
+  html+='</tr>';
+  for(var d=1;d<=data.daysInMonth;d++){
+    var dt=new Date(data.year,data.month-1,d),dow=dt.getDay();
+    var rowBg=dow===0?'#fff5f5':dow===6?'#f0f4ff':'';
+    var dateColor=dow===0?'var(--red)':dow===6?'var(--blue)':'var(--text)';
+    html+=`<tr style="background:${rowBg};"><td style="padding:5px 7px;border:1px solid var(--border);white-space:nowrap;position:sticky;left:0;background:${rowBg||'#fff'};color:${dateColor};font-weight:600;z-index:1;">${d}(${days[dow]})</td>`;
+    emps.forEach(function(name){
+      var shift=data.shiftMap[name]&&data.shiftMap[name][d];
+      if(shift){var timeStr=(shift.start&&shift.end)?parseTime(shift.start)+'〜'+parseTime(shift.end):'◯';html+=`<td style="padding:5px 7px;border:1px solid var(--border);text-align:center;background:#f0fdf4;color:var(--green);font-weight:700;">${timeStr}</td>`;}
+      else html+='<td style="padding:5px 7px;border:1px solid var(--border);text-align:center;color:var(--text-sub);">—</td>';
+    });
+    html+='</tr>';
+  }
+  html+='</table>';
+  el.innerHTML=html;
+}
+
+function exportShiftTableExcel(){
+  if(!_lastShiftTableData){showToast('⚠️','まずシフト表を読み込んでください');return;}
+  var data=_lastShiftTableData,days=['日','月','火','水','木','金','土'];
+  var wb=XLSX.utils.book_new(),rows=[['日付','曜日'].concat(data.employees)];
+  for(var d=1;d<=data.daysInMonth;d++){
+    var dt=new Date(data.year,data.month-1,d),row=[d+'日',days[dt.getDay()]];
+    data.employees.forEach(function(name){var shift=data.shiftMap[name]&&data.shiftMap[name][d];row.push(shift?(parseTime(shift.start)+'〜'+parseTime(shift.end)):'');});
+    rows.push(row);
+  }
+  var ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:8},{wch:5}].concat(data.employees.map(function(){return{wch:14};}));
+  XLSX.utils.book_append_sheet(wb,ws,data.year+'年'+data.month+'月');
+  XLSX.writeFile(wb,'シフト表_'+data.year+'年'+data.month+'月.xlsx');
+  showToast('📥','Excelファイルを保存しました');
+}
+
+function exportShiftTableCSV(){
+  if(!_lastShiftTableData){showToast('⚠️','まずシフト表を読み込んでください');return;}
+  var data=_lastShiftTableData,days=['日','月','火','水','木','金','土'];
+  var lines=[['日付','曜日'].concat(data.employees).join(',')];
+  for(var d=1;d<=data.daysInMonth;d++){
+    var dt=new Date(data.year,data.month-1,d),row=[d+'日',days[dt.getDay()]];
+    data.employees.forEach(function(name){var shift=data.shiftMap[name]&&data.shiftMap[name][d];row.push(shift?(parseTime(shift.start)+'〜'+parseTime(shift.end)):'');});
+    lines.push(row.join(','));
+  }
+  var csv='﻿'+lines.join('\n');
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  var url=URL.createObjectURL(blob);var a=document.createElement('a');
+  a.href=url;a.download='シフト表_'+data.year+'年'+data.month+'月.csv';a.click();URL.revokeObjectURL(url);
+  showToast('📄','CSVファイルを保存しました');
+}
+
+function printShiftTable(){
+  if(!_lastShiftTableData){showToast('⚠️','まずシフト表を読み込んでください');return;}
+  var data=_lastShiftTableData,tableEl=document.getElementById('shiftTableContent');if(!tableEl)return;
+  var win=window.open('','_blank');
+  win.document.write(`<html><head><meta charset="UTF-8"><title>シフト表 ${data.year}年${data.month}月</title><style>body{font-family:'Hiragino Sans',sans-serif;padding:20px;}h2{font-size:16px;margin-bottom:12px;}table{border-collapse:collapse;width:100%;font-size:11px;}th,td{border:1px solid #ccc;padding:5px 7px;text-align:center;white-space:nowrap;}th{background:#f0f4ff;font-weight:bold;}td:first-child{text-align:left;font-weight:bold;}.shift{background:#f0fdf4;color:#16a34a;font-weight:bold;}@media print{body{padding:5px;}}</style></head><body><h2>📊 シフト表　${data.year}年${data.month}月</h2>${tableEl.innerHTML}<script>window.onload=function(){window.print();}<\/script></body></html>`);
+  win.document.close();
+}
+
+// ── INIT ──
+function initApp(){
+  try{
+    loadGasUrl();
+    refreshTeamSelects();refreshSelects();
+    initCalendar();initPersonalPage();updateClock();
+    setTimeout(function(){loadTodayPunchLog();},500);
+    document.body.addEventListener('click',function(e){
+      var btn=e.target.closest('[data-la]');if(btn)handleLeaveAction(btn.dataset.la,btn.dataset.lid);
+      var nBtn=e.target.closest('.admin-note-confirm');if(nBtn)confirmAdminNote(nBtn.dataset.nid,nBtn.dataset.ntype);
+      var pcBtn=e.target.closest('.partial-cancel-btn');if(pcBtn)window.partialCancelApprove(pcBtn.dataset.pcid,pcBtn.dataset.pcaction,pcBtn.dataset.pcdate);
+    });
+    document.body.addEventListener('touchend',function(e){var btn=e.target.closest('[data-la]');if(btn){e.preventDefault();handleLeaveAction(btn.dataset.la,btn.dataset.lid);}},{passive:false});
+  }catch(e){console.error('initApp error:',e);}
+}
+
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',initApp);}else{initApp();}
+</script>
+</body>
+</html>
