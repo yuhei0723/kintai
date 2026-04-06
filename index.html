@@ -255,6 +255,11 @@ textarea { resize:vertical; min-height:80px; }
 .cal-day.cal-cancel-req { background:#fff8e1; color:#f59e0b; border-color:#f59e0b; cursor:default; font-weight:700; }
 .cal-day.cal-cancel-req::after { content:'↩'; position:absolute; top:2px; right:3px; font-size:8px; }
 .cal-day.cal-approved-past { opacity:0.6; background:var(--green-bg); color:var(--green); }
+.cal-day.cal-sunday { color:#e53e3e; }
+.cal-day.cal-saturday { color:#3b82f6; }
+.cal-day.cal-holiday { color:#e53e3e; }
+.cal-day-label.sun { color:#e53e3e; }
+.cal-day-label.sat { color:#3b82f6; }
 .cancel-date-chip {
   padding:8px 14px; border:1.5px solid var(--border); border-radius:20px;
   font-size:13px; font-weight:600; color:var(--text-sub); cursor:pointer;
@@ -1587,7 +1592,7 @@ function renderCalendar() {
   document.getElementById('calTitle').textContent = calYear+'年 '+months[calMonth];
   const labelsEl = document.getElementById('calDayLabels');
   const days=['日','月','火','水','木','金','土'];
-  labelsEl.innerHTML = days.map(d=>`<div class="cal-day-label">${d}</div>`).join('');
+  labelsEl.innerHTML = days.map((d,i)=>`<div class="cal-day-label${i===0?' sun':i===6?' sat':''}">${d}</div>`).join('');
   const grid = document.getElementById('calGrid');
   const firstDay = new Date(calYear, calMonth, 1).getDay();
   const lastDate = new Date(calYear, calMonth+1, 0).getDate();
@@ -1619,23 +1624,33 @@ function renderCalendar() {
     const thisDate=new Date(calYear,calMonth,d);
     const isPast=thisDate<today, isToday=thisDate.getTime()===today.getTime(), isSelected=selectedDates.has(dateStr);
     const dateStatus=dateStatusMap[dateStr];
+    const dow=thisDate.getDay();
+    const isHoliday=isJpHoliday(thisDate);
     let cls='cal-day';
-    if(isPast){cls+=' cal-day-past';if(dateStatus==='approved')cls+=' cal-approved-past';}
-    else if(dateStatus==='approved')cls+=' cal-approved';
+    if(isPast){
+      cls+=' cal-day-past';
+      if(dateStatus==='approved')cls+=' cal-approved-past';
+      else if(dow===0||isHoliday)cls+=' cal-sunday';
+      else if(dow===6)cls+=' cal-saturday';
+    } else if(dateStatus==='approved')cls+=' cal-approved';
     else if(dateStatus==='pending')cls+=' cal-pending';
     else if(dateStatus==='cancel_requested')cls+=' cal-cancel-req';
     else if(dateStatus==='rejected')cls+=' cal-rejected';
     else if(isSelected)cls+=' selected';
     else if(isToday)cls+=' today';
+    else if(dow===0||isHoliday)cls+=' cal-sunday';
+    else if(dow===6)cls+=' cal-saturday';
     const isLocked=dateStatus==='approved'||dateStatus==='pending'||dateStatus==='cancel_requested';
     const clickable=!isPast&&!isLocked?`onclick="toggleDate('${dateStr}')"` :'';
+    // 祝日バッジ
+    const holidayBadge=isHoliday?'<div style="font-size:6px;color:#e53e3e;line-height:1;margin-top:1px;">祝</div>':'';
     let namesHtml='';
     if(!currentName&&dateNamesMap[dateStr]&&dateNamesMap[dateStr].length>0){
       const statusColor={'approved':'var(--green)','pending':'var(--blue)','cancel_requested':'#f59e0b','rejected':'var(--red)'};
       namesHtml='<div style="font-size:7px;line-height:1.3;margin-top:2px;overflow:hidden;max-height:28px;">'+
         dateNamesMap[dateStr].map(e=>`<span style="color:${statusColor[e.status]||'var(--text-sub)'};display:block;">${e.name}</span>`).join('')+'</div>';
     }
-    html+=`<div class="${cls}" ${clickable} style="position:relative;padding-bottom:2px;">${d}${namesHtml}</div>`;
+    html+=`<div class="${cls}" ${clickable} style="position:relative;padding-bottom:2px;">${d}${holidayBadge}${namesHtml}</div>`;
   }
   grid.innerHTML=html;
 }
@@ -1764,9 +1779,38 @@ function requestShiftCancel(id) {
   const record=shiftHistory.find(r=>r.id===id);
   if(!record) return;
   cancelTargetId=id; cancelSelectedDates=new Set();
-  const datesArr=Array.isArray(record.dates)?record.dates:record.dates.split(',');
+  const datesArr=(Array.isArray(record.dates)?record.dates:record.dates.split(',')).map(d=>d.trim()).filter(Boolean);
   const listEl=document.getElementById('cancelDateList');
-  listEl.innerHTML=datesArr.map(d=>`<div class="cancel-date-chip" id="chip-${d}" onclick="toggleCancelDate('${d}')">${fmtDate(d)}</div>`).join('');
+  // 日付チップ：土日祝に色付け
+  function chipColor(d){
+    const dt=new Date(d); const dow=dt.getDay();
+    if(dow===0||isJpHoliday(dt)) return '#e53e3e';
+    if(dow===6) return '#3b82f6';
+    return 'var(--text)';
+  }
+  function normD(d){
+    // YYYY-MM-DD形式に統一
+    const dt=new Date(d);
+    return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
+  }
+  const normDates=datesArr.map(normD);
+  const days=['日','月','火','水','木','金','土'];
+  listEl.innerHTML = normDates.map(d=>{
+    const dt=new Date(d); const dow=dt.getDay(); const col=chipColor(d);
+    const dayLabel=(dt.getMonth()+1)+'/'+dt.getDate()+'('+days[dow]+')';
+    return `<div class="cancel-date-chip" id="chip-${d}" data-date="${d}" onclick="toggleCancelDate('${d}')" style="color:${col};border-color:${col==='var(--text)'?'var(--border)':col};">${dayLabel}</div>`;
+  }).join('');
+  // 全選択ボタンをリストの下に追加
+  const wrapEl=document.getElementById('cancelDateList').parentElement;
+  let selAllBtn=document.getElementById('cancelSelectAllBtn');
+  if(!selAllBtn){
+    selAllBtn=document.createElement('button');
+    selAllBtn.id='cancelSelectAllBtn';
+    selAllBtn.style.cssText='width:100%;padding:7px;margin-top:6px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text-sub);font-family:\'Noto Sans JP\',sans-serif;font-size:12px;font-weight:700;cursor:pointer;';
+    selAllBtn.onclick=toggleSelectAllCancel;
+    listEl.after(selAllBtn);
+  }
+  selAllBtn.textContent='✅ すべて選択';
   buildCancelTimeOptions(record.timeStart||'09:00', record.timeEnd||'17:00');
   document.querySelector('input[name="cancelType"][value="cancel"]').checked=true;
   var newDateEl=document.getElementById('cancelNewDate');
@@ -1775,10 +1819,31 @@ function requestShiftCancel(id) {
   document.getElementById('cancelModal').style.display='flex';
 }
 
+function toggleSelectAllCancel(){
+  const chips=[...document.querySelectorAll('#cancelDateList .cancel-date-chip')];
+  const allSelected=chips.every(c=>cancelSelectedDates.has(c.dataset.date));
+  if(allSelected){
+    // 全解除
+    chips.forEach(c=>{cancelSelectedDates.delete(c.dataset.date);c.classList.remove('chip-selected');});
+    document.getElementById('cancelSelectAllBtn').textContent='✅ すべて選択';
+  } else {
+    // 全選択
+    chips.forEach(c=>{cancelSelectedDates.add(c.dataset.date);c.classList.add('chip-selected');});
+    document.getElementById('cancelSelectAllBtn').textContent='☐ すべて解除';
+  }
+}
+
 function toggleCancelDate(d) {
   const chip=document.getElementById('chip-'+d);
   if(cancelSelectedDates.has(d)){cancelSelectedDates.delete(d);chip.classList.remove('chip-selected');}
   else{cancelSelectedDates.add(d);chip.classList.add('chip-selected');}
+  // 全選択ボタンの状態更新
+  const allBtn=document.getElementById('cancelSelectAllBtn');
+  if(allBtn){
+    const chips=[...document.querySelectorAll('#cancelDateList .cancel-date-chip')];
+    const allSelected=chips.length>0&&chips.every(c=>cancelSelectedDates.has(c.dataset.date));
+    allBtn.textContent=allSelected?'☐ すべて解除':'✅ すべて選択';
+  }
 }
 
 function updateCancelTypeUI() {
@@ -1798,7 +1863,12 @@ function buildCancelTimeOptions(defaultStart, defaultEnd) {
   document.getElementById('cancelTimeEnd').value=defaultEnd;
 }
 
-function closeCancelModal(){document.getElementById('cancelModal').style.display='none';cancelTargetId=null;cancelSelectedDates=new Set();}
+function closeCancelModal(){
+  document.getElementById('cancelModal').style.display='none';
+  cancelTargetId=null; cancelSelectedDates=new Set();
+  const allBtn=document.getElementById('cancelSelectAllBtn');
+  if(allBtn) allBtn.textContent='✅ すべて選択';
+}
 
 async function submitCancelRequest() {
   if(cancelSelectedDates.size===0){showToast('⚠️','対象日を選択してください');return;}
