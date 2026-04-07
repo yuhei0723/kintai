@@ -1167,7 +1167,9 @@ function saveEdit() {
   const iconVal = document.getElementById('editEmpIcon').value.trim();
   emp.icon = iconVal || undefined;
   setData('employees', employees);
-  gasCall({action:'employee_set', name, paidLeave:emp.paidLeave, compLeave:emp.compLeave, empType:emp.type});
+  gasCall({action:'employee_set', name, paidLeave:emp.paidLeave, compLeave:emp.compLeave, empType:emp.type}).then(function(r){
+    if (isGasError(r)) showToast('⚠️','社員マスタの同期に失敗しました。GASを確認してください。');
+  });
   closeModal(); renderEmployees(); refreshSelects();
   showToast('✅','更新しました');
 }
@@ -1441,7 +1443,8 @@ async function loadAnnualHolidayDays() {
 async function saveAnnualHolidayDays() {
   var val = parseInt(document.getElementById('annualHolidayDays').value)||0;
   localStorage.setItem('annualHolidayDays', val);
-  await gasCall({action:'settings_set', key:'annualHolidayDays', value:val});
+  const r = await gasCall({action:'settings_set', key:'annualHolidayDays', value:val});
+  if (isGasError(r)) { showToast('❌','保存に失敗しました。再度お試しください。'); return; }
   showToast('✅','年間法定休日数を '+val+' 日に設定しました');
   updateLeaveBalance();
 }
@@ -1539,7 +1542,8 @@ async function partialCancelApprove(id, action, targetDate) {
   var normDates = dates.map(toYMD).join(',');
   var normNewDate = toYMD(shift.newDate||'');
   showToast('⏳','処理中...');
-  await gasGet({action:'shift_partial_cancel_approve', id, approvedDates:normDates, approveAction:action, newDate:normNewDate});
+  const r = await gasGet({action:'shift_partial_cancel_approve', id, approvedDates:normDates, approveAction:action, newDate:normNewDate});
+  if (isGasError(r)) { showToast('❌','処理に失敗しました。再度お試しください。'); return; }
   showToast('✅',action==='approve'?'承認しました':'却下しました');
   await new Promise(function(r){setTimeout(r,1500);});
   await loadShiftHistory();
@@ -1629,7 +1633,8 @@ async function approveLeaveCancelRequest(id, action) {
   var actionLabel = action==='approve'?'承認':'却下（維持）';
   if (!confirm(typeLabel+'を'+actionLabel+'しますか？')) return;
   showToast('⏳','処理中...');
-  await gasGet({action:'leave_cancel_approve', id, approveAction:action, newDate:record.newDate||''});
+  const r = await gasGet({action:'leave_cancel_approve', id, approveAction:action, newDate:record.newDate||''});
+  if (isGasError(r)) { showToast('❌','処理に失敗しました。再度お試しください。'); return; }
   showToast(action==='approve'?'✅':'↩️',typeLabel+'を'+actionLabel+'しました');
   await new Promise(function(r){setTimeout(r,1500);});
   await loadLeaveHistory();
@@ -2299,7 +2304,8 @@ async function submitAdminLeaveEdit(){
 async function adminShiftDirect(id,action){
   if(!confirm('このシフト申請を取消しますか？'))return;
   showToast('⏳','処理中...');
-  await gasGet({action:'admin_shift_cancel',id});
+  const r = await gasGet({action:'admin_shift_cancel',id});
+  if (isGasError(r)) { showToast('❌','取消に失敗しました。再度お試しください。'); return; }
   showToast('🗑️','シフト申請を取消しました');
   await new Promise(function(r){setTimeout(r,1000);});await loadShiftHistory();
 }
@@ -2411,11 +2417,13 @@ async function submitAdminShiftManage(mode){
     var allDates=_getRecDates(rec);
     var isAllDates=allDates.length===dates.length&&allDates.every(function(d){return _admShiftManageDates.has(d);});
     closeAdminShiftManageModal(); showToast('⏳','処理中...');
+    var r;
     if(isAllDates){
-      await gasGet({action:'admin_shift_cancel',id});
+      r = await gasGet({action:'admin_shift_cancel',id});
     } else {
-      await gasGet({action:'shift_partial_cancel_approve',id,approvedDates:dates.join(','),approveAction:'approve',newDate:''});
+      r = await gasGet({action:'shift_partial_cancel_approve',id,approvedDates:dates.join(','),approveAction:'approve',newDate:''});
     }
+    if (isGasError(r)) { showToast('❌','取消に失敗しました。再度お試しください。'); return; }
     showToast('🗑️',dates.length+'日分を取消しました');
   } else if(mode==='change'){
     if(_admShiftManageDates.size===0){showToast('⚠️','変更する日付を選択してください');return;}
@@ -2424,11 +2432,13 @@ async function submitAdminShiftManage(mode){
     var newEnd=document.getElementById('adminShiftManageTimeEnd').value;
     if(newStart>=newEnd){showToast('⚠️','終了時刻は開始時刻より後にしてください');return;}
     closeAdminShiftManageModal(); showToast('⏳','処理中...');
-    await gasGet({action:'admin_shift_date_update',id,newDate,timeStart:newStart,timeEnd:newEnd});
+    const r = await gasGet({action:'admin_shift_date_update',id,newDate,timeStart:newStart,timeEnd:newEnd});
+    if (isGasError(r)) { showToast('❌','変更に失敗しました。再度お試しください。'); return; }
     showToast('✅','日程を変更しました');
   } else if(mode==='all'){
     closeAdminShiftManageModal(); showToast('⏳','処理中...');
-    await gasGet({action:'admin_shift_cancel',id});
+    const r = await gasGet({action:'admin_shift_cancel',id});
+    if (isGasError(r)) { showToast('❌','取消に失敗しました。再度お試しください。'); return; }
     showToast('🗑️','全件取消しました');
   }
   await new Promise(function(r){setTimeout(r,1200);});
@@ -2453,7 +2463,8 @@ async function submitAdminShiftEdit(){
   var newEnd=document.getElementById('adminShiftEditTimeEnd').value;
   if(!newDate){showToast('⚠️','日付を選択してください');return;}
   var targetId=adminShiftEditTargetId;closeAdminShiftEditModal();showToast('⏳','処理中...');
-  await gasGet({action:'admin_shift_date_update',id:targetId,newDate,timeStart:newStart,timeEnd:newEnd});
+  const r = await gasGet({action:'admin_shift_date_update',id:targetId,newDate,timeStart:newStart,timeEnd:newEnd});
+  if (isGasError(r)) { showToast('❌','変更に失敗しました。再度お試しください。'); return; }
   showToast('✅','日程を変更しました');
   await new Promise(function(r){setTimeout(r,1000);});await loadShiftHistory();
 }
