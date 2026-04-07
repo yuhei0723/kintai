@@ -1015,20 +1015,33 @@ var GAS_URL = 'https://script.google.com/macros/s/AKfycbwYs7SpsnnXYgCdotURcO2BCf
 
 function gasCall(params) { return gasGet(params).catch(function() { return null; }); }
 
-async function gasGet(params) {
-  const qs = Object.entries(params).map(([k,v]) => encodeURIComponent(k)+'='+encodeURIComponent(String(v))).join('&');
-  const fullUrl = GAS_URL + '?' + qs;
-  try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 20000);
-    const res = await fetch(fullUrl, { signal: controller.signal, redirect: 'follow' });
-    clearTimeout(timer);
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    return await res.json();
-  } catch(e) {
-    console.error('gasGet error:', params.action, e.message);
-    return null;
-  }
+function gasGet(params) {
+  return new Promise(function(resolve, reject) {
+    var cbName = '_gasCb_' + Date.now() + '_' + Math.floor(Math.random()*10000);
+    var timer = setTimeout(function() {
+      delete window[cbName];
+      if (script && script.parentNode) script.parentNode.removeChild(script);
+      reject(new Error('timeout'));
+    }, 20000);
+    window[cbName] = function(data) {
+      clearTimeout(timer);
+      delete window[cbName];
+      if (script && script.parentNode) script.parentNode.removeChild(script);
+      resolve(data);
+    };
+    var qs = Object.entries(params).map(function(kv) {
+      return encodeURIComponent(kv[0]) + '=' + encodeURIComponent(String(kv[1]));
+    }).join('&');
+    var script = document.createElement('script');
+    script.src = GAS_URL + '?' + qs + '&callback=' + cbName;
+    script.onerror = function() {
+      clearTimeout(timer);
+      delete window[cbName];
+      console.error('gasGet error:', params.action, 'script load failed');
+      resolve(null);
+    };
+    document.head.appendChild(script);
+  });
 }
 
 // ── EMPLOYEE ──
@@ -1662,8 +1675,16 @@ function renderCalendar() {
   }
   shiftHistory.filter(s=>!currentName||s.name===currentName).forEach(s=>{
     if(s.status==='cancelled') return;
+    // GAS側でpartial cancelされた日付リスト（cancelledDates）があれば除外
+    var cancelledDateSet = new Set();
+    if(s.cancelledDates){
+      (Array.isArray(s.cancelledDates)?s.cancelledDates:s.cancelledDates.split(',')).forEach(function(d){
+        var key=normDateKey(d); if(key) cancelledDateSet.add(key);
+      });
+    }
     s.dates.forEach(d=>{
       const key=normDateKey(d); if(!key) return;
+      if(cancelledDateSet.has(key)) return; // 取消済み日付はスキップ
       const prev=dateStatusMap[key];
       const priority={'approved':4,'cancel_requested':3,'pending':2,'rejected':1};
       if(!prev||(priority[s.status]||0)>(priority[prev]||0)) dateStatusMap[key]=s.status;
