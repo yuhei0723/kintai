@@ -1012,8 +1012,10 @@ function showPage(id) {
 
 // ── GAS通信 ──
 var GAS_URL = 'https://script.google.com/macros/s/AKfycbxl7zsJArFs4DpVE9YmRU8sdHvHJPcTXvbQzz0928lnpWYbohKQRkca3cf317t5_LWlvQ/exec';
+var GAS_ERROR = Symbol('GAS_ERROR'); // 通信失敗を示す特殊値
 
-function gasCall(params) { return gasGet(params).catch(function() { return null; }); }
+// 書き込み系（エラー時nullを返す、呼び出し元でnullチェック）
+function gasCall(params) { return gasGet(params).catch(function() { return GAS_ERROR; }); }
 
 async function gasGet(params) {
   const qs = Object.entries(params).map(([k,v]) => encodeURIComponent(k)+'='+encodeURIComponent(String(v))).join('&');
@@ -1027,13 +1029,17 @@ async function gasGet(params) {
       credentials: 'omit'
     });
     clearTimeout(timer);
+    if (!res.ok) return GAS_ERROR;
     const text = await res.text();
-    try { return JSON.parse(text); } catch(e) { return null; }
+    try { return JSON.parse(text); } catch(e) { return GAS_ERROR; }
   } catch(e) {
     console.error('gasGet error:', params.action, e.message);
-    return null;
+    return GAS_ERROR;
   }
 }
+
+// GASエラー判定ヘルパー
+function isGasError(v) { return v === GAS_ERROR || v === null || v === undefined; }
 
 // ── EMPLOYEE ──
 function refreshTeamSelects() {
@@ -1244,7 +1250,8 @@ async function executePunchEdit() {
     const newTime = document.getElementById('punchEditNewTime').value;
     if (!newTime) { showToast('⚠️','修正後の時刻を入力してください'); return; }
     showToast('⏳','修正中...');
-    await gasGet({action:'punch_edit', rowIndex:_punchEditTargetRow.rowIndex, newTime});
+    const r = await gasGet({action:'punch_edit', rowIndex:_punchEditTargetRow.rowIndex, newTime});
+    if (isGasError(r)) { showToast('❌','修正に失敗しました。再度お試しください。'); return; }
     showToast('✅',_punchEditTargetRow.name+'さんの打刻を'+newTime+'に修正しました');
   } else if (_punchEditTab==='delete') {
     const selected = [...document.querySelectorAll('#punchDeleteSelectList [data-selected="1"]')];
@@ -1252,7 +1259,12 @@ async function executePunchEdit() {
     if (!confirm(selected.length+'件の打刻を削除します。元に戻せません。よろしいですか？')) return;
     showToast('⏳','削除中...');
     const rowIndexes = selected.map(el => parseInt(el.dataset.rowIndex)).sort((a,b) => b-a);
-    for (const rowIndex of rowIndexes) { await gasGet({action:'punch_delete', rowIndex}); }
+    let failed = 0;
+    for (const rowIndex of rowIndexes) {
+      const r = await gasGet({action:'punch_delete', rowIndex});
+      if (isGasError(r)) failed++;
+    }
+    if (failed > 0) { showToast('❌', failed+'件の削除に失敗しました。'); return; }
     showToast('🗑️',selected.length+'件の打刻を削除しました');
   } else if (_punchEditTab==='add') {
     const name = document.getElementById('punchAddName').value;
@@ -1261,7 +1273,8 @@ async function executePunchEdit() {
     const time = document.getElementById('punchAddTime').value;
     if (!name||!date||!time) { showToast('⚠️','すべての項目を入力してください'); return; }
     showToast('⏳','追加中...');
-    await gasGet({action:'punch_add', name, type, date, time});
+    const r = await gasGet({action:'punch_add', name, type, date, time});
+    if (isGasError(r)) { showToast('❌','追加に失敗しました。再度お試しください。'); return; }
     showToast('✅',name+'さんの'+type+'（'+time+'）を追加しました');
   }
   closePunchEditModal();
@@ -1286,16 +1299,17 @@ async function executePunch(name, type) {
   const now = new Date();
   const timeStr = now.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
   try {
-    await gasGet({action:'punch', name, type, timestamp:now.toISOString()});
-    if (type==='出勤') punchedTodayIn.add(name);
-    if (type==='退勤') punchedTodayOut.add(name);
-    showToast('✅',name+'さんの'+type+'を記録しました（'+timeStr+'）');
-    setTimeout(loadTodayPunchLog, 1500);
+    const result = await gasGet({action:'punch', name, type, timestamp:now.toISOString()});
+    if (isGasError(result)) {
+      showToast('❌', name+'さんの'+type+'の記録に失敗しました。通信エラーです。再度お試しください。');
+    } else {
+      if (type==='出勤') punchedTodayIn.add(name);
+      if (type==='退勤') punchedTodayOut.add(name);
+      showToast('✅', name+'さんの'+type+'を記録しました（'+timeStr+'）');
+      setTimeout(loadTodayPunchLog, 1500);
+    }
   } catch(e) {
-    if (type==='出勤') punchedTodayIn.add(name);
-    if (type==='退勤') punchedTodayOut.add(name);
-    showToast('✅',name+'さんの'+type+'を記録しました（'+timeStr+'）');
-    setTimeout(loadTodayPunchLog, 1500);
+    showToast('❌', name+'さんの'+type+'の記録に失敗しました。再度お試しください。');
   } finally {
     setTimeout(() => { document.getElementById('btnIn').disabled=false; document.getElementById('btnOut').disabled=false; }, 2000);
   }
@@ -1385,7 +1399,8 @@ function submitLeave() {
     okLabel:'申請する', okColor:'linear-gradient(135deg,#d97706,#f59e0b)',
     onOk: async () => {
       showToast('⏳','送信中...');
-      await gasCall({action:'leave_submit', name, date, reason:reason||'', kind});
+      const r = await gasCall({action:'leave_submit', name, date, reason:reason||'', kind});
+      if (isGasError(r)) { showToast('❌','申請の送信に失敗しました。再度お試しください。'); return; }
       document.getElementById('leaveDate').value='';
       document.getElementById('leaveReason').value='';
       document.getElementById('leaveKind').value='paid';
@@ -1599,7 +1614,8 @@ async function submitLeaveCancelRequest() {
     if (!targetId) { showToast('⚠️','申請IDが取得できませんでした'); return; }
     closeLeaveCancelModal();
     showToast('⏳','申請中...');
-    await gasGet({action:'leave_cancel_request', id:targetId, name:personalUser||'', cancelType:type, newDate, cancelNote:note});
+    const r = await gasGet({action:'leave_cancel_request', id:targetId, name:personalUser||'', cancelType:type, newDate, cancelNote:note});
+    if (isGasError(r)) { showToast('❌','申請に失敗しました。再度お試しください。'); return; }
     showToast('🔄',type==='change'?'日程変更を申請しました':'取消を申請しました');
     await new Promise(function(r){setTimeout(r,1500);});
     await loadLeaveHistory();
@@ -1621,7 +1637,8 @@ async function approveLeaveCancelRequest(id, action) {
 
 async function updateLeaveStatus(id, status) {
   showToast('⏳','処理中...');
-  await gasCall({action:'leave_update', id, status});
+  const r = await gasCall({action:'leave_update', id, status});
+  if (isGasError(r)) { showToast('❌','処理に失敗しました。再度お試しください。'); return; }
   showToast(status==='approved'?'✅':'❌','有給申請を'+(status==='approved'?'承認':'却下')+'しました');
   await loadLeaveHistory();
   if (document.getElementById('page-admin').classList.contains('active')) await loadAdminPage();
@@ -1761,7 +1778,8 @@ async function submitShift() {
     okLabel:'申請する', okColor:'linear-gradient(135deg,#d97706,#f59e0b)',
     onOk: async () => {
       showToast('⏳','送信中...');
-      await gasCall({action:'shift_submit', name, dates:dates.join(','), timeStart, timeEnd});
+      const r = await gasCall({action:'shift_submit', name, dates:dates.join(','), timeStart, timeEnd});
+      if (isGasError(r)) { showToast('❌','申請の送信に失敗しました。再度お試しください。'); return; }
       selectedDates.clear();
       document.getElementById('timePickerSection').style.display='none';
       showToast('📆',dates.length+'日分のシフト希望を送信しました');
@@ -1962,8 +1980,9 @@ async function submitCancelRequest() {
     onOk: async () => {
       closeCancelModal();
       showToast('⏳','処理中...');
-      await gasGet({action:'shift_cancel_request', id:submitId, name:submitName, cancelType:type, cancelDates:submitDates, newTimeStart:newStart, newTimeEnd:newEnd, newDate});
-      showToast('🔄',cancelSelectedDates.size+'日分の'+typeLabel+'を処理しました');
+      const r = await gasGet({action:'shift_cancel_request', id:submitId, name:submitName, cancelType:type, cancelDates:submitDates, newTimeStart:newStart, newTimeEnd:newEnd, newDate});
+      if (isGasError(r)) { showToast('❌','申請に失敗しました。再度お試しください。'); return; }
+      showToast('🔄',cancelSelectedDates.size+'日分の'+typeLabel+'を申請しました');
       await new Promise(function(r){setTimeout(r,1500);});
       await loadShiftHistory(); renderCalendar();
       if(document.getElementById('page-admin')&&document.getElementById('page-admin').classList.contains('active')) await loadAdminPage();
@@ -1980,7 +1999,8 @@ document.addEventListener('click', async function(e) {
 
 async function updateShiftStatus(id, status) {
   showToast('⏳','処理中...');
-  await gasCall({action:'shift_update', id, status});
+  const r = await gasCall({action:'shift_update', id, status});
+  if (isGasError(r)) { showToast('❌','処理に失敗しました。再度お試しください。'); return; }
   showToast(status==='approved'?'✅':'❌','シフト申請を'+(status==='approved'?'承認':'却下')+'しました');
   await loadShiftHistory(); renderCalendar();
   if(document.getElementById('page-admin')&&document.getElementById('page-admin').classList.contains('active')) await loadAdminPage();
@@ -2225,7 +2245,8 @@ async function confirmCompLeave(name){
   if(typeof employeeMaster==='undefined')window.employeeMaster={};
   const current=(window.employeeMaster||{})[name]||{paidLeave:0,compLeave:0};
   const newComp=(current.compLeave||0)+1;
-  await gasCall({action:'employee_set',name,paidLeave:current.paidLeave||0,compLeave:newComp});
+  const r = await gasCall({action:'employee_set',name,paidLeave:current.paidLeave||0,compLeave:newComp});
+  if (isGasError(r)) { showToast('❌','付与に失敗しました。再度お試しください。'); return; }
   window.employeeMaster[name]=Object.assign({},current,{compLeave:newComp});
   const emp=employees.find(e=>e.name===name);
   if(emp){emp.compLeave=newComp;setData('employees',employees);}
@@ -2250,7 +2271,8 @@ function handleLeaveAction(action,id){
 async function adminLeaveDirect(id,action){
   if(!confirm('この有給申請を取消しますか？'))return;
   showToast('⏳','処理中...');
-  await gasGet({action:'admin_leave_cancel',id});
+  const r = await gasGet({action:'admin_leave_cancel',id});
+  if (isGasError(r)) { showToast('❌','取消に失敗しました。再度お試しください。'); return; }
   showToast('🗑️','有給申請を取消しました');
   await new Promise(function(r){setTimeout(r,1000);});
   await loadLeaveHistory();
@@ -2268,7 +2290,8 @@ async function submitAdminLeaveEdit(){
   var newDate=document.getElementById('adminLeaveEditDate').value;
   if(!newDate){showToast('⚠️','日付を選択してください');return;}
   var targetId=adminLeaveEditTargetId;closeAdminLeaveEditModal();showToast('⏳','処理中...');
-  await gasGet({action:'admin_leave_date_update',id:targetId,newDate});
+  const r = await gasGet({action:'admin_leave_date_update',id:targetId,newDate});
+  if (isGasError(r)) { showToast('❌','変更に失敗しました。再度お試しください。'); return; }
   showToast('✅','日程を変更しました');
   await new Promise(function(r){setTimeout(r,1000);});await loadLeaveHistory();
 }
