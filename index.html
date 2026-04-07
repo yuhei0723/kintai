@@ -387,7 +387,7 @@ textarea { resize:vertical; min-height:80px; }
   </div>
   <div class="setup-box" id="gasSetupBox" style="display:none;">
     <div class="setup-title-row">⚙️ GAS連携設定　<span id="statusDot" class="status-dot status-ok"></span><span id="statusText">接続済み</span></div>
-    <input type="text" id="gasUrl" value="https://script.google.com/macros/s/AKfycbwYs7SpsnnXYgCdotURcO2BCfYlD0AtYw0jMSC7h07kRmhYM8kZf7VDXveXixPsvjt8bw/exec" style="margin-bottom:8px;">
+    <input type="text" id="gasUrl" value="https://script.google.com/macros/s/AKfycbxl7zsJArFs4DpVE9YmRU8sdHvHJPcTXvbQzz0928lnpWYbohKQRkca3cf317t5_LWlvQ/exec" style="margin-bottom:8px;">
     <div class="setup-note">※ GAS URLは設定済みです。</div>
   </div>
   <div class="card" id="todayLogCard">
@@ -594,7 +594,7 @@ textarea { resize:vertical; min-height:80px; }
   <div class="card">
     <div class="section-title">⚙️ GAS URL設定</div>
     <div class="label">WebアプリURL</div>
-    <input type="text" id="gasUrlSettings" value="https://script.google.com/macros/s/AKfycbwYs7SpsnnXYgCdotURcO2BCfYlD0AtYw0jMSC7h07kRmhYM8kZf7VDXveXixPsvjt8bw/exec">
+    <input type="text" id="gasUrlSettings" value="https://script.google.com/macros/s/AKfycbxl7zsJArFs4DpVE9YmRU8sdHvHJPcTXvbQzz0928lnpWYbohKQRkca3cf317t5_LWlvQ/exec">
     <button class="btn-full btn-full-amber" onclick="saveGasUrlSettings()">保存する</button>
   </div>
   <div class="card">
@@ -1011,37 +1011,28 @@ function showPage(id) {
 }
 
 // ── GAS通信 ──
-var GAS_URL = 'https://script.google.com/macros/s/AKfycbwYs7SpsnnXYgCdotURcO2BCfYlD0AtYw0jMSC7h07kRmhYM8kZf7VDXveXixPsvjt8bw/exec';
+var GAS_URL = 'https://script.google.com/macros/s/AKfycbxl7zsJArFs4DpVE9YmRU8sdHvHJPcTXvbQzz0928lnpWYbohKQRkca3cf317t5_LWlvQ/exec';
 
 function gasCall(params) { return gasGet(params).catch(function() { return null; }); }
 
-function gasGet(params) {
-  return new Promise(function(resolve, reject) {
-    var cbName = '_gasCb_' + Date.now() + '_' + Math.floor(Math.random()*10000);
-    var timer = setTimeout(function() {
-      delete window[cbName];
-      if (script && script.parentNode) script.parentNode.removeChild(script);
-      reject(new Error('timeout'));
-    }, 20000);
-    window[cbName] = function(data) {
-      clearTimeout(timer);
-      delete window[cbName];
-      if (script && script.parentNode) script.parentNode.removeChild(script);
-      resolve(data);
-    };
-    var qs = Object.entries(params).map(function(kv) {
-      return encodeURIComponent(kv[0]) + '=' + encodeURIComponent(String(kv[1]));
-    }).join('&');
-    var script = document.createElement('script');
-    script.src = GAS_URL + '?' + qs + '&callback=' + cbName;
-    script.onerror = function() {
-      clearTimeout(timer);
-      delete window[cbName];
-      console.error('gasGet error:', params.action, 'script load failed');
-      resolve(null);
-    };
-    document.head.appendChild(script);
-  });
+async function gasGet(params) {
+  const qs = Object.entries(params).map(([k,v]) => encodeURIComponent(k)+'='+encodeURIComponent(String(v))).join('&');
+  const fullUrl = GAS_URL + '?' + qs;
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 20000);
+    const res = await fetch(fullUrl, {
+      signal: controller.signal,
+      redirect: 'follow',
+      credentials: 'omit'
+    });
+    clearTimeout(timer);
+    const text = await res.text();
+    try { return JSON.parse(text); } catch(e) { return null; }
+  } catch(e) {
+    console.error('gasGet error:', params.action, e.message);
+    return null;
+  }
 }
 
 // ── EMPLOYEE ──
@@ -1997,8 +1988,8 @@ async function updateShiftStatus(id, status) {
 
 // ── GAS URL ──
 function loadGasUrl() {
-  localStorage.setItem('gasUrl','https://script.google.com/macros/s/AKfycbwYs7SpsnnXYgCdotURcO2BCfYlD0AtYw0jMSC7h07kRmhYM8kZf7VDXveXixPsvjt8bw/exec');
-  const saved='https://script.google.com/macros/s/AKfycbwYs7SpsnnXYgCdotURcO2BCfYlD0AtYw0jMSC7h07kRmhYM8kZf7VDXveXixPsvjt8bw/exec';
+  localStorage.setItem('gasUrl','https://script.google.com/macros/s/AKfycbxl7zsJArFs4DpVE9YmRU8sdHvHJPcTXvbQzz0928lnpWYbohKQRkca3cf317t5_LWlvQ/exec');
+  const saved='https://script.google.com/macros/s/AKfycbxl7zsJArFs4DpVE9YmRU8sdHvHJPcTXvbQzz0928lnpWYbohKQRkca3cf317t5_LWlvQ/exec';
   if(saved){document.getElementById('gasUrl').value=saved;document.getElementById('gasUrlSettings').value=saved;document.getElementById('statusDot').classList.add('on');document.getElementById('statusText').textContent='設定済み';}
 }
 
