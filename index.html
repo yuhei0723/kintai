@@ -2366,18 +2366,20 @@ function closeAdminShiftManageModal(){
 }
 
 async function submitAdminShiftManage(mode){
+  if(!_admShiftManageRec){showToast('⚠️','対象が見つかりません');return;}
+  // closeの前にid/recを退避
+  var rec=_admShiftManageRec;
+  var id=rec.id;
   if(mode==='cancel'){
     if(_admShiftManageDates.size===0){showToast('⚠️','取消する日付を選択してください');return;}
     var dates=Array.from(_admShiftManageDates).sort();
-    var allDates=_getRecDates(_admShiftManageRec);
+    var allDates=_getRecDates(rec);
     var isAllDates=allDates.length===dates.length&&allDates.every(function(d){return _admShiftManageDates.has(d);});
     closeAdminShiftManageModal(); showToast('⏳','処理中...');
     if(isAllDates){
-      // 全部なら全件取消
-      await gasGet({action:'admin_shift_cancel',id:_admShiftManageId||_admShiftManageRec.id});
+      await gasGet({action:'admin_shift_cancel',id});
     } else {
-      // 一部取消はpartial_cancel_approveをadmin権限で即時承認として送る
-      await gasGet({action:'shift_partial_cancel_approve',id:_admShiftManageRec.id,approvedDates:dates.join(','),approveAction:'approve',newDate:''});
+      await gasGet({action:'shift_partial_cancel_approve',id,approvedDates:dates.join(','),approveAction:'approve',newDate:''});
     }
     showToast('🗑️',dates.length+'日分を取消しました');
   } else if(mode==='change'){
@@ -2386,12 +2388,10 @@ async function submitAdminShiftManage(mode){
     var newStart=document.getElementById('adminShiftManageTimeStart').value;
     var newEnd=document.getElementById('adminShiftManageTimeEnd').value;
     if(newStart>=newEnd){showToast('⚠️','終了時刻は開始時刻より後にしてください');return;}
-    var rec=_admShiftManageRec; var id=rec.id;
     closeAdminShiftManageModal(); showToast('⏳','処理中...');
     await gasGet({action:'admin_shift_date_update',id,newDate,timeStart:newStart,timeEnd:newEnd});
     showToast('✅','日程を変更しました');
   } else if(mode==='all'){
-    var rec=_admShiftManageRec; var id=rec.id;
     closeAdminShiftManageModal(); showToast('⏳','処理中...');
     await gasGet({action:'admin_shift_cancel',id});
     showToast('🗑️','全件取消しました');
