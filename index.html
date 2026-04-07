@@ -843,6 +843,58 @@ textarea { resize:vertical; min-height:80px; }
 </div>
 
 <!-- MODAL: 管理者：シフト日程変更 -->
+<!-- MODAL: 管理者シフト日付単位操作 -->
+<div id="adminShiftManageModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:400;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--surface);border-radius:20px;padding:24px 20px;width:100%;max-width:440px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.25);">
+    <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:4px;">🗂️ シフト管理</div>
+    <div id="adminShiftManageName" style="font-size:13px;color:var(--text-sub);margin-bottom:14px;"></div>
+    <!-- 操作タブ -->
+    <div style="display:flex;gap:0;margin-bottom:16px;border-radius:10px;overflow:hidden;border:1px solid var(--border);">
+      <button id="admShiftTab-cancel" onclick="switchAdminShiftManageTab('cancel')" style="flex:1;padding:9px 4px;border:none;font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;background:var(--red);color:#fff;transition:all .15s;">🗑️ 日付を取消</button>
+      <button id="admShiftTab-change" onclick="switchAdminShiftManageTab('change')" style="flex:1;padding:9px 4px;border:none;font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;background:var(--surface2);color:var(--text-sub);transition:all .15s;">✏️ 日付・時間変更</button>
+      <button id="admShiftTab-all" onclick="switchAdminShiftManageTab('all')" style="flex:1;padding:9px 4px;border:none;font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;background:var(--surface2);color:var(--text-sub);transition:all .15s;">🗑️ 全件取消</button>
+    </div>
+    <!-- 取消パネル -->
+    <div id="admShiftPanel-cancel">
+      <div style="font-size:12px;color:var(--text-sub);margin-bottom:8px;">取消する日付を選択（複数可）</div>
+      <div id="adminShiftManageDateList" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;max-height:200px;overflow-y:auto;padding:4px 0;"></div>
+      <button id="adminShiftManageSelectAll" onclick="toggleAdminShiftSelectAll()" style="width:100%;padding:7px;margin-bottom:14px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text-sub);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">✅ すべて選択</button>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <button onclick="closeAdminShiftManageModal()" style="padding:12px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text-sub);font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">キャンセル</button>
+        <button onclick="submitAdminShiftManage('cancel')" style="padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,#dc2626,#ef4444);color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">取消する</button>
+      </div>
+    </div>
+    <!-- 変更パネル -->
+    <div id="admShiftPanel-change" style="display:none;">
+      <div style="font-size:12px;color:var(--text-sub);margin-bottom:8px;">変更する日付を選択（1日ずつ）</div>
+      <div id="adminShiftManageDateList2" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;max-height:160px;overflow-y:auto;padding:4px 0;"></div>
+      <div style="font-size:12px;color:var(--text-sub);margin-bottom:6px;">変更後の日付（任意）</div>
+      <input type="date" id="adminShiftManageNewDate" style="width:100%;margin-bottom:12px;">
+      <div style="font-size:12px;color:var(--text-sub);margin-bottom:6px;">変更後の勤務時間</div>
+      <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;margin-bottom:16px;">
+        <div style="position:relative;"><select id="adminShiftManageTimeStart" style="width:100%;padding:10px 28px 10px 12px;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:14px;appearance:none;cursor:pointer;outline:none;"></select><span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--text-sub);font-size:12px;">▼</span></div>
+        <span style="color:var(--text-sub);">〜</span>
+        <div style="position:relative;"><select id="adminShiftManageTimeEnd" style="width:100%;padding:10px 28px 10px 12px;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:14px;appearance:none;cursor:pointer;outline:none;"></select><span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--text-sub);font-size:12px;">▼</span></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <button onclick="closeAdminShiftManageModal()" style="padding:12px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text-sub);font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">キャンセル</button>
+        <button onclick="submitAdminShiftManage('change')" style="padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,#2563eb,#3b82f6);color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">変更する</button>
+      </div>
+    </div>
+    <!-- 全件取消パネル -->
+    <div id="admShiftPanel-all" style="display:none;">
+      <div style="background:var(--red-bg);border:1px solid var(--red);border-radius:10px;padding:14px 16px;margin-bottom:16px;">
+        <div style="font-size:13px;font-weight:700;color:var(--red);margin-bottom:4px;">⚠️ この申請を全件取消します</div>
+        <div id="adminShiftManageAllPreview" style="font-size:12px;color:var(--text-sub);line-height:1.8;"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <button onclick="closeAdminShiftManageModal()" style="padding:12px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text-sub);font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">キャンセル</button>
+        <button onclick="submitAdminShiftManage('all')" style="padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,#dc2626,#ef4444);color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">全件取消</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="adminShiftEditModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center;padding:20px;">
   <div style="background:var(--surface);border-radius:20px;padding:24px 20px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(37,99,235,0.2);">
     <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px;">✏️ シフト日程変更</div>
@@ -1768,7 +1820,7 @@ function renderShiftHistory() {
       ${r.status==='cancel_requested'&&!personalUser?buildCancelAdminUI(r):''}
       ${personalUser&&(r.status==='approved'||r.status==='pending')?`<button onclick="requestShiftCancel('${r.id}')" style="width:100%;padding:8px;border-radius:8px;background:#fff8f8;color:#dc2626;font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid rgba(220,38,38,0.3);">🔄 変更・取消を申請する</button>`:''}
       ${r.status==='cancel_requested'&&personalUser?'<div style="text-align:center;font-size:12px;color:var(--amber);padding:6px;">管理者の確認をお待ちください</div>':''}
-      ${!personalUser&&r.status==='approved'?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"><button onclick="openAdminShiftEditModal('${r.id}')" style="padding:8px;border-radius:8px;background:#eff6ff;color:#2563eb;font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid #2563eb;">✏️ 日程変更</button><button onclick="adminShiftDirect('${r.id}','cancel')" style="padding:8px;border-radius:8px;background:var(--red-bg);color:var(--red);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--red);">🗑️ 取消</button></div>`:''}
+      ${!personalUser&&r.status==='approved'?`<button onclick="openAdminShiftManageModal('${r.id}')" style="width:100%;padding:8px;border-radius:8px;background:var(--amber-bg);color:var(--amber);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--amber);">🗂️ 日付単位で変更・取消</button>`:''}
     </div>`;
   }).join('');
 }
@@ -2215,6 +2267,138 @@ async function adminShiftDirect(id,action){
   await new Promise(function(r){setTimeout(r,1000);});await loadShiftHistory();
 }
 
+// ── 管理者シフト日付単位操作モーダル ──
+var _admShiftManageId=null, _admShiftManageDates=new Set(), _admShiftManageTab='cancel', _admShiftManageRec=null;
+
+function openAdminShiftManageModal(id){
+  const rec=shiftHistory.find(r=>r.id===id)||adminShiftData.find(r=>r.id===id);
+  if(!rec)return;
+  _admShiftManageId=id; _admShiftManageRec=rec; _admShiftManageDates=new Set();
+  document.getElementById('adminShiftManageName').textContent=rec.name+'　'+_buildDatesPreview(rec);
+  _buildAdminShiftDateChips('adminShiftManageDateList');
+  _buildAdminShiftDateChips('adminShiftManageDateList2');
+  // 全件取消プレビュー
+  const datesArr=_getRecDates(rec);
+  document.getElementById('adminShiftManageAllPreview').innerHTML=
+    '対象：'+datesArr.length+'日<br>'+datesArr.map(d=>fmtDate(d)).join('　');
+  // 時間セレクト初期化
+  ['adminShiftManageTimeStart','adminShiftManageTimeEnd'].forEach(function(selId){
+    var sel=document.getElementById(selId); sel.innerHTML='';
+    for(var h=6;h<=22;h++){['00','30'].forEach(function(m){var val=String(h).padStart(2,'0')+':'+m;sel.innerHTML+=`<option value="${val}">${val}</option>`;});}
+  });
+  var ts=rec.timeStart||'09:00'; var te=rec.timeEnd||'17:00';
+  document.getElementById('adminShiftManageTimeStart').value=ts.length>5?ts.substring(11,16):ts;
+  document.getElementById('adminShiftManageTimeEnd').value=te.length>5?te.substring(11,16):te;
+  document.getElementById('adminShiftManageNewDate').value='';
+  switchAdminShiftManageTab('cancel');
+  document.getElementById('adminShiftManageModal').style.display='flex';
+}
+
+function _getRecDates(rec){
+  return (Array.isArray(rec.dates)?rec.dates:rec.dates.split(',')).map(function(d){return d.trim();}).filter(Boolean);
+}
+
+function _buildDatesPreview(rec){
+  var arr=_getRecDates(rec);
+  return arr.length+'日　'+arr.slice(0,3).map(d=>fmtDate(d)).join('、')+(arr.length>3?'他'+(arr.length-3)+'日':'');
+}
+
+function _buildAdminShiftDateChips(listId){
+  var listEl=document.getElementById(listId); if(!listEl)return;
+  var datesArr=_getRecDates(_admShiftManageRec);
+  var days=['日','月','火','水','木','金','土'];
+  function chipColor(d){var dt=new Date(d);var dow=dt.getDay();if(dow===0||isJpHoliday(dt))return'#e53e3e';if(dow===6)return'#3b82f6';return'var(--text)';}
+  listEl.innerHTML=datesArr.map(function(d){
+    var dt=new Date(d);var dow=dt.getDay();var col=chipColor(d);
+    var label=(dt.getMonth()+1)+'/'+dt.getDate()+'('+days[dow]+')';
+    return `<div class="cancel-date-chip" data-date="${d}" data-list="${listId}" onclick="toggleAdminShiftDate('${d}','${listId}')" style="color:${col};border-color:${col==='var(--text)'?'var(--border)':col};">${label}</div>`;
+  }).join('');
+}
+
+function toggleAdminShiftDate(d,listId){
+  // 変更パネルは1日だけ選択（ラジオ的挙動）
+  if(listId==='adminShiftManageDateList2'){
+    _admShiftManageDates=new Set([d]);
+    document.querySelectorAll('#adminShiftManageDateList2 .cancel-date-chip').forEach(function(c){
+      c.classList.toggle('chip-selected', c.dataset.date===d);
+    });
+    return;
+  }
+  const chip=document.querySelector(`#${listId} [data-date="${d}"]`);
+  if(_admShiftManageDates.has(d)){_admShiftManageDates.delete(d);if(chip)chip.classList.remove('chip-selected');}
+  else{_admShiftManageDates.add(d);if(chip)chip.classList.add('chip-selected');}
+  // 全選択ボタン更新
+  var allBtn=document.getElementById('adminShiftManageSelectAll');
+  if(allBtn){var chips=[...document.querySelectorAll('#adminShiftManageDateList .cancel-date-chip')];var all=chips.length>0&&chips.every(function(c){return _admShiftManageDates.has(c.dataset.date);});allBtn.textContent=all?'☐ すべて解除':'✅ すべて選択';}
+}
+
+function toggleAdminShiftSelectAll(){
+  var chips=[...document.querySelectorAll('#adminShiftManageDateList .cancel-date-chip')];
+  var allSelected=chips.every(function(c){return _admShiftManageDates.has(c.dataset.date);});
+  if(allSelected){chips.forEach(function(c){_admShiftManageDates.delete(c.dataset.date);c.classList.remove('chip-selected');});document.getElementById('adminShiftManageSelectAll').textContent='✅ すべて選択';}
+  else{chips.forEach(function(c){_admShiftManageDates.add(c.dataset.date);c.classList.add('chip-selected');});document.getElementById('adminShiftManageSelectAll').textContent='☐ すべて解除';}
+}
+
+function switchAdminShiftManageTab(tab){
+  _admShiftManageTab=tab;
+  _admShiftManageDates=new Set();
+  ['cancel','change','all'].forEach(function(t){
+    var panel=document.getElementById('admShiftPanel-'+t);
+    var btn=document.getElementById('admShiftTab-'+t);
+    if(panel)panel.style.display=(t===tab)?'block':'none';
+    if(btn){
+      var isActive=(t===tab);
+      btn.style.background=isActive?(t==='change'?'var(--blue)':'var(--red)'):'var(--surface2)';
+      btn.style.color=isActive?'#fff':'var(--text-sub)';
+    }
+  });
+  // チップのselected状態リセット
+  document.querySelectorAll('.cancel-date-chip[data-list]').forEach(function(c){c.classList.remove('chip-selected');});
+  var allBtn=document.getElementById('adminShiftManageSelectAll');
+  if(allBtn)allBtn.textContent='✅ すべて選択';
+}
+
+function closeAdminShiftManageModal(){
+  document.getElementById('adminShiftManageModal').style.display='none';
+  _admShiftManageId=null; _admShiftManageRec=null; _admShiftManageDates=new Set();
+}
+
+async function submitAdminShiftManage(mode){
+  if(mode==='cancel'){
+    if(_admShiftManageDates.size===0){showToast('⚠️','取消する日付を選択してください');return;}
+    var dates=Array.from(_admShiftManageDates).sort();
+    var allDates=_getRecDates(_admShiftManageRec);
+    var isAllDates=allDates.length===dates.length&&allDates.every(function(d){return _admShiftManageDates.has(d);});
+    closeAdminShiftManageModal(); showToast('⏳','処理中...');
+    if(isAllDates){
+      // 全部なら全件取消
+      await gasGet({action:'admin_shift_cancel',id:_admShiftManageId||_admShiftManageRec.id});
+    } else {
+      // 一部取消はpartial_cancel_approveをadmin権限で即時承認として送る
+      await gasGet({action:'shift_partial_cancel_approve',id:_admShiftManageRec.id,approvedDates:dates.join(','),approveAction:'approve',newDate:''});
+    }
+    showToast('🗑️',dates.length+'日分を取消しました');
+  } else if(mode==='change'){
+    if(_admShiftManageDates.size===0){showToast('⚠️','変更する日付を選択してください');return;}
+    var newDate=document.getElementById('adminShiftManageNewDate').value;
+    var newStart=document.getElementById('adminShiftManageTimeStart').value;
+    var newEnd=document.getElementById('adminShiftManageTimeEnd').value;
+    if(newStart>=newEnd){showToast('⚠️','終了時刻は開始時刻より後にしてください');return;}
+    var rec=_admShiftManageRec; var id=rec.id;
+    closeAdminShiftManageModal(); showToast('⏳','処理中...');
+    await gasGet({action:'admin_shift_date_update',id,newDate,timeStart:newStart,timeEnd:newEnd});
+    showToast('✅','日程を変更しました');
+  } else if(mode==='all'){
+    var rec=_admShiftManageRec; var id=rec.id;
+    closeAdminShiftManageModal(); showToast('⏳','処理中...');
+    await gasGet({action:'admin_shift_cancel',id});
+    showToast('🗑️','全件取消しました');
+  }
+  await new Promise(function(r){setTimeout(r,1200);});
+  await loadShiftHistory();
+  if(document.getElementById('page-admin').classList.contains('active')) await loadAdminPage();
+}
+
 var adminShiftEditTargetId=null;
 function openAdminShiftEditModal(id){
   adminShiftEditTargetId=id;
@@ -2360,7 +2544,7 @@ function renderAdminShiftList(){
     let btns='';
     if(r.status==='pending')btns=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"><button onclick="updateShiftStatus('${r.id}','approved');loadAdminPage();" style="padding:8px;border-radius:8px;background:var(--green-bg);color:var(--green);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--green);">✅ 承認する</button><button onclick="updateShiftStatus('${r.id}','rejected');loadAdminPage();" style="padding:8px;border-radius:8px;background:var(--red-bg);color:var(--red);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--red);">❌ 却下する</button></div>`;
     else if(r.status==='cancel_requested')btns=buildCancelAdminUI(r);
-    else if(r.status==='approved')btns=`<button onclick="shiftHistory=adminShiftData;requestShiftCancel('${r.id}')" style="width:100%;padding:8px;border-radius:8px;background:var(--amber-bg);color:var(--amber);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--amber);">🔄 変更・取消を処理</button>`;
+    else if(r.status==='approved')btns=`<button onclick="openAdminShiftManageModal('${r.id}')" style="width:100%;padding:8px;border-radius:8px;background:var(--amber-bg);color:var(--amber);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--amber);">🗂️ 日付単位で変更・取消</button>`;
     return `<div class="list-item" style="flex-direction:column;align-items:stretch;gap:10px;margin-bottom:10px;"><div style="display:flex;align-items:center;justify-content:space-between;"><div><div class="list-item-name">${r.name}</div><div class="list-item-sub">${datesArr.length}日　${datesPreview}${timeInfo?'　⏰'+timeInfo:''}</div></div><span class="tag ${statusClass}">${statusLabel}</span></div>${btns}</div>`;
   }).join('');
 }
