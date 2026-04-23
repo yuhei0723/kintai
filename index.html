@@ -436,11 +436,20 @@ textarea { resize:vertical; min-height:80px; }
     <input type="date" id="leaveDate">
     <div class="label">休暇種別</div>
     <div class="sel-wrap" style="margin-bottom:16px;">
-      <select id="leaveKind">
-        <option value="paid">有給休暇</option>
-        <option value="comp">代休</option>
+      <select id="leaveKind" onchange="updateLeaveHalfDayUI()">
+        <option value="paid">有給休暇（全日）</option>
+        <option value="paid_half">有給休暇（半日）</option>
+        <option value="comp">代休（全日）</option>
+        <option value="comp_half">代休（半日）</option>
       </select>
       <span class="sel-arrow">▼</span>
+    </div>
+    <div id="halfDaySection" style="display:none;margin-bottom:16px;">
+      <div class="label">午前・午後</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;" id="halfDayLabelAM"><input type="radio" name="halfDayTime" value="AM" checked onchange="updateHalfDayLabel()"> 🌅 午前（AM）</label>
+        <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;" id="halfDayLabelPM"><input type="radio" name="halfDayTime" value="PM" onchange="updateHalfDayLabel()"> 🌇 午後（PM）</label>
+      </div>
     </div>
     <div class="label">理由（任意）</div>
     <textarea id="leaveReason" placeholder="私用のため　など"></textarea>
@@ -1387,26 +1396,48 @@ function showConfirmDialog({icon,title,body,okLabel,okColor,onOk}) {
 
 function closeConfirmDialog() { document.getElementById('confirmDialog').style.display='none'; _confirmCallback=null; }
 
+function updateLeaveHalfDayUI() {
+  var kind = document.getElementById('leaveKind').value;
+  var isHalf = kind === 'paid_half' || kind === 'comp_half';
+  document.getElementById('halfDaySection').style.display = isHalf ? 'block' : 'none';
+  updateHalfDayLabel();
+}
+
+function updateHalfDayLabel() {
+  var amEl = document.getElementById('halfDayLabelAM');
+  var pmEl = document.getElementById('halfDayLabelPM');
+  var val = document.querySelector('input[name="halfDayTime"]:checked');
+  if (!val) return;
+  if (amEl) amEl.style.borderColor = val.value==='AM' ? 'var(--amber)' : 'var(--border)';
+  if (pmEl) pmEl.style.borderColor = val.value==='PM' ? 'var(--amber)' : 'var(--border)';
+}
+
 function submitLeave() {
   const name = document.getElementById('leaveName').value;
   const date = document.getElementById('leaveDate').value;
   const reason = document.getElementById('leaveReason').value.trim();
   if (!name) { showToast('⚠️','申請者を選択してください'); return; }
   if (!date) { showToast('⚠️','取得日を選択してください'); return; }
-  const kind = document.getElementById('leaveKind').value;
-  const kindLabel = kind==='comp'?'代休':'有給休暇';
+  const kindRaw = document.getElementById('leaveKind').value;
+  const isHalf = kindRaw === 'paid_half' || kindRaw === 'comp_half';
+  const isComp = kindRaw === 'comp' || kindRaw === 'comp_half';
+  const kind = isComp ? 'comp' : 'paid';
+  const days = isHalf ? 0.5 : 1;
+  const halfTime = isHalf ? (document.querySelector('input[name="halfDayTime"]:checked')?.value || 'AM') : '';
+  const kindLabel = (isComp ? '代休' : '有給休暇') + (isHalf ? `（半日・${halfTime==='AM'?'午前':'午後'}）` : '');
   showConfirmDialog({
     icon:'📝', title:kindLabel+'の申請確認',
     body:`<b>申請者：</b>${name}<br><b>取得日：</b>${fmtDate(date)}<br><b>種別：</b>${kindLabel}${reason?'<br><b>理由：</b>'+reason:''}`,
     okLabel:'申請する', okColor:'linear-gradient(135deg,#d97706,#f59e0b)',
     onOk: async () => {
       showToast('⏳','送信中...');
-      const r = await gasCall({action:'leave_submit', name, date, reason:reason||'', kind});
+      const r = await gasCall({action:'leave_submit', name, date, reason:reason||'', kind, days, halfTime});
       if (isGasError(r)) { showToast('❌','申請の送信に失敗しました。再度お試しください。'); return; }
       document.getElementById('leaveDate').value='';
       document.getElementById('leaveReason').value='';
       document.getElementById('leaveKind').value='paid';
-      showToast('📝',kind==='comp'?'代休申請を送信しました':'有給申請を送信しました');
+      updateLeaveHalfDayUI();
+      showToast('📝', kindLabel+'を申請しました');
       await loadLeaveHistory();
     }
   });
@@ -1480,13 +1511,20 @@ function updateLeaveBalance() {
   const paidGranted = masterEmp?(masterEmp.paidLeave||0):(localEmp.paidLeave||0);
   const compGranted = masterEmp?(masterEmp.compLeave||0):(localEmp.compLeave||0);
   const activeStatuses = ['approved','pending','cancel_requested'];
-  const paidUsed = leaveHistory.filter(r => r.name===name&&activeStatuses.includes(r.status)&&r.kind!=='comp').length;
-  const compUsed = leaveHistory.filter(r => r.name===name&&activeStatuses.includes(r.status)&&r.kind==='comp').length;
+  // days フィールドがあれば使う（0.5対応）、なければ1日として計算
+  const paidUsed = leaveHistory
+    .filter(r => r.name===name && activeStatuses.includes(r.status) && r.kind!=='comp')
+    .reduce((sum, r) => sum + (parseFloat(r.days)||1), 0);
+  const compUsed = leaveHistory
+    .filter(r => r.name===name && activeStatuses.includes(r.status) && r.kind==='comp')
+    .reduce((sum, r) => sum + (parseFloat(r.days)||1), 0);
   const encourageUsed = calcEncourageDaysUsed();
   const paidRemain = Math.max(0, paidGranted-paidUsed-encourageUsed);
   const compRemain = Math.max(0, compGranted-compUsed);
-  document.getElementById('paidLeaveBalance').textContent = paidRemain;
-  document.getElementById('compLeaveBalance').textContent = compRemain;
+  // 0.5日の場合は小数点表示、整数なら整数表示
+  function fmtDays(v) { return Number.isInteger(v) ? String(v) : v.toFixed(1); }
+  document.getElementById('paidLeaveBalance').textContent = fmtDays(paidRemain);
+  document.getElementById('compLeaveBalance').textContent = fmtDays(compRemain);
 
   var legalBalEl = document.getElementById('legalHolidayBalance');
   var legalDetailEl = document.getElementById('legalHolidayDetail');
@@ -1551,6 +1589,16 @@ async function partialCancelApprove(id, action, targetDate) {
 }
 window.partialCancelApprove = partialCancelApprove;
 
+function leaveKindLabel(r) {
+  var base = r.kind==='comp' ? '代休' : '有給休暇';
+  var days = parseFloat(r.days)||1;
+  if (days < 1) {
+    var timeLabel = r.halfTime==='PM' ? '午後' : '午前';
+    return base + '（半日・'+timeLabel+'）';
+  }
+  return base;
+}
+
 function renderLeaveHistory() {
   var el = document.getElementById('leaveHistory');
   if (!leaveHistory.length) { el.innerHTML='<div style="color:var(--text-sub);font-size:13px;">申請はまだありません</div>'; return; }
@@ -1558,9 +1606,10 @@ function renderLeaveHistory() {
   leaveHistory.forEach(function(r) {
     var statusLabel = r.status==='pending'?'🔵 審査中':r.status==='approved'?'✅ 承認済み':r.status==='cancel_requested'?'🔄 変更・取消申請中':'❌ 却下';
     var statusClass = r.status==='pending'?'tag-pending':r.status==='approved'?'tag-approved':r.status==='cancel_requested'?'tag-pending':'tag-rejected';
+    var kindStr = leaveKindLabel(r);
     html += '<div class="list-item" style="flex-direction:column;align-items:stretch;gap:10px;">';
     html += '<div style="display:flex;align-items:center;justify-content:space-between;">';
-    html += '<div><div class="list-item-name">'+r.name+'</div><div class="list-item-sub">'+(r.date?fmtDate(r.date):'')+(r.reason?'　'+r.reason:'')+'</div></div>';
+    html += '<div><div class="list-item-name">'+r.name+' <span style="font-size:11px;font-weight:400;color:var(--text-sub);">('+kindStr+')</span></div><div class="list-item-sub">'+(r.date?fmtDate(r.date):'')+(r.reason?'　'+r.reason:'')+'</div></div>';
     html += '<span class="tag '+statusClass+'">'+statusLabel+'</span></div>';
     if (r.status==='pending'&&!personalUser) {
       html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
@@ -2554,7 +2603,7 @@ function renderAdminLeaveList(){
   list.forEach(function(r){
     var statusLabel=r.status==='pending'?'🔵 審査中':r.status==='approved'?'✅ 承認済み':r.status==='cancel_requested'?'🔄 変更・取消申請中':r.status==='rejected'?'❌ 却下':'🗑️ 取消済み';
     var statusClass=r.status==='pending'?'tag-pending':r.status==='approved'?'tag-approved':r.status==='cancel_requested'?'tag-pending':'tag-rejected';
-    var kindLabel=r.kind==='comp'?'代休':'有給休暇';
+    var kindLabel=leaveKindLabel(r);
     html+='<div class="list-item" style="flex-direction:column;align-items:stretch;gap:10px;margin-bottom:10px;">';
     html+='<div style="display:flex;align-items:center;justify-content:space-between;">';
     html+='<div><div class="list-item-name">'+r.name+' <span style="font-size:11px;font-weight:400;color:var(--text-sub);">('+kindLabel+')</span></div><div class="list-item-sub">'+(r.date?fmtDate(r.date):'')+(r.reason?'　'+r.reason:'')+'</div></div>';
