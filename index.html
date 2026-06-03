@@ -926,6 +926,7 @@ textarea { resize:vertical; min-height:80px; }
 <script>
 var employeeMaster = {};
 var compConfirmedToday = new Set();
+var adjustmentData = []; // 残日数調整データキャッシュ
 var punchedTodayIn = new Set();
 var punchedTodayOut = new Set();
 
@@ -1481,16 +1482,18 @@ async function saveAnnualHolidayDays() {
   updateLeaveBalance();
 }
 
-// ★ 修正3: loadLeaveHistory にsettings_get追加
+// 変更後（adjustment_getを追加）
 async function loadLeaveHistory() {
   const el = document.getElementById('leaveHistory');
   el.innerHTML = '<div style="color:var(--text-sub);font-size:13px;padding:12px 0;">読み込み中...</div>';
   const params = personalUser ? {action:'leave_get', name:personalUser} : {action:'leave_get'};
-  const [data, masterData, settingsData] = await Promise.all([
+  const [data, masterData, settingsData, adjData] = await Promise.all([
     gasGet(params),
     gasGet({action:'employee_get'}),
-    gasGet({action:'settings_get'})
+    gasGet({action:'settings_get'}),
+    gasGet({action:'adjustment_get'})   // ← 追加
   ]);
+  if (Array.isArray(adjData)) adjustmentData = adjData; // ← 追加
   leaveHistory = data||[];
   if (masterData) { employeeMaster=masterData; window.employeeMaster=masterData; }
   if (settingsData && settingsData.annualHolidayDays) {
@@ -1521,7 +1524,10 @@ function updateLeaveBalance() {
     .reduce((sum, r) => sum + (parseFloat(r.days)||1), 0);
   const encourageUsed = calcEncourageDaysUsed();
   const paidRemain = Math.max(0, paidGranted-paidUsed-encourageUsed);
-  const compRemain = Math.max(0, compGranted-compUsed);
+  var compAdj = (adjustmentData || [])
+    .filter(function(a){ return a.name === name && a.kind === 'comp'; })
+    .reduce(function(sum, a){ return sum + Number(a.value); }, 0);
+  const compRemain = Math.max(0, compGranted - compUsed + compAdj);
   // 0.5日の場合は小数点表示、整数なら整数表示
   function fmtDays(v) { return Number.isInteger(v) ? String(v) : v.toFixed(1); }
   document.getElementById('paidLeaveBalance').textContent = fmtDays(paidRemain);
@@ -2700,7 +2706,12 @@ function calcLegalHolidayUsed(name){
     if(dow===0||holidays.has(key)){if(!compLeaveDays.has(key))holidayUsed++;return;}
     if(dow===6){if(!paidLeaveDays.has(key)&&!punchedDays.has(key)&&!shiftDays.has(key))holidayUsed++;return;}
   });
-  return holidayUsed;
+  // 残日数調整（legal種別）を加算
+  var legalAdj = 0;
+  (adjustmentData || []).forEach(function(a) {
+    if (a.name === name && a.kind === 'legal') legalAdj += Number(a.value);
+  });
+  return Math.max(0, holidayUsed - legalAdj);
 }
 
 function calcEncourageDaysUsed(){
