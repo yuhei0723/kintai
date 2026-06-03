@@ -589,12 +589,19 @@ function submitAdjustment() {
 // ══════════════════════════════════
 // 削除
 // ══════════════════════════════════
+function handleDeleteBtn(btn) {
+  var id        = btn.getAttribute('data-id');
+  var name      = btn.getAttribute('data-name');
+  var kindLabel = btn.getAttribute('data-kind');
+  var value     = Number(btn.getAttribute('data-value'));
+  deleteAdjustment(id, name, kindLabel, value);
+} 
 function deleteAdjustment(id, name, kindLabel, value) {
   var sign = value > 0 ? '+' : '';
   if (!confirm(name + ' の調整（' + kindLabel + ' ' + sign + value + '）を削除しますか？\n※この操作は取り消せません。')) return;
 
-  gasGet({ action: 'adjustment_delete', id: id })
-    .then(function() {
+  gasGet({ action: 'adjustment_delete', id: String(id) })
+    .then(function(r) {
       showToast('🗑 調整を削除しました');
       refreshAll();
     })
@@ -714,11 +721,12 @@ function renderHistory() {
     html += '</div>';
     html += '<div class="history-value ' + (pos ? 'pos' : 'neg') + '">'
           + sign + h.value + '</div>';
-    html += '<button class="btn-delete" title="削除" onclick="deleteAdjustment('
-          + JSON.stringify(h.id) + ','
-          + JSON.stringify(h.name) + ','
-          + JSON.stringify(kindLabel) + ','
-          + h.value + ')">🗑</button>';
+    html += '<button class="btn-delete" title="削除" '
+      + 'data-id="' + esc(h.id) + '" '
+      + 'data-name="' + esc(h.name) + '" '
+      + 'data-kind="' + esc(kindLabel) + '" '
+      + 'data-value="' + h.value + '" '
+      + 'onclick="handleDeleteBtn(this)">🗑</button>';
     html += '</div>';
   });
   document.getElementById('historyArea').innerHTML = html;
