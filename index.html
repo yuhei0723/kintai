@@ -1543,16 +1543,20 @@ function updateLeaveBalance() {
   if (isFulltime) {
     var annualHolidays = parseInt(localStorage.getItem('annualHolidayDays')||'0')||0;
     if (annualHolidays > 0) {
-      var holidayUsed = calcLegalHolidayUsed(name);
-      // 法定休日の調整値（legal）を反映
-      var legalAdj = (window.adjustmentData||[])
-        .filter(function(a){ return a.name===name && a.kind==='legal'; })
-        .reduce(function(sum,a){ return sum+Number(a.value); }, 0);
-      var adjustedUsed = Math.max(0, holidayUsed - legalAdj);
-      var holidayRemain = Math.max(0, annualHolidays-adjustedUsed);
-      if (legalBalEl) legalBalEl.textContent = holidayRemain;
-      var fy = (new Date().getMonth()>=3)?new Date().getFullYear():new Date().getFullYear()-1;
-      if (legalDetailEl) legalDetailEl.textContent = adjustedUsed+'/'+annualHolidays+'日消化（'+fy+'年度）';
+     var holidayUsed = calcLegalHolidayUsed(name);
+var legalAdj = (window.adjustmentData||[])
+  .filter(function(a){ return a.name===name && a.kind==='legal'; })
+  .reduce(function(sum,a){ return sum+Number(a.value); }, 0);
+var adjustedUsed = Math.max(0, holidayUsed + legalAdj);  // ← - を + に変更
+var holidayRemain = Math.max(0, annualHolidays-adjustedUsed);
+if (legalBalEl) legalBalEl.textContent = holidayRemain;
+var fy = (new Date().getMonth()>=3)?new Date().getFullYear():new Date().getFullYear()-1;
+if (legalDetailEl) legalDetailEl.textContent = adjustedUsed+'/'+annualHolidays+'日消化（'+fy+'年度）';
+変更は1か所だけです：holidayUsed - legalAdj → holidayUsed + legalAdj
+
+整理すると
+操作意味消化数残日数+1 調整休んだ記録が漏れていた+1-1-1 調整誤って消化カウントされていた-1+1
+この方向で正しければ上記の修正1行で解決します。Sonnet 4.6 低
     } else {
       if (legalBalEl) legalBalEl.textContent = '未設定';
       if (legalDetailEl) legalDetailEl.textContent = '設定→設定タブ';
