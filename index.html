@@ -926,9 +926,9 @@ textarea { resize:vertical; min-height:80px; }
 <script>
 var employeeMaster = {};
 var compConfirmedToday = new Set();
-var adjustmentData = []; // 残日数調整データキャッシュ
 var punchedTodayIn = new Set();
 var punchedTodayOut = new Set();
+var adjustmentData = []; // ← この行を追加
 
 function getData(key, def) {
   try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : def; } catch(e) { return def; }
@@ -1482,7 +1482,6 @@ async function saveAnnualHolidayDays() {
   updateLeaveBalance();
 }
 
-// 変更後（adjustment_getを追加）
 async function loadLeaveHistory() {
   const el = document.getElementById('leaveHistory');
   el.innerHTML = '<div style="color:var(--text-sub);font-size:13px;padding:12px 0;">読み込み中...</div>';
@@ -1491,15 +1490,15 @@ async function loadLeaveHistory() {
     gasGet(params),
     gasGet({action:'employee_get'}),
     gasGet({action:'settings_get'}),
-    gasGet({action:'adjustment_get'})   // ← 追加
+    gasGet({action:'adjustment_get'})
   ]);
-  if (Array.isArray(adjData)) adjustmentData = adjData; // ← 追加
   leaveHistory = data||[];
   if (masterData) { employeeMaster=masterData; window.employeeMaster=masterData; }
   if (settingsData && settingsData.annualHolidayDays) {
     var gasDays = parseInt(settingsData.annualHolidayDays)||0;
     if (gasDays > 0) localStorage.setItem('annualHolidayDays', gasDays);
   }
+  if (Array.isArray(adjData)) { adjustmentData = adjData; window.adjustmentData = adjData; }
   renderLeaveHistory();
   updateLeaveBalance();
   checkAdminNotifications();
@@ -1523,13 +1522,15 @@ function updateLeaveBalance() {
     .filter(r => r.name===name && activeStatuses.includes(r.status) && r.kind==='comp')
     .reduce((sum, r) => sum + (parseFloat(r.days)||1), 0);
   const encourageUsed = calcEncourageDaysUsed();
-  const paidRemain = Math.max(0, paidGranted-paidUsed-encourageUsed);
-  var compAdj = (adjustmentData || [])
-    .filter(function(a){ return a.name === name && a.kind === 'comp'; })
-    .reduce(function(sum, a){ return sum + Number(a.value); }, 0);
-  const compRemain = Math.max(0, compGranted - compUsed + compAdj);
-  // 0.5日の場合は小数点表示、整数なら整数表示
+
+  // 代休の調整値（comp）を加算
+  var compAdj = (window.adjustmentData||[])
+    .filter(function(a){ return a.name===name && a.kind==='comp'; })
+    .reduce(function(sum,a){ return sum+Number(a.value); }, 0);
+
   function fmtDays(v) { return Number.isInteger(v) ? String(v) : v.toFixed(1); }
+  const paidRemain = Math.max(0, paidGranted-paidUsed-encourageUsed);
+  const compRemain = Math.max(0, compGranted-compUsed+compAdj);
   document.getElementById('paidLeaveBalance').textContent = fmtDays(paidRemain);
   document.getElementById('compLeaveBalance').textContent = fmtDays(compRemain);
 
@@ -1543,10 +1544,15 @@ function updateLeaveBalance() {
     var annualHolidays = parseInt(localStorage.getItem('annualHolidayDays')||'0')||0;
     if (annualHolidays > 0) {
       var holidayUsed = calcLegalHolidayUsed(name);
-      var holidayRemain = Math.max(0, annualHolidays-holidayUsed);
+      // 法定休日の調整値（legal）を反映
+      var legalAdj = (window.adjustmentData||[])
+        .filter(function(a){ return a.name===name && a.kind==='legal'; })
+        .reduce(function(sum,a){ return sum+Number(a.value); }, 0);
+      var adjustedUsed = Math.max(0, holidayUsed - legalAdj);
+      var holidayRemain = Math.max(0, annualHolidays-adjustedUsed);
       if (legalBalEl) legalBalEl.textContent = holidayRemain;
       var fy = (new Date().getMonth()>=3)?new Date().getFullYear():new Date().getFullYear()-1;
-      if (legalDetailEl) legalDetailEl.textContent = holidayUsed+'/'+annualHolidays+'日消化（'+fy+'年度）';
+      if (legalDetailEl) legalDetailEl.textContent = adjustedUsed+'/'+annualHolidays+'日消化（'+fy+'年度）';
     } else {
       if (legalBalEl) legalBalEl.textContent = '未設定';
       if (legalDetailEl) legalDetailEl.textContent = '設定→設定タブ';
