@@ -2711,12 +2711,7 @@ function calcLegalHolidayUsed(name){
     if(dow===0||holidays.has(key)){if(!compLeaveDays.has(key))holidayUsed++;return;}
     if(dow===6){if(!paidLeaveDays.has(key)&&!punchedDays.has(key)&&!shiftDays.has(key))holidayUsed++;return;}
   });
-  // 残日数調整（legal種別）を加算
-  var legalAdj = 0;
-  (adjustmentData || []).forEach(function(a) {
-    if (a.name === name && a.kind === 'legal') legalAdj += Number(a.value);
-  });
-  return Math.max(0, holidayUsed - legalAdj);
+  return holidayUsed;
 }
 
 function calcEncourageDaysUsed(){
