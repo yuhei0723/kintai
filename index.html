@@ -339,6 +339,7 @@ textarea { resize:vertical; min-height:80px; }
   <button class="nav-btn" id="navAdmin" onclick="showPage('admin')">📋 申請管理</button>
   <button class="nav-btn" id="navEmployees" onclick="showPage('employees')">👥 社員管理</button>
   <button class="nav-btn" id="navQr" onclick="showPage('qr')">🔗 QRコード</button>
+  <button class="nav-btn" id="navAdjustment" style="display:none;" onclick="window.open('adjustment.html','_blank')">⚖️ 残日数調整</button>
   <button class="nav-btn" onclick="showPage('settings')">⚙️ 設定</button>
 </nav>
 
@@ -2209,6 +2210,7 @@ function initPersonalPage(){
   document.getElementById('bannerName').textContent=personalUser;
   document.getElementById('navEmployees').style.display='none';
   document.getElementById('navQr').style.display='none';
+  document.getElementById('navAdjustment').style.display = 'none'; // ← 追加
   document.getElementById('navAdmin').style.display='none';
   document.querySelectorAll('.nav-btn').forEach(function(btn){if(btn.textContent.includes('設定'))btn.style.display='none';});
   var gasBox=document.getElementById('gasSetupBox');if(gasBox)gasBox.style.display='none';
@@ -2824,6 +2826,11 @@ function initApp(){
     loadGasUrl();
     refreshTeamSelects();refreshSelects();
     initCalendar();initPersonalPage();updateClock();
+    // 管理者モード（URLパラメータなし）では残日数調整ボタンを表示
+    if(!new URLSearchParams(window.location.search).get('user')){
+      var adjBtn=document.getElementById('navAdjustment');
+      if(adjBtn) adjBtn.style.display='';
+    }
     setTimeout(function(){loadTodayPunchLog();},500);
     document.body.addEventListener('click',function(e){
       var btn=e.target.closest('[data-la]');if(btn)handleLeaveAction(btn.dataset.la,btn.dataset.lid);
