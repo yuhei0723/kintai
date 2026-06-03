@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>残日数調整 | 勤怠管理</title>
+<style>
+  :root {
+    --bg:        #f4f6fb;
+    --surface:   #ffffff;
+    --surface2:  #f8f9fa;
+    --border:    #e2e8f0;
+    --text:      #1a202c;
+    --text-sub:  #64748b;
+    --blue:      #1a73e8;
+    --blue-bg:   #e8f0fe;
+    --amber:     #d97706;
+    --amber-bg:  #fef3c7;
+    --green:     #15803d;
+    --green-bg:  #dcfce7;
+    --red:       #dc2626;
+    --red-bg:    #fee2e2;
+    --purple:    #7c3aed;
+    --purple-bg: #f3e8ff;
+    --radius:    14px;
+    --shadow:    0 2px 12px rgba(0,0,0,.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:       #0f172a;
+      --surface:  #1e293b;
+      --surface2: #273449;
+      --border:   #334155;
+      --text:     #f1f5f9;
+      --text-sub: #94a3b8;
+      --blue-bg:  #1e3a5f;
+      --amber-bg: #431407;
+      --green-bg: #14532d;
+      --red-bg:   #450a0a;
+      --purple-bg:#3b0764;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    min-height: 100vh;
+  }
+  /* ── ヘッダー ── */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: var(--shadow);
+  }
+  .header-icon { font-size: 22px; }
+  .header-title { font-size: 17px; font-weight: 700; }
+  .header-sub { font-size: 12px; color: var(--text-sub); margin-top: 1px; }
+  /* ── メインレイアウト ── */
+  .container { max-width: 680px; margin: 0 auto; padding: 20px 16px 80px; }
+  /* ── カード ── */
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow);
+  }
+  .card-title {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  /* ── 種別タブ ── */
+  .kind-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .kind-tab {
+    flex: 1;
+    padding: 10px 8px;
+    border-radius: 10px;
+    border: 2px solid var(--border);
+    background: var(--surface2);
+    color: var(--text-sub);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: center;
+    transition: all .18s;
+    font-family: inherit;
+  }
+  .kind-tab.active-comp  { border-color: var(--blue);   background: var(--blue-bg);   color: var(--blue); }
+  .kind-tab.active-legal { border-color: var(--purple);  background: var(--purple-bg); color: var(--purple); }
+  /* ── フォーム ── */
+  .form-row { margin-bottom: 14px; }
+  .form-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-sub);
+    margin-bottom: 6px;
+    display: block;
+  }
+  select, input[type="text"], input[type="number"], textarea {
+    width: 100%;
+    padding: 11px 14px;
+    border-radius: 10px;
+    border: 1.5px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    outline: none;
+    transition: border-color .15s;
+  }
+  select:focus, input:focus, textarea:focus { border-color: var(--blue); }
+  /* ── +/- ステッパー ── */
+  .stepper {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    height: 44px;
+  }
+  .stepper-btn {
+    width: 52px;
+    height: 100%;
+    border: none;
+    background: var(--surface2);
+    color: var(--text);
+    font-size: 20px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .15s;
+    font-family: inherit;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .stepper-btn:hover { background: var(--border); }
+  .stepper-btn.minus:hover { background: var(--red-bg); color: var(--red); }
+  .stepper-btn.plus:hover  { background: var(--green-bg); color: var(--green); }
+  .stepper-val {
+    flex: 1;
+    text-align: center;
+    font-size: 18px;
+    font-weight: 700;
+    border: none;
+    background: var(--surface);
+    color: var(--text);
+    border-left: 1.5px solid var(--border);
+    border-right: 1.5px solid var(--border);
+    height: 100%;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .stepper-val.positive { color: var(--green); }
+  .stepper-val.negative { color: var(--red); }
+  /* ── 送信ボタン ── */
+  .btn-submit {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity .15s, transform .1s;
+    margin-top: 4px;
+  }
+  .btn-submit:active { transform: scale(.98); opacity: .85; }
+  .btn-submit-comp  { background: linear-gradient(135deg, var(--blue), #4a9df8);  color: #fff; }
+  .btn-submit-legal { background: linear-gradient(135deg, var(--purple), #a78bfa); color: #fff; }
+  /* ── 社員サマリーグリッド ── */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+  }
+  .summary-card {
+    background: var(--surface2);
+    border-radius: 10px;
+    border: 1.5px solid var(--border);
+    padding: 12px 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .summary-card:hover { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-bg); }
+  .summary-card.selected { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-bg); background: var(--blue-bg); }
+  .summary-name { font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+  .summary-row { font-size: 11px; color: var(--text-sub); margin-top: 3px; display: flex; justify-content: space-between; }
+  .summary-val { font-weight: 700; }
+  .summary-val.pos { color: var(--green); }
+  .summary-val.neg { color: var(--red); }
+  /* ── 履歴リスト ── */
+  .history-filters {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  .filter-chip {
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1.5px solid var(--border);
+    background: var(--surface2);
+    color: var(--text-sub);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all .15s;
+  }
+  .filter-chip.active { border-color: var(--blue); background: var(--blue-bg); color: var(--blue); }
+  .history-empty {
+    text-align: center;
+    padding: 32px 0;
+    color: var(--text-sub);
+    font-size: 13px;
+  }
+  .history-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .history-item:last-child { border-bottom: none; }
+  .history-badge {
+    flex-shrink: 0;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 900;
+  }
+  .badge-comp-pos  { background: var(--blue-bg);   color: var(--blue); }
+  .badge-comp-neg  { background: var(--red-bg);    color: var(--red); }
+  .badge-legal-pos { background: var(--purple-bg); color: var(--purple); }
+  .badge-legal-neg { background: var(--red-bg);    color: var(--red); }
+  .history-main { flex: 1; min-width: 0; }
+  .history-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 3px;
+  }
+  .history-name { font-weight: 700; font-size: 13px; }
+  .history-kind-tag {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+  .tag-comp  { background: var(--blue-bg);   color: var(--blue); }
+  .tag-legal { background: var(--purple-bg); color: var(--purple); }
+  .history-reason { font-size: 12px; color: var(--text-sub); }
+  .history-date   { font-size: 11px; color: var(--text-sub); margin-top: 2px; }
+  .history-value {
+    flex-shrink: 0;
+    font-size: 18px;
+    font-weight: 900;
+    min-width: 40px;
+    text-align: right;
+  }
+  .history-value.pos { color: var(--green); }
+  .history-value.neg { color: var(--red); }
+  .btn-delete {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    color: var(--text-sub);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 6px;
+    transition: color .15s, background .15s;
+    font-family: inherit;
+  }
+  .btn-delete:hover { color: var(--red); background: var(--red-bg); }
+  /* ── トースト ── */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: #1a202c;
+    color: #fff;
+    padding: 12px 22px;
+    border-radius: 30px;
+    font-size: 14px;
+    font-weight: 700;
+    z-index: 9999;
+    pointer-events: none;
+    transition: transform .3s cubic-bezier(.34,1.56,.64,1);
+    white-space: nowrap;
+    box-shadow: 0 4px 20px rgba(0,0,0,.25);
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  /* ── ローディング ── */
+  .loading { text-align: center; padding: 32px; color: var(--text-sub); font-size: 13px; }
+  /* ── セクション見出し ── */
+  .section-note {
+    font-size: 12px;
+    color: var(--text-sub);
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 10px 12px;
+    line-height: 1.7;
+    margin-bottom: 16px;
+    border-left: 3px solid var(--border);
+  }
+  .section-note b { color: var(--text); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span class="header-icon">⚖️</span>
+  <div>
+    <div class="header-title">残日数調整</div>
+    <div class="header-sub">代休残・法定休日取得数の手動補正（管理者専用）</div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- ── 調整入力カード ── -->
+  <div class="card">
+    <div class="card-title">✏️ 調整を入力する</div>
+
+    <div class="section-note">
+      <b>代休残</b>：申請漏れ等で代休の残日数がズレている場合に補正します。<br>
+      <b>法定休日取得数</b>：日曜・祝日等の法定休日に休んだ実績が正しく反映されていない場合に補正します。
+    </div>
+
+    <!-- 種別タブ -->
+    <div class="kind-tabs">
+      <button class="kind-tab active-comp" id="tabComp"  onclick="selectKind('comp')">🔵 代休残</button>
+      <button class="kind-tab"             id="tabLegal" onclick="selectKind('legal')">🟣 法定休日取得数</button>
+    </div>
+
+    <!-- 社員選択 -->
+    <div class="form-row">
+      <label class="form-label">社員を選択</label>
+      <select id="selName">
+        <option value="">-- 社員を選択してください --</option>
+      </select>
+    </div>
+
+    <!-- 調整値 -->
+    <div class="form-row">
+      <label class="form-label">調整値（＋加算 / −減算）</label>
+      <div class="stepper">
+        <button class="stepper-btn minus" onclick="changeVal(-1)">−</button>
+        <div class="stepper-val" id="stepVal">+1</div>
+        <button class="stepper-btn plus"  onclick="changeVal(+1)">＋</button>
+      </div>
+    </div>
+
+    <!-- 理由 -->
+    <div class="form-row">
+      <label class="form-label">理由・メモ（任意）</label>
+      <input type="text" id="inputReason" placeholder="例：土曜出勤の代休申請漏れ（6/1分）">
+    </div>
+
+    <!-- 送信 -->
+    <button class="btn-submit btn-submit-comp" id="btnSubmit" onclick="submitAdjustment()">
+      代休残を調整する
+    </button>
+  </div>
+
+  <!-- ── 社員サマリー ── -->
+  <div class="card">
+    <div class="card-title">📊 社員別 調整合計</div>
+    <div id="summaryArea" class="loading">読み込み中…</div>
+  </div>
+
+  <!-- ── 調整履歴 ── -->
+  <div class="card">
+    <div class="card-title">📋 調整履歴</div>
+    <div class="history-filters">
+      <button class="filter-chip active" id="chipAll"   onclick="setFilter('all')">すべて</button>
+      <button class="filter-chip"        id="chipComp"  onclick="setFilter('comp')">🔵 代休残</button>
+      <button class="filter-chip"        id="chipLegal" onclick="setFilter('legal')">🟣 法定休日</button>
+    </div>
+    <div id="historyArea" class="loading">読み込み中…</div>
+  </div>
+
+</div>
+
+<!-- トースト -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════
+// 設定
+// ══════════════════════════════════
+var GAS_URL = localStorage.getItem('gasUrl') || '';
+
+var MEMBERS = [
+  '牛膓','齋藤','南岡','鈴木由加','伊藤','生天目',
+  '金森','西岡','鈴木あかね','鈴木美咲','田口','三上'
+];
+
+// ── 状態 ──
+var currentKind    = 'comp';   // 'comp' or 'legal'
+var currentValue   = 1;        // 現在の調整値（-n〜+n）
+var currentFilter  = 'all';    // 履歴フィルタ
+var allHistory     = [];       // 全調整履歴キャッシュ
+
+// ══════════════════════════════════
+// 初期化
+// ══════════════════════════════════
+window.addEventListener('DOMContentLoaded', function() {
+  // GAS URL を親ページのlocalStorageから取得（なければ設定ページへ誘導）
+  var url = localStorage.getItem('gasUrl') || '';
+  if (!url) {
+    // 親ページと同一オリジンで埋め込まれている場合は window.GAS_URL を参照
+    if (window.parent && window.parent.GAS_URL) {
+      GAS_URL = window.parent.GAS_URL;
+    }
+  } else {
+    GAS_URL = url;
+  }
+
+  // 社員セレクト構築
+  var sel = document.getElementById('selName');
+  MEMBERS.forEach(function(m) {
+    var opt = document.createElement('option');
+    opt.value = m;
+    opt.textContent = m;
+    sel.appendChild(opt);
+  });
+
+  refreshAll();
+});
+
+// ══════════════════════════════════
+// GAS通信
+// ══════════════════════════════════
+function gasGet(params) {
+  return new Promise(function(resolve, reject) {
+    if (!GAS_URL) { reject(new Error('GAS URLが未設定です')); return; }
+    var cbName = 'cb_' + Date.now() + '_' + Math.floor(Math.random() * 9999);
+    var query = Object.keys(params).map(function(k) {
+      return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
+    }).join('&');
+    var url = GAS_URL + '?' + query + '&callback=' + cbName;
+    var script = document.createElement('script');
+    var timer = setTimeout(function() {
+      cleanup();
+      reject(new Error('タイムアウト'));
+    }, 15000);
+    window[cbName] = function(data) {
+      cleanup();
+      resolve(data);
+    };
+    function cleanup() {
+      clearTimeout(timer);
+      delete window[cbName];
+      if (script.parentNode) script.parentNode.removeChild(script);
+    }
+    script.onerror = function() { cleanup(); reject(new Error('通信エラー')); };
+    script.src = url;
+    document.head.appendChild(script);
+  });
+}
+
+// ══════════════════════════════════
+// UI操作
+// ══════════════════════════════════
+function selectKind(kind) {
+  currentKind = kind;
+  currentValue = 1;
+  updateStepperUI();
+
+  var tabComp  = document.getElementById('tabComp');
+  var tabLegal = document.getElementById('tabLegal');
+  var btn      = document.getElementById('btnSubmit');
+
+  tabComp.className  = 'kind-tab' + (kind === 'comp'  ? ' active-comp'  : '');
+  tabLegal.className = 'kind-tab' + (kind === 'legal' ? ' active-legal' : '');
+
+  if (kind === 'comp') {
+    btn.className   = 'btn-submit btn-submit-comp';
+    btn.textContent = '代休残を調整する';
+  } else {
+    btn.className   = 'btn-submit btn-submit-legal';
+    btn.textContent = '法定休日取得数を調整する';
+  }
+}
+
+function changeVal(delta) {
+  currentValue += delta;
+  // -10〜+10 の範囲にクランプ
+  if (currentValue > 10)  currentValue = 10;
+  if (currentValue < -10) currentValue = -10;
+  if (currentValue === 0) currentValue = delta > 0 ? 1 : -1;
+  updateStepperUI();
+}
+
+function updateStepperUI() {
+  var el = document.getElementById('stepVal');
+  el.textContent = (currentValue > 0 ? '+' : '') + currentValue;
+  el.className = 'stepper-val ' + (currentValue > 0 ? 'positive' : 'negative');
+}
+
+function setFilter(f) {
+  currentFilter = f;
+  ['All','Comp','Legal'].forEach(function(x) {
+    var el = document.getElementById('chip' + x);
+    el.className = 'filter-chip' + (f === x.toLowerCase() ? ' active' : '');
+  });
+  renderHistory();
+}
+
+// ══════════════════════════════════
+// 送信
+// ══════════════════════════════════
+function submitAdjustment() {
+  var name   = document.getElementById('selName').value;
+  var reason = document.getElementById('inputReason').value.trim();
+
+  if (!name) { showToast('❗ 社員を選択してください'); return; }
+  if (!GAS_URL) { showToast('❗ GAS URLが未設定です（設定ページで保存してください）'); return; }
+
+  var kindLabel = currentKind === 'comp' ? '代休残' : '法定休日取得数';
+  var sign      = currentValue > 0 ? '+' : '';
+  var confirmed = confirm(
+    '以下の内容で調整を登録します。\n\n' +
+    '社員：' + name + '\n' +
+    '種別：' + kindLabel + '\n' +
+    '調整値：' + sign + currentValue + '\n' +
+    (reason ? '理由：' + reason : '') +
+    '\n\nよろしいですか？'
+  );
+  if (!confirmed) return;
+
+  var btn = document.getElementById('btnSubmit');
+  btn.disabled    = true;
+  btn.textContent = '登録中…';
+
+  gasGet({
+    action: 'adjustment_set',
+    name:   name,
+    kind:   currentKind,
+    value:  currentValue,
+    reason: reason,
+    admin:  '管理者'
+  }).then(function() {
+    showToast('✅ 調整を登録しました');
+    document.getElementById('inputReason').value = '';
+    currentValue = 1;
+    updateStepperUI();
+    refreshAll();
+  }).catch(function(err) {
+    showToast('❌ エラー：' + err.message);
+  }).finally(function() {
+    btn.disabled = false;
+    selectKind(currentKind); // ボタンテキスト復元
+  });
+}
+
+// ══════════════════════════════════
+// 削除
+// ══════════════════════════════════
+function deleteAdjustment(id, name, kindLabel, value) {
+  var sign = value > 0 ? '+' : '';
+  if (!confirm(name + ' の調整（' + kindLabel + ' ' + sign + value + '）を削除しますか？\n※この操作は取り消せません。')) return;
+
+  gasGet({ action: 'adjustment_delete', id: id })
+    .then(function() {
+      showToast('🗑 調整を削除しました');
+      refreshAll();
+    })
+    .catch(function(err) {
+      showToast('❌ エラー：' + err.message);
+    });
+}
+
+// ══════════════════════════════════
+// データ取得・描画
+// ══════════════════════════════════
+function refreshAll() {
+  if (!GAS_URL) {
+    document.getElementById('summaryArea').innerHTML = '<div class="loading">GAS URLが未設定です</div>';
+    document.getElementById('historyArea').innerHTML = '<div class="loading">GAS URLが未設定です</div>';
+    return;
+  }
+  gasGet({ action: 'adjustment_get' })
+    .then(function(data) {
+      allHistory = Array.isArray(data) ? data : [];
+      renderSummary();
+      renderHistory();
+    })
+    .catch(function(err) {
+      document.getElementById('summaryArea').innerHTML = '<div class="loading">読み込みエラー：' + err.message + '</div>';
+      document.getElementById('historyArea').innerHTML = '<div class="loading">読み込みエラー：' + err.message + '</div>';
+    });
+}
+
+// ── サマリー描画 ──
+function renderSummary() {
+  // 社員ごとに comp / legal の合計を集計
+  var totals = {};
+  MEMBERS.forEach(function(m) { totals[m] = { comp: 0, legal: 0 }; });
+  allHistory.forEach(function(h) {
+    if (!totals[h.name]) totals[h.name] = { comp: 0, legal: 0 };
+    totals[h.name][h.kind] += h.value;
+  });
+
+  // 調整がある社員のみ表示（なければ全員）
+  var names = MEMBERS.filter(function(m) {
+    return totals[m].comp !== 0 || totals[m].legal !== 0;
+  });
+
+  if (names.length === 0) {
+    document.getElementById('summaryArea').innerHTML =
+      '<div class="history-empty">調整履歴がありません</div>';
+    return;
+  }
+
+  var html = '<div class="summary-grid">';
+  names.forEach(function(m) {
+    var c = totals[m].comp;
+    var l = totals[m].legal;
+    html += '<div class="summary-card">';
+    html += '<div class="summary-name">' + esc(m) + '</div>';
+    if (c !== 0) {
+      html += '<div class="summary-row">'
+            + '<span>🔵 代休残</span>'
+            + '<span class="summary-val ' + (c > 0 ? 'pos' : 'neg') + '">'
+            + (c > 0 ? '+' : '') + c
+            + '</span></div>';
+    }
+    if (l !== 0) {
+      html += '<div class="summary-row">'
+            + '<span>🟣 法定休日</span>'
+            + '<span class="summary-val ' + (l > 0 ? 'pos' : 'neg') + '">'
+            + (l > 0 ? '+' : '') + l
+            + '</span></div>';
+    }
+    html += '</div>';
+  });
+  html += '</div>';
+  document.getElementById('summaryArea').innerHTML = html;
+}
+
+// ── 履歴描画 ──
+function renderHistory() {
+  var filtered = allHistory.filter(function(h) {
+    if (currentFilter === 'all')   return true;
+    if (currentFilter === 'comp')  return h.kind === 'comp';
+    if (currentFilter === 'legal') return h.kind === 'legal';
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    document.getElementById('historyArea').innerHTML =
+      '<div class="history-empty">履歴がありません</div>';
+    return;
+  }
+
+  var html = '';
+  filtered.forEach(function(h) {
+    var pos       = h.value > 0;
+    var sign      = pos ? '+' : '';
+    var kindLabel = h.kind === 'comp' ? '代休残' : '法定休日取得数';
+    var tagClass  = h.kind === 'comp' ? 'tag-comp' : 'tag-legal';
+    var badgeClass = h.kind === 'comp'
+      ? (pos ? 'badge-comp-pos'  : 'badge-comp-neg')
+      : (pos ? 'badge-legal-pos' : 'badge-legal-neg');
+    var badgeIcon = pos ? '＋' : '−';
+    var dt        = h.createdAt ? formatDate(h.createdAt) : '';
+
+    html += '<div class="history-item">';
+    html += '<div class="history-badge ' + badgeClass + '">' + badgeIcon + '</div>';
+    html += '<div class="history-main">';
+    html += '<div class="history-top">';
+    html += '<span class="history-name">' + esc(h.name) + '</span>';
+    html += '<span class="history-kind-tag ' + tagClass + '">' + kindLabel + '</span>';
+    html += '</div>';
+    if (h.reason) {
+      html += '<div class="history-reason">' + esc(h.reason) + '</div>';
+    }
+    if (dt) {
+      html += '<div class="history-date">' + dt + (h.admin ? ' · ' + esc(h.admin) : '') + '</div>';
+    }
+    html += '</div>';
+    html += '<div class="history-value ' + (pos ? 'pos' : 'neg') + '">'
+          + sign + h.value + '</div>';
+    html += '<button class="btn-delete" title="削除" onclick="deleteAdjustment('
+          + JSON.stringify(h.id) + ','
+          + JSON.stringify(h.name) + ','
+          + JSON.stringify(kindLabel) + ','
+          + h.value + ')">🗑</button>';
+    html += '</div>';
+  });
+  document.getElementById('historyArea').innerHTML = html;
+}
+
+// ══════════════════════════════════
+// ユーティリティ
+// ══════════════════════════════════
+function esc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+function formatDate(isoStr) {
+  try {
+    var d = new Date(isoStr);
+    var y = d.getFullYear();
+    var mo = String(d.getMonth()+1).padStart(2,'0');
+    var dd = String(d.getDate()).padStart(2,'0');
+    var hh = String(d.getHours()).padStart(2,'0');
+    var mm = String(d.getMinutes()).padStart(2,'0');
+    return y + '/' + mo + '/' + dd + ' ' + hh + ':' + mm;
+  } catch(e) { return isoStr; }
+}
+
+function showToast(msg) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(function() { el.classList.remove('show'); }, 2800);
+}
+</script>
+</body>
+</html>
