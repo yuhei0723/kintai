@@ -1516,8 +1516,8 @@ function updateLeaveBalance() {
   const activeStatuses = ['approved','pending','cancel_requested'];
   // days フィールドがあれば使う（0.5対応）、なければ1日として計算
   const paidUsed = leaveHistory
-    .filter(r => r.name===name && activeStatuses.includes(r.status) && r.kind!=='comp')
-    .reduce((sum, r) => sum + (parseFloat(r.days)||1), 0);
+  .filter(r => r.name===name && activeStatuses.includes(r.status) && r.kind!=='comp' && r.kind!=='legal')
+  .reduce((sum, r) => sum + (r.kind==='half_am'||r.kind==='half_pm' ? 0.5 : 1), 0);
   const compUsed = leaveHistory
     .filter(r => r.name===name && activeStatuses.includes(r.status) && r.kind==='comp')
     .reduce((sum, r) => sum + (parseFloat(r.days)||1), 0);
