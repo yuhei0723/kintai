@@ -569,8 +569,10 @@ if (btn.disabled) return; // ← 二重実行防止
 btn.disabled    = true;
 btn.textContent = '登録中…';
 
+  var requestId = 'adj_' + Date.now() + '_' + Math.floor(Math.random() * 999999);
   gasGet({
     action: 'adjustment_set',
+    id:     requestId,
     name:   name,
     kind:   currentKind,
     value:  currentValue,
