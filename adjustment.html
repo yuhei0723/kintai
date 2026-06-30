@@ -476,10 +476,13 @@ function gasGet(params) {
       cleanup();
       reject(new Error('タイムアウト'));
     }, 15000);
-    window[cbName] = function(data) {
-      cleanup();
-      resolve(data);
-    };
+    var called = false;
+window[cbName] = function(data) {
+  if (called) return; // 2回目以降は無視
+  called = true;
+  cleanup();
+  resolve(data);
+};
     function cleanup() {
       clearTimeout(timer);
       delete window[cbName];
