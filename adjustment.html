@@ -561,9 +561,10 @@ function submitAdjustment() {
   );
   if (!confirmed) return;
 
-  var btn = document.getElementById('btnSubmit');
-  btn.disabled    = true;
-  btn.textContent = '登録中…';
+ var btn = document.getElementById('btnSubmit');
+if (btn.disabled) return; // ← 二重実行防止
+btn.disabled    = true;
+btn.textContent = '登録中…';
 
   gasGet({
     action: 'adjustment_set',
