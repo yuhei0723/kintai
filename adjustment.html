@@ -477,7 +477,6 @@ function gasGet(params) {
       reject(new Error('タイムアウト'));
     }, 15000);
     var called = false;
-var called = false;
     window[cbName] = function(data) {
       if (called) return;
       called = true;
