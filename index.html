@@ -340,6 +340,7 @@ textarea { resize:vertical; min-height:80px; }
   <button class="nav-btn" id="navEmployees" onclick="showPage('employees')">👥 社員管理</button>
   <button class="nav-btn" id="navQr" onclick="showPage('qr')">🔗 QRコード</button>
   <button class="nav-btn" id="navAdjustment" style="display:none;" onclick="window.open('adjustment.html','_blank')">⚖️ 残日数調整</button>
+  <button class="nav-btn" id="navPunchFix" style="display:none;" onclick="openPunchFixModal()">🖊️ 打刻修正</button>
   <button class="nav-btn" onclick="showPage('settings')">⚙️ 設定</button>
 </nav>
 
@@ -841,6 +842,41 @@ textarea { resize:vertical; min-height:80px; }
   </div>
 </div>
 
+<!-- MODAL: 打刻修正（日付指定・管理者用） -->
+<div id="punchFixModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:400;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--surface);border-radius:20px;padding:24px 20px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,0.25);">
+    <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px;">🖊️ 打刻修正</div>
+    <div style="font-size:12px;color:var(--text-sub);margin-bottom:16px;line-height:1.6;">日付と社員を選んで「読込」を押すと、現在の出退勤時刻が表示されます</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+      <div>
+        <div class="label" style="margin-bottom:4px;">日付</div>
+        <input type="date" id="punchFixDate" style="margin:0;padding:12px 10px;">
+      </div>
+      <div>
+        <div class="label" style="margin-bottom:4px;">氏名</div>
+        <div class="sel-wrap" style="margin:0;"><select id="punchFixName" style="padding:12px 30px 12px 10px;font-size:14px;"></select><span class="sel-arrow">▼</span></div>
+      </div>
+    </div>
+    <button id="punchFixLoadBtn" onclick="loadPunchFixData()" style="width:100%;padding:14px;margin-bottom:18px;border:1.5px solid var(--blue);border-radius:10px;background:var(--blue-bg);color:var(--blue);font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">🔍 読込</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;">
+      <div>
+        <div class="label" style="margin-bottom:4px;color:var(--green);">出勤時刻</div>
+        <input type="time" id="punchFixInTime" style="width:100%;box-sizing:border-box;margin:0;padding:12px 10px;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-family:'DM Mono',ui-monospace,monospace;font-size:16px;outline:none;">
+      </div>
+      <div>
+        <div class="label" style="margin-bottom:4px;color:var(--red);">退勤時刻</div>
+        <input type="time" id="punchFixOutTime" style="width:100%;box-sizing:border-box;margin:0;padding:12px 10px;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-family:'DM Mono',ui-monospace,monospace;font-size:16px;outline:none;">
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--text-sub);margin-bottom:16px;line-height:1.6;">※ 時刻を空欄にして保存すると、その打刻は削除されます</div>
+    <div id="punchFixFeedback" style="display:none;text-align:center;font-size:13px;font-weight:700;color:var(--green);background:var(--green-bg);border-radius:10px;padding:10px;margin-bottom:14px;">✅ 修正しました</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <button onclick="closePunchFixModal()" style="padding:14px;border:1.5px solid var(--border);border-radius:12px;background:var(--surface2);color:var(--text-sub);font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">キャンセル</button>
+      <button onclick="submitPunchFix()" style="padding:14px;border:none;border-radius:12px;background:var(--blue);color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">保存する</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: 管理者：有給日程変更 -->
 <div id="adminLeaveEditModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center;padding:20px;">
   <div style="background:var(--surface);border-radius:20px;padding:24px 20px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(37,99,235,0.2);">
@@ -1293,6 +1329,68 @@ async function executePunchEdit() {
   closePunchEditModal();
   punchedTodayIn.clear(); punchedTodayOut.clear();
   await loadTodayPunchLog();
+}
+
+// ── 打刻修正（日付指定） ──
+function openPunchFixModal() {
+  const sel = document.getElementById('punchFixName');
+  if (sel) sel.innerHTML = '<option value="">-- 選択してください --</option>' + employees.map(e => `<option value="${e.name}">${e.name}（${e.type}）</option>`).join('');
+  const dateInput = document.getElementById('punchFixDate');
+  if (dateInput) {
+    const today = new Date();
+    dateInput.value = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+  }
+  document.getElementById('punchFixInTime').value = '';
+  document.getElementById('punchFixOutTime').value = '';
+  document.getElementById('punchFixFeedback').style.display = 'none';
+  document.getElementById('punchFixModal').style.display = 'flex';
+}
+
+function closePunchFixModal() { document.getElementById('punchFixModal').style.display = 'none'; }
+
+async function loadPunchFixData() {
+  const date = document.getElementById('punchFixDate').value;
+  const name = document.getElementById('punchFixName').value;
+  if (!date) { showToast('⚠️','日付を選択してください'); return; }
+  if (!name) { showToast('⚠️','氏名を選択してください'); return; }
+  document.getElementById('punchFixFeedback').style.display = 'none';
+  showToast('⏳','読込中...');
+  const r = await gasGet({action:'punch_day_get', date, name});
+  if (isGasError(r)) { showToast('❌','読込に失敗しました。再度お試しください。'); return; }
+  const records = Array.isArray(r) ? r : [];
+  const inRec = records.find(x => x.type==='出勤');
+  const outRec = records.find(x => x.type==='退勤');
+  document.getElementById('punchFixInTime').value = inRec ? inRec.time : '';
+  document.getElementById('punchFixOutTime').value = outRec ? outRec.time : '';
+  showToast('✅','読み込みました');
+}
+
+async function submitPunchFix() {
+  const date = document.getElementById('punchFixDate').value;
+  const name = document.getElementById('punchFixName').value;
+  if (!date) { showToast('⚠️','日付を選択してください'); return; }
+  if (!name) { showToast('⚠️','氏名を選択してください'); return; }
+  const inTime = document.getElementById('punchFixInTime').value;
+  const outTime = document.getElementById('punchFixOutTime').value;
+  const inLabel = inTime ? ('出勤'+inTime) : '出勤（削除）';
+  const outLabel = outTime ? ('退勤'+outTime) : '退勤（削除）';
+  showConfirmDialog({
+    icon: '🖊️',
+    title: '打刻修正の確認',
+    body: name+'さんの'+fmtDate(date)+'の打刻を<br><b>'+inLabel+' / '+outLabel+'</b><br>に修正します。よろしいですか？',
+    okLabel: '修正する',
+    okColor: 'var(--blue)',
+    onOk: async () => {
+      showToast('⏳','修正中...');
+      const r = await gasGet({action:'punch_fix', name, date, inTime, outTime});
+      if (isGasError(r)) { showToast('❌','修正に失敗しました。再度お試しください。'); return; }
+      document.getElementById('punchFixFeedback').style.display = 'block';
+      showToast('✅','修正しました');
+      punchedTodayIn.clear(); punchedTodayOut.clear();
+      const punchPage = document.getElementById('page-punch');
+      if (punchPage && punchPage.classList.contains('active')) loadTodayPunchLog();
+    }
+  });
 }
 
 // ── PUNCH ──
@@ -2841,6 +2939,8 @@ function initApp(){
     if(!new URLSearchParams(window.location.search).get('user')){
       var adjBtn=document.getElementById('navAdjustment');
       if(adjBtn) adjBtn.style.display='';
+      var fixBtn=document.getElementById('navPunchFix');
+      if(fixBtn) fixBtn.style.display='';
     }
     setTimeout(function(){loadTodayPunchLog();},500);
     document.body.addEventListener('click',function(e){
