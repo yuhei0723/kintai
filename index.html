@@ -869,7 +869,14 @@ textarea { resize:vertical; min-height:80px; }
       </div>
     </div>
     <div style="font-size:11px;color:var(--text-sub);margin-bottom:16px;line-height:1.6;">※ 時刻を空欄にして保存すると、その打刻は削除されます</div>
-    <div id="punchFixFeedback" style="display:none;text-align:center;font-size:13px;font-weight:700;color:var(--green);background:var(--green-bg);border-radius:10px;padding:10px;margin-bottom:14px;">✅ 修正しました</div>
+    <div style="border-top:1px dashed var(--border);padding-top:14px;margin-bottom:16px;">
+      <div style="font-size:11px;color:var(--text-sub);margin-bottom:8px;line-height:1.6;">この日を打刻ではなく休暇として記録する場合（打刻は削除され、有給申請として承認済み登録されます）</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="sel-wrap" style="flex:1;margin:0;"><select id="punchFixLeaveKind" style="padding:10px 28px 10px 10px;font-size:13px;"><option value="paid">🌴 有給</option><option value="comp">🔵 代休</option></select><span class="sel-arrow" style="font-size:11px;">▼</span></div>
+        <button onclick="convertPunchToLeave()" style="white-space:nowrap;padding:11px 14px;border:1.5px solid var(--amber);border-radius:10px;background:var(--amber-bg);color:var(--amber);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">休暇に変更</button>
+      </div>
+    </div>
+    <div id="punchFixFeedback" style="display:none;text-align:center;font-size:13px;font-weight:700;color:var(--green);background:var(--green-bg);border-radius:10px;padding:10px;margin-bottom:14px;"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
       <button onclick="closePunchFixModal()" style="padding:14px;border:1.5px solid var(--border);border-radius:12px;background:var(--surface2);color:var(--text-sub);font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">キャンセル</button>
       <button onclick="submitPunchFix()" style="padding:14px;border:none;border-radius:12px;background:var(--blue);color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">保存する</button>
@@ -1384,8 +1391,40 @@ async function submitPunchFix() {
       showToast('⏳','修正中...');
       const r = await gasGet({action:'punch_fix', name, date, inTime, outTime});
       if (isGasError(r)) { showToast('❌','修正に失敗しました。再度お試しください。'); return; }
-      document.getElementById('punchFixFeedback').style.display = 'block';
+      const fb = document.getElementById('punchFixFeedback');
+      fb.textContent = '✅ 修正しました';
+      fb.style.display = 'block';
       showToast('✅','修正しました');
+      punchedTodayIn.clear(); punchedTodayOut.clear();
+      const punchPage = document.getElementById('page-punch');
+      if (punchPage && punchPage.classList.contains('active')) loadTodayPunchLog();
+    }
+  });
+}
+
+async function convertPunchToLeave() {
+  const date = document.getElementById('punchFixDate').value;
+  const name = document.getElementById('punchFixName').value;
+  if (!date) { showToast('⚠️','日付を選択してください'); return; }
+  if (!name) { showToast('⚠️','氏名を選択してください'); return; }
+  const kind = document.getElementById('punchFixLeaveKind').value;
+  const kindLabel = kind==='comp' ? '代休' : '有給';
+  showConfirmDialog({
+    icon: '🌴',
+    title: '休暇への変更確認',
+    body: name+'さんの'+fmtDate(date)+'の打刻を削除し、<br><b>'+kindLabel+'（承認済み）</b>として登録します。<br>よろしいですか？',
+    okLabel: '変更する',
+    okColor: 'var(--amber)',
+    onOk: async () => {
+      showToast('⏳','変更中...');
+      const r = await gasGet({action:'punch_to_leave', name, date, kind, reason:'打刻修正による変更'});
+      if (isGasError(r) || (r && r.ok===false)) { showToast('❌','変更に失敗しました。再度お試しください。'); return; }
+      document.getElementById('punchFixInTime').value = '';
+      document.getElementById('punchFixOutTime').value = '';
+      const fb = document.getElementById('punchFixFeedback');
+      fb.textContent = '✅ '+kindLabel+'に変更しました';
+      fb.style.display = 'block';
+      showToast('✅',kindLabel+'に変更しました');
       punchedTodayIn.clear(); punchedTodayOut.clear();
       const punchPage = document.getElementById('page-punch');
       if (punchPage && punchPage.classList.contains('active')) loadTodayPunchLog();
