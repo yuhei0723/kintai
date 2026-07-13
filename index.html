@@ -844,7 +844,7 @@ textarea { resize:vertical; min-height:80px; }
 
 <!-- MODAL: 打刻修正（日付指定・管理者用） -->
 <div id="punchFixModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:400;align-items:center;justify-content:center;padding:20px;">
-  <div style="background:var(--surface);border-radius:20px;padding:24px 20px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,0.25);">
+  <div style="background:var(--surface);border-radius:20px;padding:24px 20px;width:100%;max-width:480px;box-shadow:0 20px 60px rgba(0,0,0,0.25);">
     <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px;">🖊️ 打刻修正</div>
     <div style="font-size:12px;color:var(--text-sub);margin-bottom:16px;line-height:1.6;">日付と社員を選んで「読込」を押すと、現在の出退勤時刻が表示されます</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
@@ -857,7 +857,8 @@ textarea { resize:vertical; min-height:80px; }
         <div class="sel-wrap" style="margin:0;"><select id="punchFixName" style="padding:12px 30px 12px 10px;font-size:14px;"></select><span class="sel-arrow">▼</span></div>
       </div>
     </div>
-    <button id="punchFixLoadBtn" onclick="loadPunchFixData()" style="width:100%;padding:14px;margin-bottom:18px;border:1.5px solid var(--blue);border-radius:10px;background:var(--blue-bg);color:var(--blue);font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">🔍 読込</button>
+    <button id="punchFixLoadBtn" onclick="loadPunchFixData()" style="width:100%;padding:14px;margin-bottom:14px;border:1.5px solid var(--blue);border-radius:10px;background:var(--blue-bg);color:var(--blue);font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">🔍 読込</button>
+    <div id="punchFixMonthView" style="max-height:280px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;margin-bottom:18px;"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;">
       <div>
         <div class="label" style="margin-bottom:4px;color:var(--green);">出勤時刻</div>
@@ -1350,6 +1351,7 @@ function openPunchFixModal() {
   document.getElementById('punchFixInTime').value = '';
   document.getElementById('punchFixOutTime').value = '';
   document.getElementById('punchFixFeedback').style.display = 'none';
+  document.getElementById('punchFixMonthView').innerHTML = '';
   document.getElementById('punchFixModal').style.display = 'flex';
 }
 
@@ -1370,6 +1372,45 @@ async function loadPunchFixData() {
   document.getElementById('punchFixInTime').value = inRec ? inRec.time : '';
   document.getElementById('punchFixOutTime').value = outRec ? outRec.time : '';
   showToast('✅','読み込みました');
+  loadPunchFixMonthView(date, name);
+}
+
+async function loadPunchFixMonthView(date, name) {
+  const el = document.getElementById('punchFixMonthView');
+  if (!el) return;
+  const [y, mo] = date.split('-').map(Number);
+  el.innerHTML = '<div style="text-align:center;color:var(--text-sub);font-size:12px;padding:14px;">月間データ読込中...</div>';
+  const r = await gasGet({action:'punch_month_get', name, year:y, month:mo});
+  if (isGasError(r) || !r || !Array.isArray(r.days)) { el.innerHTML = '<div style="text-align:center;color:var(--text-sub);font-size:12px;padding:14px;">月間データを取得できませんでした</div>'; return; }
+  const selectedDay = parseInt(date.split('-')[2], 10);
+  const dowNames = ['日','月','火','水','木','金','土'];
+  el.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:12px;">'
+    + '<thead><tr style="position:sticky;top:0;background:var(--surface);">'
+    +   '<th style="padding:6px 8px;text-align:left;color:var(--text-sub);border-bottom:1px solid var(--border);">日</th>'
+    +   '<th style="padding:6px 8px;text-align:center;color:var(--text-sub);border-bottom:1px solid var(--border);">出勤</th>'
+    +   '<th style="padding:6px 8px;text-align:center;color:var(--text-sub);border-bottom:1px solid var(--border);">退勤</th>'
+    +   '<th style="padding:6px 8px;text-align:center;color:var(--text-sub);border-bottom:1px solid var(--border);">備考</th>'
+    + '</tr></thead><tbody>'
+    + r.days.map(d => {
+        const isSelected = d.day === selectedDay;
+        const isWeekend = d.dow===0 || d.dow===6;
+        const note = d.leaveKind==='paid' ? '🌴有給' : d.leaveKind==='comp' ? '🔵代休' : (d.inTime && !d.outTime ? '⚠️退勤漏れ' : '');
+        const dateColor = d.dow===0 ? 'var(--red)' : d.dow===6 ? 'var(--blue)' : 'var(--text)';
+        return '<tr onclick="selectMonthViewDay('+d.day+')" style="background:'+(isSelected?'var(--blue-bg)':'transparent')+';cursor:pointer;">'
+          + '<td style="padding:5px 8px;color:'+dateColor+';font-weight:'+(isSelected?'700':'400')+';">'+d.day+'（'+dowNames[d.dow]+'）</td>'
+          + '<td style="padding:5px 8px;text-align:center;font-family:\'DM Mono\',monospace;">'+(d.inTime || (isWeekend?'':'--'))+'</td>'
+          + '<td style="padding:5px 8px;text-align:center;font-family:\'DM Mono\',monospace;">'+(d.outTime || (isWeekend?'':'--'))+'</td>'
+          + '<td style="padding:5px 8px;text-align:center;">'+note+'</td>'
+        + '</tr>';
+      }).join('')
+    + '</tbody></table>';
+}
+
+function selectMonthViewDay(day) {
+  const dateInput = document.getElementById('punchFixDate');
+  const parts = dateInput.value.split('-');
+  dateInput.value = parts[0]+'-'+parts[1]+'-'+String(day).padStart(2,'0');
+  loadPunchFixData();
 }
 
 async function submitPunchFix() {
@@ -1398,6 +1439,7 @@ async function submitPunchFix() {
       punchedTodayIn.clear(); punchedTodayOut.clear();
       const punchPage = document.getElementById('page-punch');
       if (punchPage && punchPage.classList.contains('active')) loadTodayPunchLog();
+      if (document.getElementById('punchFixMonthView').innerHTML) loadPunchFixMonthView(date, name);
     }
   });
 }
@@ -1428,6 +1470,7 @@ async function convertPunchToLeave() {
       punchedTodayIn.clear(); punchedTodayOut.clear();
       const punchPage = document.getElementById('page-punch');
       if (punchPage && punchPage.classList.contains('active')) loadTodayPunchLog();
+      if (document.getElementById('punchFixMonthView').innerHTML) loadPunchFixMonthView(date, name);
     }
   });
 }
