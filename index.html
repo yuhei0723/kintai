@@ -1043,6 +1043,8 @@ function updateClock() {
 try { setInterval(updateClock, 1000); updateClock(); } catch(e) {}
 
 setInterval(async () => {
+  const punchFixModalEl = document.getElementById('punchFixModal');
+  if (punchFixModalEl && punchFixModalEl.style.display === 'flex') return; // 打刻修正モーダル操作中は自動更新を止める
   const activePage = document.querySelector('.page.active');
   if (!activePage) return;
   const id = activePage.id;
