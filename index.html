@@ -1741,13 +1741,16 @@ function updateLeaveBalance() {
     .reduce((sum, r) => sum + (parseFloat(r.days)||1), 0);
   const encourageUsed = calcEncourageDaysUsed();
 
-  // 代休の調整値（comp）を加算
+  // 代休・有給の調整値を加算
   var compAdj = (window.adjustmentData||[])
     .filter(function(a){ return a.name===name && a.kind==='comp'; })
     .reduce(function(sum,a){ return sum+Number(a.value); }, 0);
+  var paidAdj = (window.adjustmentData||[])
+    .filter(function(a){ return a.name===name && a.kind==='paid'; })
+    .reduce(function(sum,a){ return sum+Number(a.value); }, 0);
 
   function fmtDays(v) { return Number.isInteger(v) ? String(v) : v.toFixed(1); }
-  const paidRemain = Math.max(0, paidGranted-paidUsed-encourageUsed);
+  const paidRemain = Math.max(0, paidGranted-paidUsed-encourageUsed+paidAdj);
   const compRemain = Math.max(0, compGranted-compUsed+compAdj);
   document.getElementById('paidLeaveBalance').textContent = fmtDays(paidRemain);
   document.getElementById('compLeaveBalance').textContent = fmtDays(compRemain);

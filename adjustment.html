@@ -105,6 +105,7 @@
   }
   .kind-tab.active-comp  { border-color: var(--blue);   background: var(--blue-bg);   color: var(--blue); }
   .kind-tab.active-legal { border-color: var(--purple);  background: var(--purple-bg); color: var(--purple); }
+  .kind-tab.active-paid  { border-color: var(--green);   background: var(--green-bg);  color: var(--green); }
   /* ── フォーム ── */
   .form-row { margin-bottom: 14px; }
   .form-label {
@@ -190,6 +191,7 @@
   .btn-submit:active { transform: scale(.98); opacity: .85; }
   .btn-submit-comp  { background: linear-gradient(135deg, var(--blue), #4a9df8);  color: #fff; }
   .btn-submit-legal { background: linear-gradient(135deg, var(--purple), #a78bfa); color: #fff; }
+  .btn-submit-paid  { background: linear-gradient(135deg, var(--green), #4ade80); color: #fff; }
   /* ── 社員サマリーグリッド ── */
   .summary-grid {
     display: grid;
@@ -261,6 +263,8 @@
   .badge-comp-neg  { background: var(--red-bg);    color: var(--red); }
   .badge-legal-pos { background: var(--purple-bg); color: var(--purple); }
   .badge-legal-neg { background: var(--red-bg);    color: var(--red); }
+  .badge-paid-pos  { background: var(--green-bg);  color: var(--green); }
+  .badge-paid-neg  { background: var(--red-bg);    color: var(--red); }
   .history-main { flex: 1; min-width: 0; }
   .history-top {
     display: flex;
@@ -278,6 +282,7 @@
   }
   .tag-comp  { background: var(--blue-bg);   color: var(--blue); }
   .tag-legal { background: var(--purple-bg); color: var(--purple); }
+  .tag-paid  { background: var(--green-bg);  color: var(--green); }
   .history-reason { font-size: 12px; color: var(--text-sub); }
   .history-date   { font-size: 11px; color: var(--text-sub); margin-top: 2px; }
   .history-value {
@@ -343,7 +348,7 @@
   <span class="header-icon">⚖️</span>
   <div>
     <div class="header-title">残日数調整</div>
-    <div class="header-sub">代休残・法定休日取得数の手動補正（管理者専用）</div>
+    <div class="header-sub">有給残・代休残・法定休日取得数の手動補正（管理者専用）</div>
   </div>
 </div>
 
@@ -354,6 +359,7 @@
     <div class="card-title">✏️ 調整を入力する</div>
 
     <div class="section-note">
+      <b>有給残</b>：入社時の繰越や計算ズレなどで有給の残日数がズレている場合に補正します。<br>
       <b>代休残</b>：申請漏れ等で代休の残日数がズレている場合に補正します。<br>
       <b>法定休日取得数</b>：日曜・祝日等の法定休日に休んだ実績が正しく反映されていない場合に補正します。
     </div>
@@ -362,6 +368,7 @@
     <div class="kind-tabs">
       <button class="kind-tab active-comp" id="tabComp"  onclick="selectKind('comp')">🔵 代休残</button>
       <button class="kind-tab"             id="tabLegal" onclick="selectKind('legal')">🟣 法定休日取得数</button>
+      <button class="kind-tab"             id="tabPaid"  onclick="selectKind('paid')">🟢 有給残</button>
     </div>
 
     <!-- 社員選択 -->
@@ -407,6 +414,7 @@
       <button class="filter-chip active" id="chipAll"   onclick="setFilter('all')">すべて</button>
       <button class="filter-chip"        id="chipComp"  onclick="setFilter('comp')">🔵 代休残</button>
       <button class="filter-chip"        id="chipLegal" onclick="setFilter('legal')">🟣 法定休日</button>
+      <button class="filter-chip"        id="chipPaid"  onclick="setFilter('paid')">🟢 有給残</button>
     </div>
     <div id="historyArea" class="loading">読み込み中…</div>
   </div>
@@ -504,14 +512,19 @@ function selectKind(kind) {
 
   var tabComp  = document.getElementById('tabComp');
   var tabLegal = document.getElementById('tabLegal');
+  var tabPaid  = document.getElementById('tabPaid');
   var btn      = document.getElementById('btnSubmit');
 
   tabComp.className  = 'kind-tab' + (kind === 'comp'  ? ' active-comp'  : '');
   tabLegal.className = 'kind-tab' + (kind === 'legal' ? ' active-legal' : '');
+  tabPaid.className  = 'kind-tab' + (kind === 'paid'  ? ' active-paid'  : '');
 
   if (kind === 'comp') {
     btn.className   = 'btn-submit btn-submit-comp';
     btn.textContent = '代休残を調整する';
+  } else if (kind === 'paid') {
+    btn.className   = 'btn-submit btn-submit-paid';
+    btn.textContent = '有給残を調整する';
   } else {
     btn.className   = 'btn-submit btn-submit-legal';
     btn.textContent = '法定休日取得数を調整する';
@@ -535,7 +548,7 @@ function updateStepperUI() {
 
 function setFilter(f) {
   currentFilter = f;
-  ['All','Comp','Legal'].forEach(function(x) {
+  ['All','Comp','Legal','Paid'].forEach(function(x) {
     var el = document.getElementById('chip' + x);
     el.className = 'filter-chip' + (f === x.toLowerCase() ? ' active' : '');
   });
@@ -552,7 +565,7 @@ function submitAdjustment() {
   if (!name) { showToast('❗ 社員を選択してください'); return; }
   if (!GAS_URL) { showToast('❗ GAS URLが未設定です（設定ページで保存してください）'); return; }
 
-  var kindLabel = currentKind === 'comp' ? '代休残' : '法定休日取得数';
+  var kindLabel = currentKind === 'comp' ? '代休残' : (currentKind === 'paid' ? '有給残' : '法定休日取得数');
   var sign      = currentValue > 0 ? '+' : '';
   var confirmed = confirm(
     '以下の内容で調整を登録します。\n\n' +
@@ -641,15 +654,15 @@ function refreshAll() {
 function renderSummary() {
   // 社員ごとに comp / legal の合計を集計
   var totals = {};
-  MEMBERS.forEach(function(m) { totals[m] = { comp: 0, legal: 0 }; });
+  MEMBERS.forEach(function(m) { totals[m] = { comp: 0, legal: 0, paid: 0 }; });
   allHistory.forEach(function(h) {
-    if (!totals[h.name]) totals[h.name] = { comp: 0, legal: 0 };
+    if (!totals[h.name]) totals[h.name] = { comp: 0, legal: 0, paid: 0 };
     totals[h.name][h.kind] += h.value;
   });
 
   // 調整がある社員のみ表示（なければ全員）
   var names = MEMBERS.filter(function(m) {
-    return totals[m].comp !== 0 || totals[m].legal !== 0;
+    return totals[m].comp !== 0 || totals[m].legal !== 0 || totals[m].paid !== 0;
   });
 
   if (names.length === 0) {
@@ -662,8 +675,16 @@ function renderSummary() {
   names.forEach(function(m) {
     var c = totals[m].comp;
     var l = totals[m].legal;
+    var p = totals[m].paid;
     html += '<div class="summary-card">';
     html += '<div class="summary-name">' + esc(m) + '</div>';
+    if (p !== 0) {
+      html += '<div class="summary-row">'
+            + '<span>🟢 有給残</span>'
+            + '<span class="summary-val ' + (p > 0 ? 'pos' : 'neg') + '">'
+            + (p > 0 ? '+' : '') + p
+            + '</span></div>';
+    }
     if (c !== 0) {
       html += '<div class="summary-row">'
             + '<span>🔵 代休残</span>'
@@ -690,6 +711,7 @@ function renderHistory() {
     if (currentFilter === 'all')   return true;
     if (currentFilter === 'comp')  return h.kind === 'comp';
     if (currentFilter === 'legal') return h.kind === 'legal';
+    if (currentFilter === 'paid')  return h.kind === 'paid';
     return true;
   });
 
@@ -703,10 +725,12 @@ function renderHistory() {
   filtered.forEach(function(h) {
     var pos       = h.value > 0;
     var sign      = pos ? '+' : '';
-    var kindLabel = h.kind === 'comp' ? '代休残' : '法定休日取得数';
-    var tagClass  = h.kind === 'comp' ? 'tag-comp' : 'tag-legal';
+    var kindLabel = h.kind === 'comp' ? '代休残' : (h.kind === 'paid' ? '有給残' : '法定休日取得数');
+    var tagClass  = h.kind === 'comp' ? 'tag-comp' : (h.kind === 'paid' ? 'tag-paid' : 'tag-legal');
     var badgeClass = h.kind === 'comp'
       ? (pos ? 'badge-comp-pos'  : 'badge-comp-neg')
+      : h.kind === 'paid'
+      ? (pos ? 'badge-paid-pos'  : 'badge-paid-neg')
       : (pos ? 'badge-legal-pos' : 'badge-legal-neg');
     var badgeIcon = pos ? '＋' : '−';
     var dt        = h.createdAt ? formatDate(h.createdAt) : '';
